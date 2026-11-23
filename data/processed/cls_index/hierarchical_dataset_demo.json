@@ -1,0 +1,3967 @@
+{
+  "schema_version": "cls-hierarchical-dataset-v1",
+  "dataset_stage": "demo",
+  "source_csv": "/Users/Apple/Documents/Computational Thinking/No-Le-DRL/res/events_full.csv",
+  "excluded_parent_groups": [
+    "P"
+  ],
+  "summary": {
+    "total_csv_rows": 153,
+    "accepted_samples": 145,
+    "excluded_by_parent_group": 1,
+    "skipped_exact_duplicates": 0,
+    "leakage_excluded_count": 7,
+    "invalid_rows": 0,
+    "conflicting_normalized_texts": 0,
+    "counts_by_parent_group": {
+      "C1": 56,
+      "C2": 14,
+      "C3": 58,
+      "C4": 15,
+      "C5": 2
+    },
+    "unique_rubric_items": 25,
+    "counts_by_rubric_item": {
+      "1.1": 1,
+      "1.2": 2,
+      "1.3": 1,
+      "1.4": 1,
+      "1.6": 15,
+      "1.7": 2,
+      "1.8": 4,
+      "1.9": 30,
+      "2.1": 1,
+      "2.2": 3,
+      "2.3": 10,
+      "3.1": 7,
+      "3.2": 6,
+      "3.3": 3,
+      "3.5": 36,
+      "3.7": 1,
+      "3.8": 2,
+      "3.14": 3,
+      "4.1": 2,
+      "4.3": 6,
+      "4.4": 1,
+      "4.5": 2,
+      "4.7": 4,
+      "5.1": 1,
+      "5.3": 1
+    }
+  },
+  "conflicting_texts": {},
+  "stage1_coarse_samples": [
+    {
+      "sample_id": "demo_0001",
+      "text": "Ý thức chấp hành Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường",
+      "title": "Ý thức chấp hành Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường",
+      "rubric_item_id": "1.1",
+      "parent_group_id": "C1",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 1
+      }
+    },
+    {
+      "sample_id": "demo_0002",
+      "text": "Điểm trung bình tích lũy HK1/25-26",
+      "title": "Điểm trung bình tích lũy HK1/25-26",
+      "rubric_item_id": "1.2",
+      "parent_group_id": "C1",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 2
+      }
+    },
+    {
+      "sample_id": "demo_0003",
+      "text": "Điểm trung bình tích lũy HK2/25-26",
+      "title": "Điểm trung bình tích lũy HK2/25-26",
+      "rubric_item_id": "1.2",
+      "parent_group_id": "C1",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 3
+      }
+    },
+    {
+      "sample_id": "demo_0004",
+      "text": "Giữ xếp loại xuất sắc so với học kỳ trước",
+      "title": "Giữ xếp loại xuất sắc so với học kỳ trước",
+      "rubric_item_id": "1.3",
+      "parent_group_id": "C1",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 4
+      }
+    },
+    {
+      "sample_id": "demo_0005",
+      "text": "Tăng điểm trung bình tích lũy so với học kỳ trước",
+      "title": "Tăng điểm trung bình tích lũy so với học kỳ trước",
+      "rubric_item_id": "1.4",
+      "parent_group_id": "C1",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 5
+      }
+    },
+    {
+      "sample_id": "demo_0006",
+      "text": "Cuộc thi ENG - aholic 2026 | Vai trò: Tham gia | Đơn vị tổ chức: CLB BEE",
+      "title": "Cuộc thi ENG - aholic 2026",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "CLB BEE",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 6
+      }
+    },
+    {
+      "sample_id": "demo_0007",
+      "text": "Cuộc thi An toàn thông tin HCMUS CTF 2026 | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+      "title": "Cuộc thi An toàn thông tin HCMUS CTF 2026",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 7
+      }
+    },
+    {
+      "sample_id": "demo_0008",
+      "text": "Cuộc thi học thuật Thách Thức 2026 | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+      "title": "Cuộc thi học thuật Thách Thức 2026",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 8
+      }
+    },
+    {
+      "sample_id": "demo_0009",
+      "text": "Sinh viên thi đấu ICPC trường ĐH Khoa học tự nhiên | Đơn vị tổ chức: CNTT",
+      "title": "Sinh viên thi đấu ICPC trường ĐH Khoa học tự nhiên",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 9
+      }
+    },
+    {
+      "sample_id": "demo_0010",
+      "text": "Sinh viên thi đấu Olympic tin học sinh viên trường ĐH Khoa học tự nhiên | Đơn vị tổ chức: CNTT",
+      "title": "Sinh viên thi đấu Olympic tin học sinh viên trường ĐH Khoa học tự nhiên",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 10
+      }
+    },
+    {
+      "sample_id": "demo_0011",
+      "text": "Tham gia thi đấu ICPC các miền | Đơn vị tổ chức: CNTT",
+      "title": "Tham gia thi đấu ICPC các miền",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 11
+      }
+    },
+    {
+      "sample_id": "demo_0012",
+      "text": "Digital Challenge năm 2025 | Đơn vị tổ chức: KHXHNV",
+      "title": "Digital Challenge năm 2025",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "KHXHNV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 12
+      }
+    },
+    {
+      "sample_id": "demo_0013",
+      "text": "AI Challenge 2026 | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+      "title": "AI Challenge 2026",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 13
+      }
+    },
+    {
+      "sample_id": "demo_0015",
+      "text": "Cuộc thi học thuật Journal Hub 2026 The Health Era | Vai trò: Tham gia | Đơn vị tổ chức: LCH SH-CNSH",
+      "title": "Cuộc thi học thuật Journal Hub 2026 The Health Era",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "LCH SH-CNSH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 15
+      }
+    },
+    {
+      "sample_id": "demo_0016",
+      "text": "Thi chọn đội tuyển Olympic Toán sinh viên và học sinh năm 2026 | Đơn vị tổ chức: TTH",
+      "title": "Thi chọn đội tuyển Olympic Toán sinh viên và học sinh năm 2026",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "TTH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 16
+      }
+    },
+    {
+      "sample_id": "demo_0017",
+      "text": "Thi chọn đội tuyển tham gia Kỳ thi Olympic Toán học toàn quốc năm 2026 | Đơn vị tổ chức: TTH",
+      "title": "Thi chọn đội tuyển tham gia Kỳ thi Olympic Toán học toàn quốc năm 2026",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "TTH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 17
+      }
+    },
+    {
+      "sample_id": "demo_0018",
+      "text": "Cuộc thi Coding Challenge | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Cuộc thi Coding Challenge",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "ĐK CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 18
+      }
+    },
+    {
+      "sample_id": "demo_0019",
+      "text": "Thế mạnh vật liệu | Vai trò: Tham gia | Đơn vị tổ chức: ĐK KHCNVL",
+      "title": "Thế mạnh vật liệu",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "ĐK KHCNVL",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 19
+      }
+    },
+    {
+      "sample_id": "demo_0020",
+      "text": "Cuộc thi học thuật Lốc Xanh | Vai trò: Tham gia | Đơn vị tổ chức: ĐK MT",
+      "title": "Cuộc thi học thuật Lốc Xanh",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "ĐK MT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 20
+      }
+    },
+    {
+      "sample_id": "demo_0022",
+      "text": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025 | Vai trò: Tham gia | Đơn vị tổ chức: ĐTN",
+      "title": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025",
+      "rubric_item_id": "1.6",
+      "parent_group_id": "C1",
+      "organizer": "ĐTN",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 22
+      }
+    },
+    {
+      "sample_id": "demo_0023",
+      "text": "Cuộc thi Coding Challenge | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Cuộc thi Coding Challenge",
+      "rubric_item_id": "1.7",
+      "parent_group_id": "C1",
+      "organizer": "ĐK CNTT",
+      "role": "Ban tổ chức",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 23
+      }
+    },
+    {
+      "sample_id": "demo_0024",
+      "text": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025 | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐTN",
+      "title": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025",
+      "rubric_item_id": "1.7",
+      "parent_group_id": "C1",
+      "organizer": "ĐTN",
+      "role": "Ban tổ chức",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 24
+      }
+    },
+    {
+      "sample_id": "demo_0025",
+      "text": "Thành viên CLB Design ITUS | Đơn vị tổ chức: LCH CNTT",
+      "title": "Thành viên CLB Design ITUS",
+      "rubric_item_id": "1.8",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 25
+      }
+    },
+    {
+      "sample_id": "demo_0026",
+      "text": "Thành viên CLB Google Developer Group on Campus - HCMUS | Đơn vị tổ chức: LCH CNTT",
+      "title": "Thành viên CLB Google Developer Group on Campus - HCMUS",
+      "rubric_item_id": "1.8",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 26
+      }
+    },
+    {
+      "sample_id": "demo_0027",
+      "text": "Thành viên CLB Google Developer Group on Campus - HCMUS | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+      "title": "Thành viên CLB Google Developer Group on Campus - HCMUS",
+      "rubric_item_id": "1.8",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 27
+      }
+    },
+    {
+      "sample_id": "demo_0028",
+      "text": "Tham gia sinh hoạt thường xuyên tại Thư viện | Đơn vị tổ chức: Thuvien",
+      "title": "Tham gia sinh hoạt thường xuyên tại Thư viện",
+      "rubric_item_id": "1.8",
+      "parent_group_id": "C1",
+      "organizer": "Thuvien",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 28
+      }
+    },
+    {
+      "sample_id": "demo_0029",
+      "text": "Tổ chức các buổi ôn tập cuối kỳ | Đơn vị tổ chức: BCSL",
+      "title": "Tổ chức các buổi ôn tập cuối kỳ",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "BCSL",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 29
+      }
+    },
+    {
+      "sample_id": "demo_0030",
+      "text": "Mid - Semester Revision | Vai trò: Tham gia | Đơn vị tổ chức: CLB BEE",
+      "title": "Mid - Semester Revision",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CLB BEE",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 30
+      }
+    },
+    {
+      "sample_id": "demo_0031",
+      "text": "Chuyên đề Kỹ năng mềm khóa 2025 | Đơn vị tổ chức: CNTT",
+      "title": "Chuyên đề Kỹ năng mềm khóa 2025",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 31
+      }
+    },
+    {
+      "sample_id": "demo_0032",
+      "text": "Chương trình Hành trang Tân sinh viên | Đơn vị tổ chức: CNTT",
+      "title": "Chương trình Hành trang Tân sinh viên",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 32
+      }
+    },
+    {
+      "sample_id": "demo_0033",
+      "text": "Chương trình Người trong nghề | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+      "title": "Chương trình Người trong nghề",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 33
+      }
+    },
+    {
+      "sample_id": "demo_0034",
+      "text": "Seminar From Sci - fi Inspirations to Novel Human - Computer Interactions | Đơn vị tổ chức: CNTT",
+      "title": "Seminar From Sci - fi Inspirations to Novel Human - Computer Interactions",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 34
+      }
+    },
+    {
+      "sample_id": "demo_0036",
+      "text": "Seminar Học thuật về một số nghiên cứu nổi bật của sinh viên Khoa CNTT | Đơn vị tổ chức: CNTT",
+      "title": "Seminar Học thuật về một số nghiên cứu nổi bật của sinh viên Khoa CNTT",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 36
+      }
+    },
+    {
+      "sample_id": "demo_0037",
+      "text": "Seminar Physical Reservoir Computing Using Oscillator Networks | Đơn vị tổ chức: CNTT",
+      "title": "Seminar Physical Reservoir Computing Using Oscillator Networks",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 37
+      }
+    },
+    {
+      "sample_id": "demo_0038",
+      "text": "Seminar chủ đề Formal Specification and Verification of Post - quantum Cryptographic Protocols with Proof Scores | Đơn vị tổ chức: CNTT",
+      "title": "Seminar chủ đề Formal Specification and Verification of Post - quantum Cryptographic Protocols with Proof Scores",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 38
+      }
+    },
+    {
+      "sample_id": "demo_0039",
+      "text": "Seminar học thuật Câu lạc bộ Nghiên cứu khoa học | Đơn vị tổ chức: CNTT",
+      "title": "Seminar học thuật Câu lạc bộ Nghiên cứu khoa học",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 39
+      }
+    },
+    {
+      "sample_id": "demo_0041",
+      "text": "Tham quan công ty VNG | Đơn vị tổ chức: CNTT",
+      "title": "Tham quan công ty VNG",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 41
+      }
+    },
+    {
+      "sample_id": "demo_0043",
+      "text": "Chương trình Phát triển Nhân tài số | Đơn vị tổ chức: CTSV",
+      "title": "Chương trình Phát triển Nhân tài số",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 43
+      }
+    },
+    {
+      "sample_id": "demo_0044",
+      "text": "Chương trình tập huấn kỹ năng Nhận biết và các bước sơ cứu tâm lý cho bạn cùng lớp khi gặp khó khăn tinh thần | Đơn vị tổ chức: CTSV",
+      "title": "Chương trình tập huấn kỹ năng Nhận biết và các bước sơ cứu tâm lý cho bạn cùng lớp khi gặp khó khăn tinh thần",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 44
+      }
+    },
+    {
+      "sample_id": "demo_0045",
+      "text": "Hội nghị Tập huấn kỹ năng Ban Cán sự lớp 2025 - 2026 | Đơn vị tổ chức: CTSV",
+      "title": "Hội nghị Tập huấn kỹ năng Ban Cán sự lớp 2025 - 2026",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 45
+      }
+    },
+    {
+      "sample_id": "demo_0046",
+      "text": "Workshop \"AI thực chiến: Kỹ năng sử dụng AI an toàn cho sinh viên thời đại số\" | Đơn vị tổ chức: CTSV",
+      "title": "Workshop \"AI thực chiến: Kỹ năng sử dụng AI an toàn cho sinh viên thời đại số\"",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 46
+      }
+    },
+    {
+      "sample_id": "demo_0047",
+      "text": "Chuyên đề 01 Kỹ năng viết bài nghiên cứu khoa học thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02 | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+      "title": "Chuyên đề 01 Kỹ năng viết bài nghiên cứu khoa học thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "HSV",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 47
+      }
+    },
+    {
+      "sample_id": "demo_0048",
+      "text": "Chuyên đề 03 Xác định đề tài và định hướng nghiên cứu thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02 | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+      "title": "Chuyên đề 03 Xác định đề tài và định hướng nghiên cứu thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "HSV",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 48
+      }
+    },
+    {
+      "sample_id": "demo_0049",
+      "text": "ĐỢT 1 - Chuyên đề 01 ứng dụng Công nghệ số trong học tập thông minh thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 | Đơn vị tổ chức: HSV",
+      "title": "ĐỢT 1 - Chuyên đề 01 ứng dụng Công nghệ số trong học tập thông minh thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "HSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 49
+      }
+    },
+    {
+      "sample_id": "demo_0050",
+      "text": "Build on Stellar | Đơn vị tổ chức: LCH CNTT",
+      "title": "Build on Stellar",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 50
+      }
+    },
+    {
+      "sample_id": "demo_0051",
+      "text": "Tọa đàm Hành trang Sinh viên năm Nhất - Nghiên cứu khoa học và Khát vọng vươn mình của Sinh viên | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+      "title": "Tọa đàm Hành trang Sinh viên năm Nhất - Nghiên cứu khoa học và Khát vọng vươn mình của Sinh viên",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 51
+      }
+    },
+    {
+      "sample_id": "demo_0052",
+      "text": "Workshop \"CS101\" | Đơn vị tổ chức: LCH CNTT",
+      "title": "Workshop \"CS101\"",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 52
+      }
+    },
+    {
+      "sample_id": "demo_0053",
+      "text": "Workshop Devfest on Campus | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+      "title": "Workshop Devfest on Campus",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "LCH CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 53
+      }
+    },
+    {
+      "sample_id": "demo_0054",
+      "text": "Science fair góc nhìn sáng tạo về khoa học | Đơn vị tổ chức: SH-CNSH",
+      "title": "Science fair góc nhìn sáng tạo về khoa học",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "SH-CNSH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 54
+      }
+    },
+    {
+      "sample_id": "demo_0055",
+      "text": "Tham gia Chuyên đề trong Dự án HCMUS Future Leaders | Đơn vị tổ chức: U-Sci Hub",
+      "title": "Tham gia Chuyên đề trong Dự án HCMUS Future Leaders",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "U-Sci Hub",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 55
+      }
+    },
+    {
+      "sample_id": "demo_0056",
+      "text": "Workshop Chinh phục IELTS thành công bằng phương pháp Linearthinking | Đơn vị tổ chức: U-Sci Hub",
+      "title": "Workshop Chinh phục IELTS thành công bằng phương pháp Linearthinking",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "U-Sci Hub",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 56
+      }
+    },
+    {
+      "sample_id": "demo_0057",
+      "text": "Vui cùng Vocabulary | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+      "title": "Vui cùng Vocabulary",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "ĐK SH-CNSH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 57
+      }
+    },
+    {
+      "sample_id": "demo_0058",
+      "text": "Workshop Gemini Mastery – Khai phóng tiềm năng nghiên cứu & kỹ thuật với Prompt Engineering | Đơn vị tổ chức: ĐK TTH",
+      "title": "Workshop Gemini Mastery – Khai phóng tiềm năng nghiên cứu & kỹ thuật với Prompt Engineering",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "ĐK TTH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 58
+      }
+    },
+    {
+      "sample_id": "demo_0059",
+      "text": "Tuần lễ chuyển đổi số | Đơn vị tổ chức: ĐTN",
+      "title": "Tuần lễ chuyển đổi số",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 59
+      }
+    },
+    {
+      "sample_id": "demo_0060",
+      "text": "Unitour - Hành Trình Euréka 2025 | Đơn vị tổ chức: ĐTN",
+      "title": "Unitour - Hành Trình Euréka 2025",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 60
+      }
+    },
+    {
+      "sample_id": "demo_0061",
+      "text": "Watch Party NVIDIA GTC 2026 | Đơn vị tổ chức: ĐTN",
+      "title": "Watch Party NVIDIA GTC 2026",
+      "rubric_item_id": "1.9",
+      "parent_group_id": "C1",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 61
+      }
+    },
+    {
+      "sample_id": "demo_0062",
+      "text": "Ý thức chấp hành nội quy, quy chế",
+      "title": "Ý thức chấp hành nội quy, quy chế",
+      "rubric_item_id": "2.1",
+      "parent_group_id": "C2",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 62
+      }
+    },
+    {
+      "sample_id": "demo_0063",
+      "text": "Tham gia đánh giá môn học",
+      "title": "Tham gia đánh giá môn học",
+      "rubric_item_id": "2.2",
+      "parent_group_id": "C2",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 63
+      }
+    },
+    {
+      "sample_id": "demo_0064",
+      "text": "Tham gia đánh giá môn học HK3/25-26",
+      "title": "Tham gia đánh giá môn học HK3/25-26",
+      "rubric_item_id": "2.2",
+      "parent_group_id": "C2",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 64
+      }
+    },
+    {
+      "sample_id": "demo_0065",
+      "text": "Tham gia đánh giá môn học và khóa học HK1/25-26",
+      "title": "Tham gia đánh giá môn học và khóa học HK1/25-26",
+      "rubric_item_id": "2.2",
+      "parent_group_id": "C2",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 65
+      }
+    },
+    {
+      "sample_id": "demo_0066",
+      "text": "Khảo sát hoạt động Chào Tân sinh viên 2025 | Đơn vị tổ chức: CNTT",
+      "title": "Khảo sát hoạt động Chào Tân sinh viên 2025",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 66
+      }
+    },
+    {
+      "sample_id": "demo_0067",
+      "text": "Khảo sát kỹ năng lập trình 2025 | Đơn vị tổ chức: CNTT",
+      "title": "Khảo sát kỹ năng lập trình 2025",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 67
+      }
+    },
+    {
+      "sample_id": "demo_0068",
+      "text": "Khảo sát sử dụng công cụ AI trong học tập | Đơn vị tổ chức: CNTT",
+      "title": "Khảo sát sử dụng công cụ AI trong học tập",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 68
+      }
+    },
+    {
+      "sample_id": "demo_0069",
+      "text": "Khảo sát mức độ hài lòng của sinh viên với hoạt động chủ nhiệm lớp | Đơn vị tổ chức: CTSV",
+      "title": "Khảo sát mức độ hài lòng của sinh viên với hoạt động chủ nhiệm lớp",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 69
+      }
+    },
+    {
+      "sample_id": "demo_0070",
+      "text": "Khảo sát phục vụ đề án đổi mới, chuẩn hóa chương trình môn học Giáo dục thể chất tại ĐHQG - HCM | Đơn vị tổ chức: CTSV",
+      "title": "Khảo sát phục vụ đề án đổi mới, chuẩn hóa chương trình môn học Giáo dục thể chất tại ĐHQG - HCM",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 70
+      }
+    },
+    {
+      "sample_id": "demo_0071",
+      "text": "Khảo sát sự hài lòng của người học với trải nghiệm học tập tại Đại học Quốc gia Thành phố Hồ Chí Minh năm 2026 | Đơn vị tổ chức: CTSV",
+      "title": "Khảo sát sự hài lòng của người học với trải nghiệm học tập tại Đại học Quốc gia Thành phố Hồ Chí Minh năm 2026",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 71
+      }
+    },
+    {
+      "sample_id": "demo_0072",
+      "text": "Khảo sát thời gian hoạt động tuyến đường sắt đô thị số 1 | Đơn vị tổ chức: CTSV",
+      "title": "Khảo sát thời gian hoạt động tuyến đường sắt đô thị số 1",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 72
+      }
+    },
+    {
+      "sample_id": "demo_0073",
+      "text": "Khảo sát thực trạng và tiềm năng KN&ĐMST của người học tại ĐHQG - HCM | Đơn vị tổ chức: CTSV",
+      "title": "Khảo sát thực trạng và tiềm năng KN&ĐMST của người học tại ĐHQG - HCM",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 73
+      }
+    },
+    {
+      "sample_id": "demo_0074",
+      "text": "Khảo sát thực trạng, nhu cầu, mức độ hài lòng và kỳ vọng của sinh viên đối với Ký túc xá Đại học Quốc gia Thành phố Hồ Chí Minh | Đơn vị tổ chức: CTSV",
+      "title": "Khảo sát thực trạng, nhu cầu, mức độ hài lòng và kỳ vọng của sinh viên đối với Ký túc xá Đại học Quốc gia Thành phố Hồ Chí Minh",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 74
+      }
+    },
+    {
+      "sample_id": "demo_0075",
+      "text": "Khảo sát mức độ sẵn sàng của tân sinh viên đối với ngành học, trường học và kênh tư vấn hướng nghiệp - tuyển sinh năm 2025 | Đơn vị tổ chức: TTTT",
+      "title": "Khảo sát mức độ sẵn sàng của tân sinh viên đối với ngành học, trường học và kênh tư vấn hướng nghiệp - tuyển sinh năm 2025",
+      "rubric_item_id": "2.3",
+      "parent_group_id": "C2",
+      "organizer": "TTTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 75
+      }
+    },
+    {
+      "sample_id": "demo_0076",
+      "text": "Cuộc thi Vinh quang dưới cờ Đảng",
+      "title": "Cuộc thi Vinh quang dưới cờ Đảng",
+      "rubric_item_id": "3.1",
+      "parent_group_id": "C3",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 76
+      }
+    },
+    {
+      "sample_id": "demo_0077",
+      "text": "Cuộc thi trực tuyến \"HCMUS: Unlock the Rules\" 2026 | Đơn vị tổ chức: CTSV",
+      "title": "Cuộc thi trực tuyến \"HCMUS: Unlock the Rules\" 2026",
+      "rubric_item_id": "3.1",
+      "parent_group_id": "C3",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 77
+      }
+    },
+    {
+      "sample_id": "demo_0078",
+      "text": "Cuộc thi trực tuyến \"Sinh viên Trường Đại học Khoa học tự nhiên tìm hiểu pháp luật\" | Đơn vị tổ chức: CTSV",
+      "title": "Cuộc thi trực tuyến \"Sinh viên Trường Đại học Khoa học tự nhiên tìm hiểu pháp luật\"",
+      "rubric_item_id": "3.1",
+      "parent_group_id": "C3",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 78
+      }
+    },
+    {
+      "sample_id": "demo_0079",
+      "text": "Cuộc thi tuyên truyền phòng chống lừa đảo trực tuyến, đảm bảo an toàn, an ninh mạng \"Không một mình – Cùng nhau an toàn trực tuyến\" | Đơn vị tổ chức: CTSV",
+      "title": "Cuộc thi tuyên truyền phòng chống lừa đảo trực tuyến, đảm bảo an toàn, an ninh mạng \"Không một mình – Cùng nhau an toàn trực tuyến\"",
+      "rubric_item_id": "3.1",
+      "parent_group_id": "C3",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 79
+      }
+    },
+    {
+      "sample_id": "demo_0080",
+      "text": "Hội thi Tìm hiểu nghị quyết số 57 - NQ - TW | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+      "title": "Hội thi Tìm hiểu nghị quyết số 57 - NQ - TW",
+      "rubric_item_id": "3.1",
+      "parent_group_id": "C3",
+      "organizer": "HSV",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 80
+      }
+    },
+    {
+      "sample_id": "demo_0081",
+      "text": "International culture challenge | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+      "title": "International culture challenge",
+      "rubric_item_id": "3.1",
+      "parent_group_id": "C3",
+      "organizer": "HSV",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 81
+      }
+    },
+    {
+      "sample_id": "demo_0082",
+      "text": "Cuộc thi Một dải non sông - 80 năm độc lập | Đơn vị tổ chức: LCH ĐC",
+      "title": "Cuộc thi Một dải non sông - 80 năm độc lập",
+      "rubric_item_id": "3.1",
+      "parent_group_id": "C3",
+      "organizer": "LCH ĐC",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 82
+      }
+    },
+    {
+      "sample_id": "demo_0083",
+      "text": "Đại hội Đại biểu Hội Sinh viên Việt Nam Trường Đại học Khoa học tự nhiên, ĐHQG - HCM lần thứ XIII, nhiệm kỳ 2025 - 2028 | Vai trò: Ban tổ chức | Đơn vị tổ chức: HSV",
+      "title": "Đại hội Đại biểu Hội Sinh viên Việt Nam Trường Đại học Khoa học tự nhiên, ĐHQG - HCM lần thứ XIII, nhiệm kỳ 2025 - 2028",
+      "rubric_item_id": "3.14",
+      "parent_group_id": "C3",
+      "organizer": "HSV",
+      "role": "Ban tổ chức",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 83
+      }
+    },
+    {
+      "sample_id": "demo_0084",
+      "text": "Đại hội chi Đoàn | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Đại hội chi Đoàn",
+      "rubric_item_id": "3.14",
+      "parent_group_id": "C3",
+      "organizer": "ĐK CNTT",
+      "role": "Ban tổ chức",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 84
+      }
+    },
+    {
+      "sample_id": "demo_0085",
+      "text": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026 | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK SH-CNSH",
+      "title": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026",
+      "rubric_item_id": "3.14",
+      "parent_group_id": "C3",
+      "organizer": "ĐK SH-CNSH",
+      "role": "Ban tổ chức",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 85
+      }
+    },
+    {
+      "sample_id": "demo_0086",
+      "text": "Thanh niên khoẻ | Vai trò: Tham gia | Đơn vị tổ chức: CLB SV5T",
+      "title": "Thanh niên khoẻ",
+      "rubric_item_id": "3.2",
+      "parent_group_id": "C3",
+      "organizer": "CLB SV5T",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 86
+      }
+    },
+    {
+      "sample_id": "demo_0087",
+      "text": "Thử thách bứt phá | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+      "title": "Thử thách bứt phá",
+      "rubric_item_id": "3.2",
+      "parent_group_id": "C3",
+      "organizer": "LCH CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 87
+      }
+    },
+    {
+      "sample_id": "demo_0088",
+      "text": "Thanh niên khỏe | Vai trò: Tham gia | Đơn vị tổ chức: LCH HH",
+      "title": "Thanh niên khỏe",
+      "rubric_item_id": "3.2",
+      "parent_group_id": "C3",
+      "organizer": "LCH HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 88
+      }
+    },
+    {
+      "sample_id": "demo_0089",
+      "text": "Thanh niên khỏe - đợt 2 | Vai trò: Tham gia | Đơn vị tổ chức: LCH HH",
+      "title": "Thanh niên khỏe - đợt 2",
+      "rubric_item_id": "3.2",
+      "parent_group_id": "C3",
+      "organizer": "LCH HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 89
+      }
+    },
+    {
+      "sample_id": "demo_0090",
+      "text": "Thanh niên khỏe 2025 | Vai trò: Tham gia | Đơn vị tổ chức: LCH VL-VLKT",
+      "title": "Thanh niên khỏe 2025",
+      "rubric_item_id": "3.2",
+      "parent_group_id": "C3",
+      "organizer": "LCH VL-VLKT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 90
+      }
+    },
+    {
+      "sample_id": "demo_0091",
+      "text": "Hcmus Run 2026 | Đơn vị tổ chức: ĐTN",
+      "title": "Hcmus Run 2026",
+      "rubric_item_id": "3.2",
+      "parent_group_id": "C3",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 91
+      }
+    },
+    {
+      "sample_id": "demo_0092",
+      "text": "Let IT Shine 2025 | Vai trò: Huy động lực lượng | Đơn vị tổ chức: CNTT",
+      "title": "Let IT Shine 2025",
+      "rubric_item_id": "3.3",
+      "parent_group_id": "C3",
+      "organizer": "CNTT",
+      "role": "Huy động lực lượng",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 92
+      }
+    },
+    {
+      "sample_id": "demo_0093",
+      "text": "Giải Bóng đá Futsal sinh viên ĐHQG - HCM năm 2025 - Trận nam ngày 08 - 11 | Vai trò: Huy động lực lượng | Đơn vị tổ chức: CTSV",
+      "title": "Giải Bóng đá Futsal sinh viên ĐHQG - HCM năm 2025 - Trận nam ngày 08 - 11",
+      "rubric_item_id": "3.3",
+      "parent_group_id": "C3",
+      "organizer": "CTSV",
+      "role": "Huy động lực lượng",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 93
+      }
+    },
+    {
+      "sample_id": "demo_0094",
+      "text": "Lễ Tổng kết Khóa học thử nghiệm Đợt 1 – Dự án \"HCMUS Future Leaders\" | Vai trò: Huy động lực lượng | Đơn vị tổ chức: U-Sci Hub",
+      "title": "Lễ Tổng kết Khóa học thử nghiệm Đợt 1 – Dự án \"HCMUS Future Leaders\"",
+      "rubric_item_id": "3.3",
+      "parent_group_id": "C3",
+      "organizer": "U-Sci Hub",
+      "role": "Huy động lực lượng",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 94
+      }
+    },
+    {
+      "sample_id": "demo_0095",
+      "text": "Talkshow inside us | Vai trò: Tham gia | Đơn vị tổ chức: CLB LLT",
+      "title": "Talkshow inside us",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "CLB LLT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 95
+      }
+    },
+    {
+      "sample_id": "demo_0096",
+      "text": "Từ buổi đầu dựng nước đến kỷ nguyên vươn mình | Đơn vị tổ chức: CLB LLT",
+      "title": "Từ buổi đầu dựng nước đến kỷ nguyên vươn mình",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "CLB LLT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 96
+      }
+    },
+    {
+      "sample_id": "demo_0097",
+      "text": "Workshop Jewels of Joy | Đơn vị tổ chức: CNTT",
+      "title": "Workshop Jewels of Joy",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 97
+      }
+    },
+    {
+      "sample_id": "demo_0098",
+      "text": "Workshop Uốn sắc màu, Vẽ yêu thương | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+      "title": "Workshop Uốn sắc màu, Vẽ yêu thương",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 98
+      }
+    },
+    {
+      "sample_id": "demo_0099",
+      "text": "Chương trình Kết nối, Tham quan \"Let's connect\" | Đơn vị tổ chức: CTSV",
+      "title": "Chương trình Kết nối, Tham quan \"Let's connect\"",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 99
+      }
+    },
+    {
+      "sample_id": "demo_0100",
+      "text": "Cuộc thi không gian văn hóa Hồ chí Minh - Dấu ấn Thành phố mang tên Bác | Đơn vị tổ chức: KHXHNV",
+      "title": "Cuộc thi không gian văn hóa Hồ chí Minh - Dấu ấn Thành phố mang tên Bác",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "KHXHNV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 100
+      }
+    },
+    {
+      "sample_id": "demo_0101",
+      "text": "Cuộc thi trắc nghiệm kiến thức trực tuyến \"Tự hào sinh viên thành phố bác: hiểu truyền thống - mạnh tiên phong\" | Đơn vị tổ chức: KHXHNV",
+      "title": "Cuộc thi trắc nghiệm kiến thức trực tuyến \"Tự hào sinh viên thành phố bác: hiểu truyền thống - mạnh tiên phong\"",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "KHXHNV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 101
+      }
+    },
+    {
+      "sample_id": "demo_0102",
+      "text": "Cuộc thi trắc nghiệm trực tuyến Tìm hiểu Nghị quyết 57 - NQ/TW về đột phá phát triển khoa học, công nghệ, đổi mới sáng tạo và chuyển đổi số quốc gia | Đơn vị tổ chức: KHXHNV",
+      "title": "Cuộc thi trắc nghiệm trực tuyến Tìm hiểu Nghị quyết 57 - NQ/TW về đột phá phát triển khoa học, công nghệ, đổi mới sáng tạo và chuyển đổi số quốc gia",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "KHXHNV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 102
+      }
+    },
+    {
+      "sample_id": "demo_0103",
+      "text": "Chào mừng ngày nhà giáo Việt Nam 20 - 11 | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+      "title": "Chào mừng ngày nhà giáo Việt Nam 20 - 11",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "LCH CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 103
+      }
+    },
+    {
+      "sample_id": "demo_0104",
+      "text": "Tọa đàm Hành trang sinh viên năm Nhất - Nghệ thuật quản lý cảm xúc tại môi trường Đại học | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+      "title": "Tọa đàm Hành trang sinh viên năm Nhất - Nghệ thuật quản lý cảm xúc tại môi trường Đại học",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "LCH CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 104
+      }
+    },
+    {
+      "sample_id": "demo_0105",
+      "text": "Cuộc thi Tìm hiểu văn hóa Quốc tế Cultural Quintessence 4 | Vai trò: Tham gia | Đơn vị tổ chức: LCH HH",
+      "title": "Cuộc thi Tìm hiểu văn hóa Quốc tế Cultural Quintessence 4",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "LCH HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 105
+      }
+    },
+    {
+      "sample_id": "demo_0106",
+      "text": "Đại hội chi Hội - CLB - Đội trực thuộc LCH khoa Sinh học - Công nghệ Sinh học năm học 2025 - 2026 | Vai trò: Tham gia | Đơn vị tổ chức: LCH SH-CNSH",
+      "title": "Đại hội chi Hội - CLB - Đội trực thuộc LCH khoa Sinh học - Công nghệ Sinh học năm học 2025 - 2026",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "LCH SH-CNSH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 106
+      }
+    },
+    {
+      "sample_id": "demo_0107",
+      "text": "Cuộc thi Tuổi trẻ với biển đảo quê hương | Vai trò: Tham gia | Đơn vị tổ chức: LCH TTH",
+      "title": "Cuộc thi Tuổi trẻ với biển đảo quê hương",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "LCH TTH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 107
+      }
+    },
+    {
+      "sample_id": "demo_0108",
+      "text": "Cuộc thi tìm hiểu Nghị quyết Đại hội đại biểu Đảng bộ Thành phố Hồ Chí Minh lần thứ I, nhiệm kỳ 2025 - 2030 | Vai trò: Tham gia | Đơn vị tổ chức: LCH TTH",
+      "title": "Cuộc thi tìm hiểu Nghị quyết Đại hội đại biểu Đảng bộ Thành phố Hồ Chí Minh lần thứ I, nhiệm kỳ 2025 - 2030",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "LCH TTH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 108
+      }
+    },
+    {
+      "sample_id": "demo_0109",
+      "text": "Hoạt động - 30 năm – Dấu ấn Hội | Đơn vị tổ chức: LCH ĐC",
+      "title": "Hoạt động - 30 năm – Dấu ấn Hội",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "LCH ĐC",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 109
+      }
+    },
+    {
+      "sample_id": "demo_0110",
+      "text": "Chào mừng ngày Quốc Tế Phụ nữ 08_03 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Chào mừng ngày Quốc Tế Phụ nữ 08_03",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 110
+      }
+    },
+    {
+      "sample_id": "demo_0112",
+      "text": "Itogether | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Itogether",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 112
+      }
+    },
+    {
+      "sample_id": "demo_0113",
+      "text": "Đại hội chi Đoàn | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Đại hội chi Đoàn",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 113
+      }
+    },
+    {
+      "sample_id": "demo_0114",
+      "text": "An ninh Tổ quốc | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+      "title": "An ninh Tổ quốc",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 114
+      }
+    },
+    {
+      "sample_id": "demo_0115",
+      "text": "Cuộc thi tìm hiểu về ngày Quốc tế lao động 01_05 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+      "title": "Cuộc thi tìm hiểu về ngày Quốc tế lao động 01_05",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 115
+      }
+    },
+    {
+      "sample_id": "demo_0116",
+      "text": "Quiz Master Nội quy trong tầm tay | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+      "title": "Quiz Master Nội quy trong tầm tay",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 116
+      }
+    },
+    {
+      "sample_id": "demo_0117",
+      "text": "Tìm hiểu về ngày quốc tế lao động 01 - 5 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+      "title": "Tìm hiểu về ngày quốc tế lao động 01 - 5",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 117
+      }
+    },
+    {
+      "sample_id": "demo_0118",
+      "text": "Hưởng ứng Ngày động vật hoang dã 03_3 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+      "title": "Hưởng ứng Ngày động vật hoang dã 03_3",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK SH-CNSH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 118
+      }
+    },
+    {
+      "sample_id": "demo_0119",
+      "text": "Ngày Chủ nhật xanh giai đoạn 1 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+      "title": "Ngày Chủ nhật xanh giai đoạn 1",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK SH-CNSH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 119
+      }
+    },
+    {
+      "sample_id": "demo_0120",
+      "text": "Sinh học với Pháp luật | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+      "title": "Sinh học với Pháp luật",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK SH-CNSH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 120
+      }
+    },
+    {
+      "sample_id": "demo_0121",
+      "text": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+      "title": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK SH-CNSH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 121
+      }
+    },
+    {
+      "sample_id": "demo_0122",
+      "text": "Cuộc thi Tìm hiểu pháp luật về phòng chống ma túy | Vai trò: Tham gia | Đơn vị tổ chức: ĐK TTH",
+      "title": "Cuộc thi Tìm hiểu pháp luật về phòng chống ma túy",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK TTH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 122
+      }
+    },
+    {
+      "sample_id": "demo_0123",
+      "text": "Hoạt động TOGETHER ASEAN cùng nhau tìm hiểu văn hóa Đông Nam Á | Vai trò: Tham gia | Đơn vị tổ chức: ĐK TTH",
+      "title": "Hoạt động TOGETHER ASEAN cùng nhau tìm hiểu văn hóa Đông Nam Á",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK TTH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 123
+      }
+    },
+    {
+      "sample_id": "demo_0124",
+      "text": "Ngày Pháp Luật Việt Nam | Vai trò: Tham gia | Đơn vị tổ chức: ĐK TTH",
+      "title": "Ngày Pháp Luật Việt Nam",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK TTH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 124
+      }
+    },
+    {
+      "sample_id": "demo_0125",
+      "text": "Thử thách trực tuyến - Không gian mạng an toàn - Ứng xử văn minh | Đơn vị tổ chức: ĐK TTH",
+      "title": "Thử thách trực tuyến - Không gian mạng an toàn - Ứng xử văn minh",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐK TTH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 125
+      }
+    },
+    {
+      "sample_id": "demo_0126",
+      "text": "Chương trình kỷ niệm 30 năm hành trình tiếp nối, chủ đề 30 năm - Một hành trình, triệu niềm tin | Vai trò: Tham gia | Đơn vị tổ chức: ĐTN",
+      "title": "Chương trình kỷ niệm 30 năm hành trình tiếp nối, chủ đề 30 năm - Một hành trình, triệu niềm tin",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐTN",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 126
+      }
+    },
+    {
+      "sample_id": "demo_0127",
+      "text": "Chương trình kỷ niệm 96 năm thành lập Đảng Cộng sản Hồ Chí Minh và Tất niên cán bộ | Đơn vị tổ chức: ĐTN",
+      "title": "Chương trình kỷ niệm 96 năm thành lập Đảng Cộng sản Hồ Chí Minh và Tất niên cán bộ",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 127
+      }
+    },
+    {
+      "sample_id": "demo_0128",
+      "text": "Các hoạt động bên lề đồng hành cùng Hội thi Hành trình Bản lĩnh hạt giống xanh | Đơn vị tổ chức: ĐTN",
+      "title": "Các hoạt động bên lề đồng hành cùng Hội thi Hành trình Bản lĩnh hạt giống xanh",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 128
+      }
+    },
+    {
+      "sample_id": "demo_0129",
+      "text": "Học tập Lý luận chính trị | Vai trò: Tham gia | Đơn vị tổ chức: ĐTN",
+      "title": "Học tập Lý luận chính trị",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐTN",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 129
+      }
+    },
+    {
+      "sample_id": "demo_0130",
+      "text": "Khai giảng năm học 2025 - 2026 | Đơn vị tổ chức: ĐTN",
+      "title": "Khai giảng năm học 2025 - 2026",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 130
+      }
+    },
+    {
+      "sample_id": "demo_0131",
+      "text": "Lớp các bài Lý luận chính trị đợt tháng 10 - 2025 | Đơn vị tổ chức: ĐTN",
+      "title": "Lớp các bài Lý luận chính trị đợt tháng 10 - 2025",
+      "rubric_item_id": "3.5",
+      "parent_group_id": "C3",
+      "organizer": "ĐTN",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 131
+      }
+    },
+    {
+      "sample_id": "demo_0132",
+      "text": "Tham gia phòng chống tội phạm và các tệ nạn xã hội",
+      "title": "Tham gia phòng chống tội phạm và các tệ nạn xã hội",
+      "rubric_item_id": "3.7",
+      "parent_group_id": "C3",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 132
+      }
+    },
+    {
+      "sample_id": "demo_0133",
+      "text": "Ngày hội việc làm khoa CNTT | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+      "title": "Ngày hội việc làm khoa CNTT",
+      "rubric_item_id": "3.8",
+      "parent_group_id": "C3",
+      "organizer": "CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 133
+      }
+    },
+    {
+      "sample_id": "demo_0134",
+      "text": "Ngày hội việc làm My Jobs năm 2026 | Đơn vị tổ chức: SH-CNSH",
+      "title": "Ngày hội việc làm My Jobs năm 2026",
+      "rubric_item_id": "3.8",
+      "parent_group_id": "C3",
+      "organizer": "SH-CNSH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 134
+      }
+    },
+    {
+      "sample_id": "demo_0135",
+      "text": "Chấp hành Luật Bảo hiểm y tế",
+      "title": "Chấp hành Luật Bảo hiểm y tế",
+      "rubric_item_id": "4.1",
+      "parent_group_id": "C4",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 135
+      }
+    },
+    {
+      "sample_id": "demo_0136",
+      "text": "Ý thức chấp hành pháp luật",
+      "title": "Ý thức chấp hành pháp luật",
+      "rubric_item_id": "4.1",
+      "parent_group_id": "C4",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 136
+      }
+    },
+    {
+      "sample_id": "demo_0137",
+      "text": "Tình nguyện hỗ trợ Đón Tân Sinh viên khóa 2026 | Đơn vị tổ chức: CTSV",
+      "title": "Tình nguyện hỗ trợ Đón Tân Sinh viên khóa 2026",
+      "rubric_item_id": "4.3",
+      "parent_group_id": "C4",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 137
+      }
+    },
+    {
+      "sample_id": "demo_0138",
+      "text": "Chiến dịch Mùa hè Xanh năm 2026 | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+      "title": "Chiến dịch Mùa hè Xanh năm 2026",
+      "rubric_item_id": "4.3",
+      "parent_group_id": "C4",
+      "organizer": "HSV",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 138
+      }
+    },
+    {
+      "sample_id": "demo_0139",
+      "text": "Danh sách tình nguyện viên tiếp nhận quyên góp cho các tỉnh miền Trung | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+      "title": "Danh sách tình nguyện viên tiếp nhận quyên góp cho các tỉnh miền Trung",
+      "rubric_item_id": "4.3",
+      "parent_group_id": "C4",
+      "organizer": "HSV",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 139
+      }
+    },
+    {
+      "sample_id": "demo_0140",
+      "text": "Tình nguyện viên Hỗ trợ hoạt động Thư viện | Đơn vị tổ chức: Thuvien",
+      "title": "Tình nguyện viên Hỗ trợ hoạt động Thư viện",
+      "rubric_item_id": "4.3",
+      "parent_group_id": "C4",
+      "organizer": "Thuvien",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 140
+      }
+    },
+    {
+      "sample_id": "demo_0141",
+      "text": "Hạ Xanh Hy Vọng | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Hạ Xanh Hy Vọng",
+      "rubric_item_id": "4.3",
+      "parent_group_id": "C4",
+      "organizer": "ĐK CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 141
+      }
+    },
+    {
+      "sample_id": "demo_0142",
+      "text": "Trạm tuổi thơ | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Trạm tuổi thơ",
+      "rubric_item_id": "4.3",
+      "parent_group_id": "C4",
+      "organizer": "ĐK CNTT",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 142
+      }
+    },
+    {
+      "sample_id": "demo_0143",
+      "text": "Hạ Xanh Hy Vọng | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK CNTT",
+      "title": "Hạ Xanh Hy Vọng",
+      "rubric_item_id": "4.4",
+      "parent_group_id": "C4",
+      "organizer": "ĐK CNTT",
+      "role": "Ban tổ chức",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 143
+      }
+    },
+    {
+      "sample_id": "demo_0145",
+      "text": "Gây quỹ Hoạt động tình nguyện HOHO DU KÝ Số 05 Ươm mầm tri thức | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+      "title": "Gây quỹ Hoạt động tình nguyện HOHO DU KÝ Số 05 Ươm mầm tri thức",
+      "rubric_item_id": "4.5",
+      "parent_group_id": "C4",
+      "organizer": "ĐK HH",
+      "role": "Tham gia",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 145
+      }
+    },
+    {
+      "sample_id": "demo_0146",
+      "text": "Mầm xanh hy vọng | Vai trò: Gây quỹ | Đơn vị tổ chức: ĐK TTH",
+      "title": "Mầm xanh hy vọng",
+      "rubric_item_id": "4.5",
+      "parent_group_id": "C4",
+      "organizer": "ĐK TTH",
+      "role": "Gây quỹ",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 146
+      }
+    },
+    {
+      "sample_id": "demo_0147",
+      "text": "Ban cán sự hoàn thành tốt nhiệm vụ | Đơn vị tổ chức: CNTT",
+      "title": "Ban cán sự hoàn thành tốt nhiệm vụ",
+      "rubric_item_id": "4.7",
+      "parent_group_id": "C4",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 147
+      }
+    },
+    {
+      "sample_id": "demo_0148",
+      "text": "Ban cán sự lớp hoàn thành tốt nhiệm vụ trở lên | Đơn vị tổ chức: CTSV",
+      "title": "Ban cán sự lớp hoàn thành tốt nhiệm vụ trở lên",
+      "rubric_item_id": "4.7",
+      "parent_group_id": "C4",
+      "organizer": "CTSV",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 148
+      }
+    },
+    {
+      "sample_id": "demo_0149",
+      "text": "Danh sách ban cán sự lớp hoàn thành tốt nhiệm vụ | Đơn vị tổ chức: SH-CNSH",
+      "title": "Danh sách ban cán sự lớp hoàn thành tốt nhiệm vụ",
+      "rubric_item_id": "4.7",
+      "parent_group_id": "C4",
+      "organizer": "SH-CNSH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 149
+      }
+    },
+    {
+      "sample_id": "demo_0150",
+      "text": "Hoàn thành tốt nhiệm vụ Ban cán sự | Đơn vị tổ chức: SH-CNSH",
+      "title": "Hoàn thành tốt nhiệm vụ Ban cán sự",
+      "rubric_item_id": "4.7",
+      "parent_group_id": "C4",
+      "organizer": "SH-CNSH",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 150
+      }
+    },
+    {
+      "sample_id": "demo_0151",
+      "text": "Thành tích tại Kỳ thi Olympic Tin học Sinh viên HCMUS năm 2025",
+      "title": "Thành tích tại Kỳ thi Olympic Tin học Sinh viên HCMUS năm 2025",
+      "rubric_item_id": "5.1",
+      "parent_group_id": "C5",
+      "organizer": "",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 151
+      }
+    },
+    {
+      "sample_id": "demo_0152",
+      "text": "Đội tuyển ICPC Bắc, Trung, Nam, Quốc gia, Châu Á | Đơn vị tổ chức: CNTT",
+      "title": "Đội tuyển ICPC Bắc, Trung, Nam, Quốc gia, Châu Á",
+      "rubric_item_id": "5.3",
+      "parent_group_id": "C5",
+      "organizer": "CNTT",
+      "role": "",
+      "source": "seed_demo",
+      "metadata": {
+        "csv_row": 152
+      }
+    }
+  ],
+  "stage2_by_parent_group": {
+    "C1": [
+      {
+        "sample_id": "demo_0001",
+        "text": "Ý thức chấp hành Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường",
+        "title": "Ý thức chấp hành Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường",
+        "rubric_item_id": "1.1",
+        "parent_group_id": "C1",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 1
+        }
+      },
+      {
+        "sample_id": "demo_0002",
+        "text": "Điểm trung bình tích lũy HK1/25-26",
+        "title": "Điểm trung bình tích lũy HK1/25-26",
+        "rubric_item_id": "1.2",
+        "parent_group_id": "C1",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 2
+        }
+      },
+      {
+        "sample_id": "demo_0003",
+        "text": "Điểm trung bình tích lũy HK2/25-26",
+        "title": "Điểm trung bình tích lũy HK2/25-26",
+        "rubric_item_id": "1.2",
+        "parent_group_id": "C1",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 3
+        }
+      },
+      {
+        "sample_id": "demo_0004",
+        "text": "Giữ xếp loại xuất sắc so với học kỳ trước",
+        "title": "Giữ xếp loại xuất sắc so với học kỳ trước",
+        "rubric_item_id": "1.3",
+        "parent_group_id": "C1",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 4
+        }
+      },
+      {
+        "sample_id": "demo_0005",
+        "text": "Tăng điểm trung bình tích lũy so với học kỳ trước",
+        "title": "Tăng điểm trung bình tích lũy so với học kỳ trước",
+        "rubric_item_id": "1.4",
+        "parent_group_id": "C1",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 5
+        }
+      },
+      {
+        "sample_id": "demo_0006",
+        "text": "Cuộc thi ENG - aholic 2026 | Vai trò: Tham gia | Đơn vị tổ chức: CLB BEE",
+        "title": "Cuộc thi ENG - aholic 2026",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "CLB BEE",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 6
+        }
+      },
+      {
+        "sample_id": "demo_0007",
+        "text": "Cuộc thi An toàn thông tin HCMUS CTF 2026 | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+        "title": "Cuộc thi An toàn thông tin HCMUS CTF 2026",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 7
+        }
+      },
+      {
+        "sample_id": "demo_0008",
+        "text": "Cuộc thi học thuật Thách Thức 2026 | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+        "title": "Cuộc thi học thuật Thách Thức 2026",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 8
+        }
+      },
+      {
+        "sample_id": "demo_0009",
+        "text": "Sinh viên thi đấu ICPC trường ĐH Khoa học tự nhiên | Đơn vị tổ chức: CNTT",
+        "title": "Sinh viên thi đấu ICPC trường ĐH Khoa học tự nhiên",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 9
+        }
+      },
+      {
+        "sample_id": "demo_0010",
+        "text": "Sinh viên thi đấu Olympic tin học sinh viên trường ĐH Khoa học tự nhiên | Đơn vị tổ chức: CNTT",
+        "title": "Sinh viên thi đấu Olympic tin học sinh viên trường ĐH Khoa học tự nhiên",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 10
+        }
+      },
+      {
+        "sample_id": "demo_0011",
+        "text": "Tham gia thi đấu ICPC các miền | Đơn vị tổ chức: CNTT",
+        "title": "Tham gia thi đấu ICPC các miền",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 11
+        }
+      },
+      {
+        "sample_id": "demo_0012",
+        "text": "Digital Challenge năm 2025 | Đơn vị tổ chức: KHXHNV",
+        "title": "Digital Challenge năm 2025",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "KHXHNV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 12
+        }
+      },
+      {
+        "sample_id": "demo_0013",
+        "text": "AI Challenge 2026 | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "AI Challenge 2026",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 13
+        }
+      },
+      {
+        "sample_id": "demo_0015",
+        "text": "Cuộc thi học thuật Journal Hub 2026 The Health Era | Vai trò: Tham gia | Đơn vị tổ chức: LCH SH-CNSH",
+        "title": "Cuộc thi học thuật Journal Hub 2026 The Health Era",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "LCH SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 15
+        }
+      },
+      {
+        "sample_id": "demo_0016",
+        "text": "Thi chọn đội tuyển Olympic Toán sinh viên và học sinh năm 2026 | Đơn vị tổ chức: TTH",
+        "title": "Thi chọn đội tuyển Olympic Toán sinh viên và học sinh năm 2026",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "TTH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 16
+        }
+      },
+      {
+        "sample_id": "demo_0017",
+        "text": "Thi chọn đội tuyển tham gia Kỳ thi Olympic Toán học toàn quốc năm 2026 | Đơn vị tổ chức: TTH",
+        "title": "Thi chọn đội tuyển tham gia Kỳ thi Olympic Toán học toàn quốc năm 2026",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "TTH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 17
+        }
+      },
+      {
+        "sample_id": "demo_0018",
+        "text": "Cuộc thi Coding Challenge | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Cuộc thi Coding Challenge",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "ĐK CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 18
+        }
+      },
+      {
+        "sample_id": "demo_0019",
+        "text": "Thế mạnh vật liệu | Vai trò: Tham gia | Đơn vị tổ chức: ĐK KHCNVL",
+        "title": "Thế mạnh vật liệu",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "ĐK KHCNVL",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 19
+        }
+      },
+      {
+        "sample_id": "demo_0020",
+        "text": "Cuộc thi học thuật Lốc Xanh | Vai trò: Tham gia | Đơn vị tổ chức: ĐK MT",
+        "title": "Cuộc thi học thuật Lốc Xanh",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "ĐK MT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 20
+        }
+      },
+      {
+        "sample_id": "demo_0022",
+        "text": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025 | Vai trò: Tham gia | Đơn vị tổ chức: ĐTN",
+        "title": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "ĐTN",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 22
+        }
+      },
+      {
+        "sample_id": "demo_0023",
+        "text": "Cuộc thi Coding Challenge | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Cuộc thi Coding Challenge",
+        "rubric_item_id": "1.7",
+        "parent_group_id": "C1",
+        "organizer": "ĐK CNTT",
+        "role": "Ban tổ chức",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 23
+        }
+      },
+      {
+        "sample_id": "demo_0024",
+        "text": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025 | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐTN",
+        "title": "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025",
+        "rubric_item_id": "1.7",
+        "parent_group_id": "C1",
+        "organizer": "ĐTN",
+        "role": "Ban tổ chức",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 24
+        }
+      },
+      {
+        "sample_id": "demo_0025",
+        "text": "Thành viên CLB Design ITUS | Đơn vị tổ chức: LCH CNTT",
+        "title": "Thành viên CLB Design ITUS",
+        "rubric_item_id": "1.8",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 25
+        }
+      },
+      {
+        "sample_id": "demo_0026",
+        "text": "Thành viên CLB Google Developer Group on Campus - HCMUS | Đơn vị tổ chức: LCH CNTT",
+        "title": "Thành viên CLB Google Developer Group on Campus - HCMUS",
+        "rubric_item_id": "1.8",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 26
+        }
+      },
+      {
+        "sample_id": "demo_0027",
+        "text": "Thành viên CLB Google Developer Group on Campus - HCMUS | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "Thành viên CLB Google Developer Group on Campus - HCMUS",
+        "rubric_item_id": "1.8",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 27
+        }
+      },
+      {
+        "sample_id": "demo_0028",
+        "text": "Tham gia sinh hoạt thường xuyên tại Thư viện | Đơn vị tổ chức: Thuvien",
+        "title": "Tham gia sinh hoạt thường xuyên tại Thư viện",
+        "rubric_item_id": "1.8",
+        "parent_group_id": "C1",
+        "organizer": "Thuvien",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 28
+        }
+      },
+      {
+        "sample_id": "demo_0029",
+        "text": "Tổ chức các buổi ôn tập cuối kỳ | Đơn vị tổ chức: BCSL",
+        "title": "Tổ chức các buổi ôn tập cuối kỳ",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "BCSL",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 29
+        }
+      },
+      {
+        "sample_id": "demo_0030",
+        "text": "Mid - Semester Revision | Vai trò: Tham gia | Đơn vị tổ chức: CLB BEE",
+        "title": "Mid - Semester Revision",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CLB BEE",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 30
+        }
+      },
+      {
+        "sample_id": "demo_0031",
+        "text": "Chuyên đề Kỹ năng mềm khóa 2025 | Đơn vị tổ chức: CNTT",
+        "title": "Chuyên đề Kỹ năng mềm khóa 2025",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 31
+        }
+      },
+      {
+        "sample_id": "demo_0032",
+        "text": "Chương trình Hành trang Tân sinh viên | Đơn vị tổ chức: CNTT",
+        "title": "Chương trình Hành trang Tân sinh viên",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 32
+        }
+      },
+      {
+        "sample_id": "demo_0033",
+        "text": "Chương trình Người trong nghề | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+        "title": "Chương trình Người trong nghề",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 33
+        }
+      },
+      {
+        "sample_id": "demo_0034",
+        "text": "Seminar From Sci - fi Inspirations to Novel Human - Computer Interactions | Đơn vị tổ chức: CNTT",
+        "title": "Seminar From Sci - fi Inspirations to Novel Human - Computer Interactions",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 34
+        }
+      },
+      {
+        "sample_id": "demo_0036",
+        "text": "Seminar Học thuật về một số nghiên cứu nổi bật của sinh viên Khoa CNTT | Đơn vị tổ chức: CNTT",
+        "title": "Seminar Học thuật về một số nghiên cứu nổi bật của sinh viên Khoa CNTT",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 36
+        }
+      },
+      {
+        "sample_id": "demo_0037",
+        "text": "Seminar Physical Reservoir Computing Using Oscillator Networks | Đơn vị tổ chức: CNTT",
+        "title": "Seminar Physical Reservoir Computing Using Oscillator Networks",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 37
+        }
+      },
+      {
+        "sample_id": "demo_0038",
+        "text": "Seminar chủ đề Formal Specification and Verification of Post - quantum Cryptographic Protocols with Proof Scores | Đơn vị tổ chức: CNTT",
+        "title": "Seminar chủ đề Formal Specification and Verification of Post - quantum Cryptographic Protocols with Proof Scores",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 38
+        }
+      },
+      {
+        "sample_id": "demo_0039",
+        "text": "Seminar học thuật Câu lạc bộ Nghiên cứu khoa học | Đơn vị tổ chức: CNTT",
+        "title": "Seminar học thuật Câu lạc bộ Nghiên cứu khoa học",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 39
+        }
+      },
+      {
+        "sample_id": "demo_0041",
+        "text": "Tham quan công ty VNG | Đơn vị tổ chức: CNTT",
+        "title": "Tham quan công ty VNG",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 41
+        }
+      },
+      {
+        "sample_id": "demo_0043",
+        "text": "Chương trình Phát triển Nhân tài số | Đơn vị tổ chức: CTSV",
+        "title": "Chương trình Phát triển Nhân tài số",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 43
+        }
+      },
+      {
+        "sample_id": "demo_0044",
+        "text": "Chương trình tập huấn kỹ năng Nhận biết và các bước sơ cứu tâm lý cho bạn cùng lớp khi gặp khó khăn tinh thần | Đơn vị tổ chức: CTSV",
+        "title": "Chương trình tập huấn kỹ năng Nhận biết và các bước sơ cứu tâm lý cho bạn cùng lớp khi gặp khó khăn tinh thần",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 44
+        }
+      },
+      {
+        "sample_id": "demo_0045",
+        "text": "Hội nghị Tập huấn kỹ năng Ban Cán sự lớp 2025 - 2026 | Đơn vị tổ chức: CTSV",
+        "title": "Hội nghị Tập huấn kỹ năng Ban Cán sự lớp 2025 - 2026",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 45
+        }
+      },
+      {
+        "sample_id": "demo_0046",
+        "text": "Workshop \"AI thực chiến: Kỹ năng sử dụng AI an toàn cho sinh viên thời đại số\" | Đơn vị tổ chức: CTSV",
+        "title": "Workshop \"AI thực chiến: Kỹ năng sử dụng AI an toàn cho sinh viên thời đại số\"",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 46
+        }
+      },
+      {
+        "sample_id": "demo_0047",
+        "text": "Chuyên đề 01 Kỹ năng viết bài nghiên cứu khoa học thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02 | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+        "title": "Chuyên đề 01 Kỹ năng viết bài nghiên cứu khoa học thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "HSV",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 47
+        }
+      },
+      {
+        "sample_id": "demo_0048",
+        "text": "Chuyên đề 03 Xác định đề tài và định hướng nghiên cứu thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02 | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+        "title": "Chuyên đề 03 Xác định đề tài và định hướng nghiên cứu thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "HSV",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 48
+        }
+      },
+      {
+        "sample_id": "demo_0049",
+        "text": "ĐỢT 1 - Chuyên đề 01 ứng dụng Công nghệ số trong học tập thông minh thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 | Đơn vị tổ chức: HSV",
+        "title": "ĐỢT 1 - Chuyên đề 01 ứng dụng Công nghệ số trong học tập thông minh thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "HSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 49
+        }
+      },
+      {
+        "sample_id": "demo_0050",
+        "text": "Build on Stellar | Đơn vị tổ chức: LCH CNTT",
+        "title": "Build on Stellar",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 50
+        }
+      },
+      {
+        "sample_id": "demo_0051",
+        "text": "Tọa đàm Hành trang Sinh viên năm Nhất - Nghiên cứu khoa học và Khát vọng vươn mình của Sinh viên | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "Tọa đàm Hành trang Sinh viên năm Nhất - Nghiên cứu khoa học và Khát vọng vươn mình của Sinh viên",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 51
+        }
+      },
+      {
+        "sample_id": "demo_0052",
+        "text": "Workshop \"CS101\" | Đơn vị tổ chức: LCH CNTT",
+        "title": "Workshop \"CS101\"",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 52
+        }
+      },
+      {
+        "sample_id": "demo_0053",
+        "text": "Workshop Devfest on Campus | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "Workshop Devfest on Campus",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 53
+        }
+      },
+      {
+        "sample_id": "demo_0054",
+        "text": "Science fair góc nhìn sáng tạo về khoa học | Đơn vị tổ chức: SH-CNSH",
+        "title": "Science fair góc nhìn sáng tạo về khoa học",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "SH-CNSH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 54
+        }
+      },
+      {
+        "sample_id": "demo_0055",
+        "text": "Tham gia Chuyên đề trong Dự án HCMUS Future Leaders | Đơn vị tổ chức: U-Sci Hub",
+        "title": "Tham gia Chuyên đề trong Dự án HCMUS Future Leaders",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "U-Sci Hub",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 55
+        }
+      },
+      {
+        "sample_id": "demo_0056",
+        "text": "Workshop Chinh phục IELTS thành công bằng phương pháp Linearthinking | Đơn vị tổ chức: U-Sci Hub",
+        "title": "Workshop Chinh phục IELTS thành công bằng phương pháp Linearthinking",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "U-Sci Hub",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 56
+        }
+      },
+      {
+        "sample_id": "demo_0057",
+        "text": "Vui cùng Vocabulary | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+        "title": "Vui cùng Vocabulary",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "ĐK SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 57
+        }
+      },
+      {
+        "sample_id": "demo_0058",
+        "text": "Workshop Gemini Mastery – Khai phóng tiềm năng nghiên cứu & kỹ thuật với Prompt Engineering | Đơn vị tổ chức: ĐK TTH",
+        "title": "Workshop Gemini Mastery – Khai phóng tiềm năng nghiên cứu & kỹ thuật với Prompt Engineering",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "ĐK TTH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 58
+        }
+      },
+      {
+        "sample_id": "demo_0059",
+        "text": "Tuần lễ chuyển đổi số | Đơn vị tổ chức: ĐTN",
+        "title": "Tuần lễ chuyển đổi số",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 59
+        }
+      },
+      {
+        "sample_id": "demo_0060",
+        "text": "Unitour - Hành Trình Euréka 2025 | Đơn vị tổ chức: ĐTN",
+        "title": "Unitour - Hành Trình Euréka 2025",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 60
+        }
+      },
+      {
+        "sample_id": "demo_0061",
+        "text": "Watch Party NVIDIA GTC 2026 | Đơn vị tổ chức: ĐTN",
+        "title": "Watch Party NVIDIA GTC 2026",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 61
+        }
+      }
+    ],
+    "C2": [
+      {
+        "sample_id": "demo_0062",
+        "text": "Ý thức chấp hành nội quy, quy chế",
+        "title": "Ý thức chấp hành nội quy, quy chế",
+        "rubric_item_id": "2.1",
+        "parent_group_id": "C2",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 62
+        }
+      },
+      {
+        "sample_id": "demo_0063",
+        "text": "Tham gia đánh giá môn học",
+        "title": "Tham gia đánh giá môn học",
+        "rubric_item_id": "2.2",
+        "parent_group_id": "C2",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 63
+        }
+      },
+      {
+        "sample_id": "demo_0064",
+        "text": "Tham gia đánh giá môn học HK3/25-26",
+        "title": "Tham gia đánh giá môn học HK3/25-26",
+        "rubric_item_id": "2.2",
+        "parent_group_id": "C2",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 64
+        }
+      },
+      {
+        "sample_id": "demo_0065",
+        "text": "Tham gia đánh giá môn học và khóa học HK1/25-26",
+        "title": "Tham gia đánh giá môn học và khóa học HK1/25-26",
+        "rubric_item_id": "2.2",
+        "parent_group_id": "C2",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 65
+        }
+      },
+      {
+        "sample_id": "demo_0066",
+        "text": "Khảo sát hoạt động Chào Tân sinh viên 2025 | Đơn vị tổ chức: CNTT",
+        "title": "Khảo sát hoạt động Chào Tân sinh viên 2025",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 66
+        }
+      },
+      {
+        "sample_id": "demo_0067",
+        "text": "Khảo sát kỹ năng lập trình 2025 | Đơn vị tổ chức: CNTT",
+        "title": "Khảo sát kỹ năng lập trình 2025",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 67
+        }
+      },
+      {
+        "sample_id": "demo_0068",
+        "text": "Khảo sát sử dụng công cụ AI trong học tập | Đơn vị tổ chức: CNTT",
+        "title": "Khảo sát sử dụng công cụ AI trong học tập",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 68
+        }
+      },
+      {
+        "sample_id": "demo_0069",
+        "text": "Khảo sát mức độ hài lòng của sinh viên với hoạt động chủ nhiệm lớp | Đơn vị tổ chức: CTSV",
+        "title": "Khảo sát mức độ hài lòng của sinh viên với hoạt động chủ nhiệm lớp",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 69
+        }
+      },
+      {
+        "sample_id": "demo_0070",
+        "text": "Khảo sát phục vụ đề án đổi mới, chuẩn hóa chương trình môn học Giáo dục thể chất tại ĐHQG - HCM | Đơn vị tổ chức: CTSV",
+        "title": "Khảo sát phục vụ đề án đổi mới, chuẩn hóa chương trình môn học Giáo dục thể chất tại ĐHQG - HCM",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 70
+        }
+      },
+      {
+        "sample_id": "demo_0071",
+        "text": "Khảo sát sự hài lòng của người học với trải nghiệm học tập tại Đại học Quốc gia Thành phố Hồ Chí Minh năm 2026 | Đơn vị tổ chức: CTSV",
+        "title": "Khảo sát sự hài lòng của người học với trải nghiệm học tập tại Đại học Quốc gia Thành phố Hồ Chí Minh năm 2026",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 71
+        }
+      },
+      {
+        "sample_id": "demo_0072",
+        "text": "Khảo sát thời gian hoạt động tuyến đường sắt đô thị số 1 | Đơn vị tổ chức: CTSV",
+        "title": "Khảo sát thời gian hoạt động tuyến đường sắt đô thị số 1",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 72
+        }
+      },
+      {
+        "sample_id": "demo_0073",
+        "text": "Khảo sát thực trạng và tiềm năng KN&ĐMST của người học tại ĐHQG - HCM | Đơn vị tổ chức: CTSV",
+        "title": "Khảo sát thực trạng và tiềm năng KN&ĐMST của người học tại ĐHQG - HCM",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 73
+        }
+      },
+      {
+        "sample_id": "demo_0074",
+        "text": "Khảo sát thực trạng, nhu cầu, mức độ hài lòng và kỳ vọng của sinh viên đối với Ký túc xá Đại học Quốc gia Thành phố Hồ Chí Minh | Đơn vị tổ chức: CTSV",
+        "title": "Khảo sát thực trạng, nhu cầu, mức độ hài lòng và kỳ vọng của sinh viên đối với Ký túc xá Đại học Quốc gia Thành phố Hồ Chí Minh",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 74
+        }
+      },
+      {
+        "sample_id": "demo_0075",
+        "text": "Khảo sát mức độ sẵn sàng của tân sinh viên đối với ngành học, trường học và kênh tư vấn hướng nghiệp - tuyển sinh năm 2025 | Đơn vị tổ chức: TTTT",
+        "title": "Khảo sát mức độ sẵn sàng của tân sinh viên đối với ngành học, trường học và kênh tư vấn hướng nghiệp - tuyển sinh năm 2025",
+        "rubric_item_id": "2.3",
+        "parent_group_id": "C2",
+        "organizer": "TTTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 75
+        }
+      }
+    ],
+    "C3": [
+      {
+        "sample_id": "demo_0076",
+        "text": "Cuộc thi Vinh quang dưới cờ Đảng",
+        "title": "Cuộc thi Vinh quang dưới cờ Đảng",
+        "rubric_item_id": "3.1",
+        "parent_group_id": "C3",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 76
+        }
+      },
+      {
+        "sample_id": "demo_0077",
+        "text": "Cuộc thi trực tuyến \"HCMUS: Unlock the Rules\" 2026 | Đơn vị tổ chức: CTSV",
+        "title": "Cuộc thi trực tuyến \"HCMUS: Unlock the Rules\" 2026",
+        "rubric_item_id": "3.1",
+        "parent_group_id": "C3",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 77
+        }
+      },
+      {
+        "sample_id": "demo_0078",
+        "text": "Cuộc thi trực tuyến \"Sinh viên Trường Đại học Khoa học tự nhiên tìm hiểu pháp luật\" | Đơn vị tổ chức: CTSV",
+        "title": "Cuộc thi trực tuyến \"Sinh viên Trường Đại học Khoa học tự nhiên tìm hiểu pháp luật\"",
+        "rubric_item_id": "3.1",
+        "parent_group_id": "C3",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 78
+        }
+      },
+      {
+        "sample_id": "demo_0079",
+        "text": "Cuộc thi tuyên truyền phòng chống lừa đảo trực tuyến, đảm bảo an toàn, an ninh mạng \"Không một mình – Cùng nhau an toàn trực tuyến\" | Đơn vị tổ chức: CTSV",
+        "title": "Cuộc thi tuyên truyền phòng chống lừa đảo trực tuyến, đảm bảo an toàn, an ninh mạng \"Không một mình – Cùng nhau an toàn trực tuyến\"",
+        "rubric_item_id": "3.1",
+        "parent_group_id": "C3",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 79
+        }
+      },
+      {
+        "sample_id": "demo_0080",
+        "text": "Hội thi Tìm hiểu nghị quyết số 57 - NQ - TW | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+        "title": "Hội thi Tìm hiểu nghị quyết số 57 - NQ - TW",
+        "rubric_item_id": "3.1",
+        "parent_group_id": "C3",
+        "organizer": "HSV",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 80
+        }
+      },
+      {
+        "sample_id": "demo_0081",
+        "text": "International culture challenge | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+        "title": "International culture challenge",
+        "rubric_item_id": "3.1",
+        "parent_group_id": "C3",
+        "organizer": "HSV",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 81
+        }
+      },
+      {
+        "sample_id": "demo_0082",
+        "text": "Cuộc thi Một dải non sông - 80 năm độc lập | Đơn vị tổ chức: LCH ĐC",
+        "title": "Cuộc thi Một dải non sông - 80 năm độc lập",
+        "rubric_item_id": "3.1",
+        "parent_group_id": "C3",
+        "organizer": "LCH ĐC",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 82
+        }
+      },
+      {
+        "sample_id": "demo_0083",
+        "text": "Đại hội Đại biểu Hội Sinh viên Việt Nam Trường Đại học Khoa học tự nhiên, ĐHQG - HCM lần thứ XIII, nhiệm kỳ 2025 - 2028 | Vai trò: Ban tổ chức | Đơn vị tổ chức: HSV",
+        "title": "Đại hội Đại biểu Hội Sinh viên Việt Nam Trường Đại học Khoa học tự nhiên, ĐHQG - HCM lần thứ XIII, nhiệm kỳ 2025 - 2028",
+        "rubric_item_id": "3.14",
+        "parent_group_id": "C3",
+        "organizer": "HSV",
+        "role": "Ban tổ chức",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 83
+        }
+      },
+      {
+        "sample_id": "demo_0084",
+        "text": "Đại hội chi Đoàn | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Đại hội chi Đoàn",
+        "rubric_item_id": "3.14",
+        "parent_group_id": "C3",
+        "organizer": "ĐK CNTT",
+        "role": "Ban tổ chức",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 84
+        }
+      },
+      {
+        "sample_id": "demo_0085",
+        "text": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026 | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK SH-CNSH",
+        "title": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026",
+        "rubric_item_id": "3.14",
+        "parent_group_id": "C3",
+        "organizer": "ĐK SH-CNSH",
+        "role": "Ban tổ chức",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 85
+        }
+      },
+      {
+        "sample_id": "demo_0086",
+        "text": "Thanh niên khoẻ | Vai trò: Tham gia | Đơn vị tổ chức: CLB SV5T",
+        "title": "Thanh niên khoẻ",
+        "rubric_item_id": "3.2",
+        "parent_group_id": "C3",
+        "organizer": "CLB SV5T",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 86
+        }
+      },
+      {
+        "sample_id": "demo_0087",
+        "text": "Thử thách bứt phá | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "Thử thách bứt phá",
+        "rubric_item_id": "3.2",
+        "parent_group_id": "C3",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 87
+        }
+      },
+      {
+        "sample_id": "demo_0088",
+        "text": "Thanh niên khỏe | Vai trò: Tham gia | Đơn vị tổ chức: LCH HH",
+        "title": "Thanh niên khỏe",
+        "rubric_item_id": "3.2",
+        "parent_group_id": "C3",
+        "organizer": "LCH HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 88
+        }
+      },
+      {
+        "sample_id": "demo_0089",
+        "text": "Thanh niên khỏe - đợt 2 | Vai trò: Tham gia | Đơn vị tổ chức: LCH HH",
+        "title": "Thanh niên khỏe - đợt 2",
+        "rubric_item_id": "3.2",
+        "parent_group_id": "C3",
+        "organizer": "LCH HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 89
+        }
+      },
+      {
+        "sample_id": "demo_0090",
+        "text": "Thanh niên khỏe 2025 | Vai trò: Tham gia | Đơn vị tổ chức: LCH VL-VLKT",
+        "title": "Thanh niên khỏe 2025",
+        "rubric_item_id": "3.2",
+        "parent_group_id": "C3",
+        "organizer": "LCH VL-VLKT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 90
+        }
+      },
+      {
+        "sample_id": "demo_0091",
+        "text": "Hcmus Run 2026 | Đơn vị tổ chức: ĐTN",
+        "title": "Hcmus Run 2026",
+        "rubric_item_id": "3.2",
+        "parent_group_id": "C3",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 91
+        }
+      },
+      {
+        "sample_id": "demo_0092",
+        "text": "Let IT Shine 2025 | Vai trò: Huy động lực lượng | Đơn vị tổ chức: CNTT",
+        "title": "Let IT Shine 2025",
+        "rubric_item_id": "3.3",
+        "parent_group_id": "C3",
+        "organizer": "CNTT",
+        "role": "Huy động lực lượng",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 92
+        }
+      },
+      {
+        "sample_id": "demo_0093",
+        "text": "Giải Bóng đá Futsal sinh viên ĐHQG - HCM năm 2025 - Trận nam ngày 08 - 11 | Vai trò: Huy động lực lượng | Đơn vị tổ chức: CTSV",
+        "title": "Giải Bóng đá Futsal sinh viên ĐHQG - HCM năm 2025 - Trận nam ngày 08 - 11",
+        "rubric_item_id": "3.3",
+        "parent_group_id": "C3",
+        "organizer": "CTSV",
+        "role": "Huy động lực lượng",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 93
+        }
+      },
+      {
+        "sample_id": "demo_0094",
+        "text": "Lễ Tổng kết Khóa học thử nghiệm Đợt 1 – Dự án \"HCMUS Future Leaders\" | Vai trò: Huy động lực lượng | Đơn vị tổ chức: U-Sci Hub",
+        "title": "Lễ Tổng kết Khóa học thử nghiệm Đợt 1 – Dự án \"HCMUS Future Leaders\"",
+        "rubric_item_id": "3.3",
+        "parent_group_id": "C3",
+        "organizer": "U-Sci Hub",
+        "role": "Huy động lực lượng",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 94
+        }
+      },
+      {
+        "sample_id": "demo_0095",
+        "text": "Talkshow inside us | Vai trò: Tham gia | Đơn vị tổ chức: CLB LLT",
+        "title": "Talkshow inside us",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "CLB LLT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 95
+        }
+      },
+      {
+        "sample_id": "demo_0096",
+        "text": "Từ buổi đầu dựng nước đến kỷ nguyên vươn mình | Đơn vị tổ chức: CLB LLT",
+        "title": "Từ buổi đầu dựng nước đến kỷ nguyên vươn mình",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "CLB LLT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 96
+        }
+      },
+      {
+        "sample_id": "demo_0097",
+        "text": "Workshop Jewels of Joy | Đơn vị tổ chức: CNTT",
+        "title": "Workshop Jewels of Joy",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 97
+        }
+      },
+      {
+        "sample_id": "demo_0098",
+        "text": "Workshop Uốn sắc màu, Vẽ yêu thương | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+        "title": "Workshop Uốn sắc màu, Vẽ yêu thương",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 98
+        }
+      },
+      {
+        "sample_id": "demo_0099",
+        "text": "Chương trình Kết nối, Tham quan \"Let's connect\" | Đơn vị tổ chức: CTSV",
+        "title": "Chương trình Kết nối, Tham quan \"Let's connect\"",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 99
+        }
+      },
+      {
+        "sample_id": "demo_0100",
+        "text": "Cuộc thi không gian văn hóa Hồ chí Minh - Dấu ấn Thành phố mang tên Bác | Đơn vị tổ chức: KHXHNV",
+        "title": "Cuộc thi không gian văn hóa Hồ chí Minh - Dấu ấn Thành phố mang tên Bác",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "KHXHNV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 100
+        }
+      },
+      {
+        "sample_id": "demo_0101",
+        "text": "Cuộc thi trắc nghiệm kiến thức trực tuyến \"Tự hào sinh viên thành phố bác: hiểu truyền thống - mạnh tiên phong\" | Đơn vị tổ chức: KHXHNV",
+        "title": "Cuộc thi trắc nghiệm kiến thức trực tuyến \"Tự hào sinh viên thành phố bác: hiểu truyền thống - mạnh tiên phong\"",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "KHXHNV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 101
+        }
+      },
+      {
+        "sample_id": "demo_0102",
+        "text": "Cuộc thi trắc nghiệm trực tuyến Tìm hiểu Nghị quyết 57 - NQ/TW về đột phá phát triển khoa học, công nghệ, đổi mới sáng tạo và chuyển đổi số quốc gia | Đơn vị tổ chức: KHXHNV",
+        "title": "Cuộc thi trắc nghiệm trực tuyến Tìm hiểu Nghị quyết 57 - NQ/TW về đột phá phát triển khoa học, công nghệ, đổi mới sáng tạo và chuyển đổi số quốc gia",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "KHXHNV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 102
+        }
+      },
+      {
+        "sample_id": "demo_0103",
+        "text": "Chào mừng ngày nhà giáo Việt Nam 20 - 11 | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "Chào mừng ngày nhà giáo Việt Nam 20 - 11",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 103
+        }
+      },
+      {
+        "sample_id": "demo_0104",
+        "text": "Tọa đàm Hành trang sinh viên năm Nhất - Nghệ thuật quản lý cảm xúc tại môi trường Đại học | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "Tọa đàm Hành trang sinh viên năm Nhất - Nghệ thuật quản lý cảm xúc tại môi trường Đại học",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 104
+        }
+      },
+      {
+        "sample_id": "demo_0105",
+        "text": "Cuộc thi Tìm hiểu văn hóa Quốc tế Cultural Quintessence 4 | Vai trò: Tham gia | Đơn vị tổ chức: LCH HH",
+        "title": "Cuộc thi Tìm hiểu văn hóa Quốc tế Cultural Quintessence 4",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "LCH HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 105
+        }
+      },
+      {
+        "sample_id": "demo_0106",
+        "text": "Đại hội chi Hội - CLB - Đội trực thuộc LCH khoa Sinh học - Công nghệ Sinh học năm học 2025 - 2026 | Vai trò: Tham gia | Đơn vị tổ chức: LCH SH-CNSH",
+        "title": "Đại hội chi Hội - CLB - Đội trực thuộc LCH khoa Sinh học - Công nghệ Sinh học năm học 2025 - 2026",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "LCH SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 106
+        }
+      },
+      {
+        "sample_id": "demo_0107",
+        "text": "Cuộc thi Tuổi trẻ với biển đảo quê hương | Vai trò: Tham gia | Đơn vị tổ chức: LCH TTH",
+        "title": "Cuộc thi Tuổi trẻ với biển đảo quê hương",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "LCH TTH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 107
+        }
+      },
+      {
+        "sample_id": "demo_0108",
+        "text": "Cuộc thi tìm hiểu Nghị quyết Đại hội đại biểu Đảng bộ Thành phố Hồ Chí Minh lần thứ I, nhiệm kỳ 2025 - 2030 | Vai trò: Tham gia | Đơn vị tổ chức: LCH TTH",
+        "title": "Cuộc thi tìm hiểu Nghị quyết Đại hội đại biểu Đảng bộ Thành phố Hồ Chí Minh lần thứ I, nhiệm kỳ 2025 - 2030",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "LCH TTH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 108
+        }
+      },
+      {
+        "sample_id": "demo_0109",
+        "text": "Hoạt động - 30 năm – Dấu ấn Hội | Đơn vị tổ chức: LCH ĐC",
+        "title": "Hoạt động - 30 năm – Dấu ấn Hội",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "LCH ĐC",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 109
+        }
+      },
+      {
+        "sample_id": "demo_0110",
+        "text": "Chào mừng ngày Quốc Tế Phụ nữ 08_03 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Chào mừng ngày Quốc Tế Phụ nữ 08_03",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 110
+        }
+      },
+      {
+        "sample_id": "demo_0112",
+        "text": "Itogether | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Itogether",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 112
+        }
+      },
+      {
+        "sample_id": "demo_0113",
+        "text": "Đại hội chi Đoàn | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Đại hội chi Đoàn",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 113
+        }
+      },
+      {
+        "sample_id": "demo_0114",
+        "text": "An ninh Tổ quốc | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+        "title": "An ninh Tổ quốc",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 114
+        }
+      },
+      {
+        "sample_id": "demo_0115",
+        "text": "Cuộc thi tìm hiểu về ngày Quốc tế lao động 01_05 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+        "title": "Cuộc thi tìm hiểu về ngày Quốc tế lao động 01_05",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 115
+        }
+      },
+      {
+        "sample_id": "demo_0116",
+        "text": "Quiz Master Nội quy trong tầm tay | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+        "title": "Quiz Master Nội quy trong tầm tay",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 116
+        }
+      },
+      {
+        "sample_id": "demo_0117",
+        "text": "Tìm hiểu về ngày quốc tế lao động 01 - 5 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+        "title": "Tìm hiểu về ngày quốc tế lao động 01 - 5",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 117
+        }
+      },
+      {
+        "sample_id": "demo_0118",
+        "text": "Hưởng ứng Ngày động vật hoang dã 03_3 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+        "title": "Hưởng ứng Ngày động vật hoang dã 03_3",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 118
+        }
+      },
+      {
+        "sample_id": "demo_0119",
+        "text": "Ngày Chủ nhật xanh giai đoạn 1 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+        "title": "Ngày Chủ nhật xanh giai đoạn 1",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 119
+        }
+      },
+      {
+        "sample_id": "demo_0120",
+        "text": "Sinh học với Pháp luật | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+        "title": "Sinh học với Pháp luật",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 120
+        }
+      },
+      {
+        "sample_id": "demo_0121",
+        "text": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+        "title": "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 121
+        }
+      },
+      {
+        "sample_id": "demo_0122",
+        "text": "Cuộc thi Tìm hiểu pháp luật về phòng chống ma túy | Vai trò: Tham gia | Đơn vị tổ chức: ĐK TTH",
+        "title": "Cuộc thi Tìm hiểu pháp luật về phòng chống ma túy",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK TTH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 122
+        }
+      },
+      {
+        "sample_id": "demo_0123",
+        "text": "Hoạt động TOGETHER ASEAN cùng nhau tìm hiểu văn hóa Đông Nam Á | Vai trò: Tham gia | Đơn vị tổ chức: ĐK TTH",
+        "title": "Hoạt động TOGETHER ASEAN cùng nhau tìm hiểu văn hóa Đông Nam Á",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK TTH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 123
+        }
+      },
+      {
+        "sample_id": "demo_0124",
+        "text": "Ngày Pháp Luật Việt Nam | Vai trò: Tham gia | Đơn vị tổ chức: ĐK TTH",
+        "title": "Ngày Pháp Luật Việt Nam",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK TTH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 124
+        }
+      },
+      {
+        "sample_id": "demo_0125",
+        "text": "Thử thách trực tuyến - Không gian mạng an toàn - Ứng xử văn minh | Đơn vị tổ chức: ĐK TTH",
+        "title": "Thử thách trực tuyến - Không gian mạng an toàn - Ứng xử văn minh",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK TTH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 125
+        }
+      },
+      {
+        "sample_id": "demo_0126",
+        "text": "Chương trình kỷ niệm 30 năm hành trình tiếp nối, chủ đề 30 năm - Một hành trình, triệu niềm tin | Vai trò: Tham gia | Đơn vị tổ chức: ĐTN",
+        "title": "Chương trình kỷ niệm 30 năm hành trình tiếp nối, chủ đề 30 năm - Một hành trình, triệu niềm tin",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐTN",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 126
+        }
+      },
+      {
+        "sample_id": "demo_0127",
+        "text": "Chương trình kỷ niệm 96 năm thành lập Đảng Cộng sản Hồ Chí Minh và Tất niên cán bộ | Đơn vị tổ chức: ĐTN",
+        "title": "Chương trình kỷ niệm 96 năm thành lập Đảng Cộng sản Hồ Chí Minh và Tất niên cán bộ",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 127
+        }
+      },
+      {
+        "sample_id": "demo_0128",
+        "text": "Các hoạt động bên lề đồng hành cùng Hội thi Hành trình Bản lĩnh hạt giống xanh | Đơn vị tổ chức: ĐTN",
+        "title": "Các hoạt động bên lề đồng hành cùng Hội thi Hành trình Bản lĩnh hạt giống xanh",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 128
+        }
+      },
+      {
+        "sample_id": "demo_0129",
+        "text": "Học tập Lý luận chính trị | Vai trò: Tham gia | Đơn vị tổ chức: ĐTN",
+        "title": "Học tập Lý luận chính trị",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐTN",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 129
+        }
+      },
+      {
+        "sample_id": "demo_0130",
+        "text": "Khai giảng năm học 2025 - 2026 | Đơn vị tổ chức: ĐTN",
+        "title": "Khai giảng năm học 2025 - 2026",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 130
+        }
+      },
+      {
+        "sample_id": "demo_0131",
+        "text": "Lớp các bài Lý luận chính trị đợt tháng 10 - 2025 | Đơn vị tổ chức: ĐTN",
+        "title": "Lớp các bài Lý luận chính trị đợt tháng 10 - 2025",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐTN",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 131
+        }
+      },
+      {
+        "sample_id": "demo_0132",
+        "text": "Tham gia phòng chống tội phạm và các tệ nạn xã hội",
+        "title": "Tham gia phòng chống tội phạm và các tệ nạn xã hội",
+        "rubric_item_id": "3.7",
+        "parent_group_id": "C3",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 132
+        }
+      },
+      {
+        "sample_id": "demo_0133",
+        "text": "Ngày hội việc làm khoa CNTT | Vai trò: Tham gia | Đơn vị tổ chức: CNTT",
+        "title": "Ngày hội việc làm khoa CNTT",
+        "rubric_item_id": "3.8",
+        "parent_group_id": "C3",
+        "organizer": "CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 133
+        }
+      },
+      {
+        "sample_id": "demo_0134",
+        "text": "Ngày hội việc làm My Jobs năm 2026 | Đơn vị tổ chức: SH-CNSH",
+        "title": "Ngày hội việc làm My Jobs năm 2026",
+        "rubric_item_id": "3.8",
+        "parent_group_id": "C3",
+        "organizer": "SH-CNSH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 134
+        }
+      }
+    ],
+    "C4": [
+      {
+        "sample_id": "demo_0135",
+        "text": "Chấp hành Luật Bảo hiểm y tế",
+        "title": "Chấp hành Luật Bảo hiểm y tế",
+        "rubric_item_id": "4.1",
+        "parent_group_id": "C4",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 135
+        }
+      },
+      {
+        "sample_id": "demo_0136",
+        "text": "Ý thức chấp hành pháp luật",
+        "title": "Ý thức chấp hành pháp luật",
+        "rubric_item_id": "4.1",
+        "parent_group_id": "C4",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 136
+        }
+      },
+      {
+        "sample_id": "demo_0137",
+        "text": "Tình nguyện hỗ trợ Đón Tân Sinh viên khóa 2026 | Đơn vị tổ chức: CTSV",
+        "title": "Tình nguyện hỗ trợ Đón Tân Sinh viên khóa 2026",
+        "rubric_item_id": "4.3",
+        "parent_group_id": "C4",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 137
+        }
+      },
+      {
+        "sample_id": "demo_0138",
+        "text": "Chiến dịch Mùa hè Xanh năm 2026 | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+        "title": "Chiến dịch Mùa hè Xanh năm 2026",
+        "rubric_item_id": "4.3",
+        "parent_group_id": "C4",
+        "organizer": "HSV",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 138
+        }
+      },
+      {
+        "sample_id": "demo_0139",
+        "text": "Danh sách tình nguyện viên tiếp nhận quyên góp cho các tỉnh miền Trung | Vai trò: Tham gia | Đơn vị tổ chức: HSV",
+        "title": "Danh sách tình nguyện viên tiếp nhận quyên góp cho các tỉnh miền Trung",
+        "rubric_item_id": "4.3",
+        "parent_group_id": "C4",
+        "organizer": "HSV",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 139
+        }
+      },
+      {
+        "sample_id": "demo_0140",
+        "text": "Tình nguyện viên Hỗ trợ hoạt động Thư viện | Đơn vị tổ chức: Thuvien",
+        "title": "Tình nguyện viên Hỗ trợ hoạt động Thư viện",
+        "rubric_item_id": "4.3",
+        "parent_group_id": "C4",
+        "organizer": "Thuvien",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 140
+        }
+      },
+      {
+        "sample_id": "demo_0141",
+        "text": "Hạ Xanh Hy Vọng | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Hạ Xanh Hy Vọng",
+        "rubric_item_id": "4.3",
+        "parent_group_id": "C4",
+        "organizer": "ĐK CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 141
+        }
+      },
+      {
+        "sample_id": "demo_0142",
+        "text": "Trạm tuổi thơ | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Trạm tuổi thơ",
+        "rubric_item_id": "4.3",
+        "parent_group_id": "C4",
+        "organizer": "ĐK CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 142
+        }
+      },
+      {
+        "sample_id": "demo_0143",
+        "text": "Hạ Xanh Hy Vọng | Vai trò: Ban tổ chức | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Hạ Xanh Hy Vọng",
+        "rubric_item_id": "4.4",
+        "parent_group_id": "C4",
+        "organizer": "ĐK CNTT",
+        "role": "Ban tổ chức",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 143
+        }
+      },
+      {
+        "sample_id": "demo_0145",
+        "text": "Gây quỹ Hoạt động tình nguyện HOHO DU KÝ Số 05 Ươm mầm tri thức | Vai trò: Tham gia | Đơn vị tổ chức: ĐK HH",
+        "title": "Gây quỹ Hoạt động tình nguyện HOHO DU KÝ Số 05 Ươm mầm tri thức",
+        "rubric_item_id": "4.5",
+        "parent_group_id": "C4",
+        "organizer": "ĐK HH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 145
+        }
+      },
+      {
+        "sample_id": "demo_0146",
+        "text": "Mầm xanh hy vọng | Vai trò: Gây quỹ | Đơn vị tổ chức: ĐK TTH",
+        "title": "Mầm xanh hy vọng",
+        "rubric_item_id": "4.5",
+        "parent_group_id": "C4",
+        "organizer": "ĐK TTH",
+        "role": "Gây quỹ",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 146
+        }
+      },
+      {
+        "sample_id": "demo_0147",
+        "text": "Ban cán sự hoàn thành tốt nhiệm vụ | Đơn vị tổ chức: CNTT",
+        "title": "Ban cán sự hoàn thành tốt nhiệm vụ",
+        "rubric_item_id": "4.7",
+        "parent_group_id": "C4",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 147
+        }
+      },
+      {
+        "sample_id": "demo_0148",
+        "text": "Ban cán sự lớp hoàn thành tốt nhiệm vụ trở lên | Đơn vị tổ chức: CTSV",
+        "title": "Ban cán sự lớp hoàn thành tốt nhiệm vụ trở lên",
+        "rubric_item_id": "4.7",
+        "parent_group_id": "C4",
+        "organizer": "CTSV",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 148
+        }
+      },
+      {
+        "sample_id": "demo_0149",
+        "text": "Danh sách ban cán sự lớp hoàn thành tốt nhiệm vụ | Đơn vị tổ chức: SH-CNSH",
+        "title": "Danh sách ban cán sự lớp hoàn thành tốt nhiệm vụ",
+        "rubric_item_id": "4.7",
+        "parent_group_id": "C4",
+        "organizer": "SH-CNSH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 149
+        }
+      },
+      {
+        "sample_id": "demo_0150",
+        "text": "Hoàn thành tốt nhiệm vụ Ban cán sự | Đơn vị tổ chức: SH-CNSH",
+        "title": "Hoàn thành tốt nhiệm vụ Ban cán sự",
+        "rubric_item_id": "4.7",
+        "parent_group_id": "C4",
+        "organizer": "SH-CNSH",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 150
+        }
+      }
+    ],
+    "C5": [
+      {
+        "sample_id": "demo_0151",
+        "text": "Thành tích tại Kỳ thi Olympic Tin học Sinh viên HCMUS năm 2025",
+        "title": "Thành tích tại Kỳ thi Olympic Tin học Sinh viên HCMUS năm 2025",
+        "rubric_item_id": "5.1",
+        "parent_group_id": "C5",
+        "organizer": "",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 151
+        }
+      },
+      {
+        "sample_id": "demo_0152",
+        "text": "Đội tuyển ICPC Bắc, Trung, Nam, Quốc gia, Châu Á | Đơn vị tổ chức: CNTT",
+        "title": "Đội tuyển ICPC Bắc, Trung, Nam, Quốc gia, Châu Á",
+        "rubric_item_id": "5.3",
+        "parent_group_id": "C5",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 152
+        }
+      }
+    ]
+  },
+  "excluded_by_group_records": [
+    {
+      "row": 153,
+      "rubric_item_id": "6.1",
+      "parent_group_id": "P",
+      "title": "Không tham gia đánh giá môn học"
+    }
+  ],
+  "leakage_excluded_samples": [
+    {
+      "sample": {
+        "sample_id": "demo_0014",
+        "text": "Thi thử Toeic | Vai trò: Tham gia | Đơn vị tổ chức: LCH CNTT",
+        "title": "Thi thử Toeic",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "LCH CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 14
+        }
+      },
+      "matched_eval_title": "THI THỬ TOEIC - THI THỬ, TRẢI NGHIỆM THẬT",
+      "jaccard": 0.5
+    },
+    {
+      "sample": {
+        "sample_id": "demo_0021",
+        "text": "Cuộc thi Microbiology Nova 2026 | Vai trò: Tham gia | Đơn vị tổ chức: ĐK SH-CNSH",
+        "title": "Cuộc thi Microbiology Nova 2026",
+        "rubric_item_id": "1.6",
+        "parent_group_id": "C1",
+        "organizer": "ĐK SH-CNSH",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 21
+        }
+      },
+      "matched_eval_title": "MICROBIOLOGY NOVA 2026",
+      "jaccard": 0.6
+    },
+    {
+      "sample": {
+        "sample_id": "demo_0035",
+        "text": "Seminar Human - AI Hybrid System in Algorithmic Trading Introduction and Bachelor Thesis Topics | Đơn vị tổ chức: CNTT",
+        "title": "Seminar Human - AI Hybrid System in Algorithmic Trading Introduction and Bachelor Thesis Topics",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 35
+        }
+      },
+      "matched_eval_title": "Seminar “Human-AI Hybrid System in Algorithmic Trading: Introduction and Bachelor Thesis Topics”",
+      "jaccard": 1.0
+    },
+    {
+      "sample": {
+        "sample_id": "demo_0040",
+        "text": "Seminar on Legal AI Beyond the Demo: Building systems that work in practice | Đơn vị tổ chức: CNTT",
+        "title": "Seminar on Legal AI Beyond the Demo: Building systems that work in practice",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 40
+        }
+      },
+      "matched_eval_title": "Seminar on Legal AI Beyond the Demo: Building systems that work in practice",
+      "jaccard": 1.0
+    },
+    {
+      "sample": {
+        "sample_id": "demo_0042",
+        "text": "Trường hè \"FIT@HCMUS Summer School on Intelligent Agents and Agentic AI\" | Đơn vị tổ chức: CNTT",
+        "title": "Trường hè \"FIT@HCMUS Summer School on Intelligent Agents and Agentic AI\"",
+        "rubric_item_id": "1.9",
+        "parent_group_id": "C1",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 42
+        }
+      },
+      "matched_eval_title": "FIT@HCMUS Summer School on Intelligent Agents and Agentic AI",
+      "jaccard": 0.8333
+    },
+    {
+      "sample": {
+        "sample_id": "demo_0111",
+        "text": "Cuộc thi trắc nghiệm trực tuyến Theo dấu chân Người | Vai trò: Tham gia | Đơn vị tổ chức: ĐK CNTT",
+        "title": "Cuộc thi trắc nghiệm trực tuyến Theo dấu chân Người",
+        "rubric_item_id": "3.5",
+        "parent_group_id": "C3",
+        "organizer": "ĐK CNTT",
+        "role": "Tham gia",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 111
+        }
+      },
+      "matched_eval_title": "CUỘC THI TRẮC NGHIỆM TRỰC TUYẾN “THEO DẤU CHÂN NGƯỜI”",
+      "jaccard": 1.0
+    },
+    {
+      "sample": {
+        "sample_id": "demo_0144",
+        "text": "Quyên góp chương trình Bước chân yêu thương | Đơn vị tổ chức: CNTT",
+        "title": "Quyên góp chương trình Bước chân yêu thương",
+        "rubric_item_id": "4.5",
+        "parent_group_id": "C4",
+        "organizer": "CNTT",
+        "role": "",
+        "source": "seed_demo",
+        "metadata": {
+          "csv_row": 144
+        }
+      },
+      "matched_eval_title": "BƯỚC CHÂN YÊU THƯƠNG",
+      "jaccard": 0.5
+    }
+  ],
+  "invalid_row_records": []
+}
