@@ -1,0 +1,1335 @@
+# =============================================================================
+# rubric.yaml — Khung điểm rèn luyện (ĐRL) dạng cấu hình cho Module 3 (và M6)
+# Nguồn: Quy chế đánh giá kết quả rèn luyện sinh viên hệ chính quy,
+#        Trường ĐH Khoa học Tự nhiên, ĐHQG-HCM — QĐ 1028/QĐ-KHTN-CTSV ngày
+#        04/9/2020 (Điều 1–12 + Phụ lục "Khung điểm chi tiết").
+#
+# CÁCH ĐỌC FILE NÀY
+#   scoring        Quy tắc tính tổng (trần 100, trần theo nhóm, điểm trừ)
+#   groups         5 nhóm cộng điểm (C1–C5) + nhóm điểm trừ (P)
+#   tieu_chi       13 tiêu chí của quy chế (TC1–TC13), mỗi tiêu chí thuộc 1 nhóm
+#   levels/roles   Từ vựng chuẩn cho "cấp tổ chức" và "vai trò"
+#   items          Từng dòng của Phụ lục = 1 mục (item). Trường của mỗi item:
+#     ref            số mục trong Phụ lục (để truy vết, vd "4.2")
+#     group, tieu_chi  nhóm C1–C5/P và tiêu chí
+#     kind           event | task | mandatory_event | membership | compliance |
+#                    record | status | achievement | special_circumstance |
+#                    penalty (điểm trừ) |
+#                    role_variant (cách tính cho BTC/CTV của các mục khác)
+#     event_matchable  true = bài đăng sự kiện có thể được GẮN NHÃN vào mục này
+#                    (đây là không gian nhãn của bộ phân loại P2)
+#     variant_by     biến chọn dòng điểm: none | level | duration | award_tier |
+#                    outcome | band
+#     points         {vai_trò: {biến_thể: điểm}}  (điểm trừ là số âm)
+#     bands          bảng khoảng giá trị (cho item kind=record)
+#     unit           flat | per_semester | per_activity | per_round (đợt) |
+#                    per_item (đề tài/bài/dự án/giải) | per_occurrence (lần)
+#     repeatable     true/false; null = quy chế không nói rõ
+#     role_items     vai trò → item dùng để tính điểm khi sinh viên là BTC/CTV
+#     role_alias     vai trò suy ra được → vai trò có trong bảng điểm
+#     evidence       minh chứng/xác nhận mà quy chế nêu (cho Module 7)
+#     tier           1–5: khả năng của hệ thống với mục này (xem `capabilities.tiers`)
+#     mvp_scope      recommend | recommend_apply | assumed_default | remind | track_later | out_of_scope
+#     verification   none = hiện chưa có cách xác nhận (xem `capabilities.verification`)
+#     default_assumption  chỉ có ở mục tuân thủ: mặc định coi là đạt, sinh viên có thể tắt
+#     conditions     điều kiện kèm theo (chuỗi văn bản)
+#     exclusive_with các item không được cộng đồng thời / chỉ tính mức cao nhất
+#     anchors, keywords  dữ liệu cho tầng phân loại (anchors_status: draft)
+#   meta_labels    nhãn đặc biệt (NONE = không tính ĐRL)
+#   global_rules   Quy tắc ở Điều 4–8 (xếp loại, hạn chế do kỷ luật, cộng toàn khóa)
+#
+# LƯU Ý TRUNG THỰC
+#   * Số điểm, mức trần, điều kiện lấy nguyên từ quy chế. Mọi chỗ quy chế không
+#     nói rõ được đánh dấu null hoặc có mục `open_questions` ở cuối file.
+#   * `anchors` và `keywords` là bản NHÁP soạn từ lời văn quy chế; cần thay/bổ
+#     sung bằng tiêu đề sự kiện thật của trường (xem hướng dẫn cuối file).
+# =============================================================================
+
+meta:
+  version: "khtn-qd1028-2020-v3.1-mvp"
+  school: "Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM"
+  source_document: "Quy chế đánh giá kết quả rèn luyện sinh viên hệ chính quy — QĐ 1028/QĐ-KHTN-CTSV ngày 04/9/2020"
+  source_file: "drl2025.md"
+  applies_to: "Sinh viên đại học, cao đẳng hệ chính quy"
+  status: "mvp — đã thêm phân nhóm khả năng (tier), phạm vi MVP và giả định mặc định; còn Q9 và việc thay anchors bằng tiêu đề sự kiện thật"
+  validity:
+    state: expired
+    used_for: "MVP đồ án Computational Thinking"
+    note: "QĐ 1028/QĐ-KHTN-CTSV (2020) đã hết hiệu lực nhưng được dùng làm khung điểm cho MVP. Khi áp dụng thật phải đối chiếu với quy chế đang hiệu lực."
+  language: vi
+
+# -----------------------------------------------------------------------------
+# QUY TẮC TÍNH TỔNG (Điều 4, Điều 6)
+# -----------------------------------------------------------------------------
+scoring:
+  period: hoc_ky_chinh              # mỗi đợt đánh giá = 1 học kỳ chính (Điều 4.5)
+  period_note: "Chương trình đại trà: không tính học kỳ hè. Chương trình theo đề án: 3 học kỳ/năm học."
+  total_max: 100
+  group_max_sum: 130                # 30+20+25+25+30 > 100 → áp quy tắc quy về 100
+  overflow_rule: "Tổng điểm các nội dung > 100 thì quy về 100 (Điều 4.4)"
+  caps_level: group_only            # quy chế chỉ có trần theo NHÓM; không có trần theo từng mục/tiêu chí
+  penalties_unlimited: true         # điểm trừ không giới hạn (Điều 4.2.f)
+  floor: 0                          # điểm học kỳ thấp nhất là 0 (người dùng xác nhận — Q2)
+  formula: >
+    raw = Σ_nhóm C1..C5 min(Σ điểm cộng của nhóm, max_nhóm) + Σ điểm trừ (số âm);
+    điểm_học_kỳ = clamp(raw, 0, 100)
+  formula_status: "confirmed — áp trần từng nhóm trước rồi mới trừ điểm; điểm trừ không giới hạn; sàn 0, trần 100 (Q2, Q3)"
+  repeat_rule: >
+    Mỗi hoạt động được cộng 1 lần; một mục có thể có nhiều hoạt động, tổng điểm bị chặn bởi trần
+    của nhóm lớn (Q5). Áp dụng cả cho các mục quy chế không ghi đơn vị (3.2, 3.4, 3.6, 4.2, 5.3).
+  display_policy: "MVP chỉ hiển thị điểm 'dự kiến' kèm nhãn 'Ước tính — chưa xác nhận'; không trình bày như điểm chính thức"
+  aggregation:
+    nam_hoc: "trung bình cộng điểm các học kỳ chính có đánh giá trong năm học (Điều 6.2)"
+    toan_khoa: "trung bình cộng điểm các học kỳ chính có đánh giá của khóa học (Điều 6.3)"
+
+# -----------------------------------------------------------------------------
+# KHẢ NĂNG CỦA HỆ THỐNG VỚI TỪNG MỤC (MVP thu thập sự kiện từ nhiều nguồn, CHƯA có xác nhận điểm)
+# -----------------------------------------------------------------------------
+capabilities:
+  sources_in_scope: ["fanpage khoa/Đoàn/Hội", "email sinh viên (Gmail/Outlook) từ đơn vị chính thức"]
+  privacy_note: "Chỉ xử lý thư/bài đăng chính thức của trường/đơn vị và khi sinh viên đồng ý rõ ràng; không đọc thư cá nhân."
+  tiers:
+    1: {name: "Tìm thấy, đề xuất, ước tính điểm", note: "Bài đăng chính là sự kiện; tham gia là được điểm. Lõi của MVP."}
+    2: {name: "Tìm thấy lời kêu gọi, điểm phụ thuộc kết quả", note: "Gợi ý 'có thể ứng tuyển'; điểm chỉ có khi được chọn/hoàn tất (points_condition)."}
+    3: {name: "Thành tích — biết sau khi sự việc xảy ra", note: "Không đề xuất được; chờ chức năng tự khai báo sau MVP."}
+    4: {name: "Hồ sơ, trạng thái, tuân thủ", note: "Dữ liệu nằm ở hồ sơ học tập/Đoàn–Hội/CTSV; MVP dùng giả định mặc định hoặc bỏ qua."}
+    5: {name: "Hoàn cảnh đặc biệt, nhạy cảm", note: "Ngoài phạm vi: không hỏi, không suy đoán, không lưu."}
+  mvp_scope:
+    recommend: "Phân loại, ước tính điểm và đề xuất đầy đủ"
+    recommend_apply: "Đề xuất dạng 'ứng tuyển/đăng ký'; điểm hiển thị kèm điều kiện 'nếu được chọn/hoàn tất'"
+    assumed_default: "Tính vào điểm nền theo giả định mặc định (sinh viên có thể tắt)"
+    remind: "Không phải đề xuất kiếm điểm; nhắc việc bắt buộc để tránh bị trừ điểm"
+    track_later: "Chưa xử lý ở MVP; sẽ nhận qua chức năng tự khai báo/minh chứng sau MVP"
+    out_of_scope: "Không xử lý"
+  verification:
+    none: "Hiện chưa có cách xác nhận điểm → mọi điểm chỉ là ước tính"
+    planned: "Sau MVP: minh chứng sinh viên tải lên (Module 7) và đối chiếu danh sách do Khoa/Đoàn/Hội cập nhật (Q9)"
+  points_condition:               # dùng cho tier 2
+    selection_or_completion: "Chỉ có điểm khi được chọn/hoàn tất (1.5, 3.6, 3.11, 3.12, 3.13)"
+  ledger:
+    sources:
+      system_detected: "Hệ thống tìm thấy sự kiện mà sinh viên đăng ký/tham gia (chưa xác nhận)"
+      self_reported: "Sinh viên tự khai (chức năng mở rộng sau MVP)"
+      assumed_default: "Giả định mặc định, vd không vi phạm (sinh viên có thể tắt)"
+    status_levels:
+      estimated: "Ước tính — chưa xác nhận"
+      confirmed: "Có minh chứng được xác nhận (ngoài phạm vi MVP)"
+    mvp_display: [estimated]       # MVP chỉ hiển thị điểm 'dự kiến'
+    label_vi: "Ước tính — chưa xác nhận"
+    baseline:
+      assumed_defaults: [C1.khong_vi_pham_quy_che_dao_tao, C2.khong_vi_pham_noi_quy, C3.khong_vi_pham_te_nan, C4.khong_vi_pham_phap_luat]
+      assumed_points_by_group: {C1: 15, C2: 15, C3: 10, C4: 10}   # tổng 50 điểm nền
+      manual_group_baseline: optional   # sinh viên có thể nhập điểm hiện có theo từng nhóm để khoảng thiếu điểm chính xác hơn (vd ĐTB, giải thưởng đã có)
+      note: "Không có điểm nền thì khoảng thiếu điểm bị thổi phồng tới 50 điểm và đề xuất lệch."
+  post_types:                      # phân loại bài đăng/email trước khi phân loại mục
+    call_to_action: {mvp: handled, note: "Bài kêu gọi/đăng ký/thông báo sự kiện → dùng để đề xuất"}
+    result_announcement: {mvp: deferred, note: "Bài kết quả/vinh danh ('chúc mừng', 'đạt giải') → gợi ý ghi nhận thành tích; để sau cùng chức năng tự khai báo"}
+
+# -----------------------------------------------------------------------------
+# NHÓM VÀ TIÊU CHÍ
+# -----------------------------------------------------------------------------
+groups:
+  C1:
+    name: "Tham gia học tập và nghiên cứu khoa học"
+    max: 30
+    tieu_chi: [TC1, TC2, TC3]
+    ref: "Điều 4.2.a, Điều 5.1"
+  C2:
+    name: "Chấp hành nội quy, quy chế và các quy định được áp dụng trong Nhà trường"
+    max: 20
+    tieu_chi: [TC4]
+    ref: "Điều 4.2.b, Điều 5.2"
+  C3:
+    name: "Tham gia các hoạt động chính trị - xã hội, văn hóa - văn nghệ, thể dục - thể thao; phòng chống tội phạm và các tệ nạn xã hội"
+    max: 25
+    tieu_chi: [TC5, TC6, TC7]
+    ref: "Điều 4.2.c, Điều 5.3"
+  C4:
+    name: "Hành động hướng đến xây dựng và phát triển cộng đồng"
+    max: 25
+    tieu_chi: [TC8, TC9, TC10]
+    ref: "Điều 4.2.d, Điều 5.4"
+  C5:
+    name: "Các nội dung khuyến khích"
+    max: 30
+    tieu_chi: [TC11, TC12, TC13]
+    ref: "Điều 4.2.e, Điều 5.5"
+  P:
+    name: "Điểm trừ"
+    max: null                       # không giới hạn
+    sign: negative
+    ref: "Điều 4.2.f, Phụ lục mục 6"
+
+tieu_chi:
+  TC1:  {group: C1, name: "Chấp hành các Quy chế, Quy định liên quan học vụ và khảo thí"}
+  TC2:  {group: C1, name: "Có kết quả học tập tốt và sự tiến bộ của mỗi học kỳ"}
+  TC3:  {group: C1, name: "Sự chủ động tham gia nghiên cứu khoa học và các hoạt động học thuật ngoại khóa"}
+  TC4:  {group: C2, name: "Chấp hành nội quy, quy chế và các quy định được áp dụng trong Nhà trường"}
+  TC5:  {group: C3, name: "Sự chủ động tham gia các hoạt động chính trị - xã hội, văn hóa - văn nghệ, thể dục - thể thao"}
+  TC6:  {group: C3, name: "Tham gia phòng chống tội phạm và các tệ nạn xã hội trong nhà trường và nơi lưu trú"}
+  TC7:  {group: C3, name: "Sự chủ động tham gia xây dựng, đóng góp, quảng bá hình ảnh của Nhà trường và ĐHQG-HCM"}
+  TC8:  {group: C4, name: "Chấp hành pháp luật và các văn bản quy phạm pháp luật"}
+  TC9:  {group: C4, name: "Sự chủ động tham gia các hoạt động tình nguyện, hành động giải quyết vấn đề xã hội, các hoạt động chung của lớp, khoa và Nhà trường"}
+  TC10: {group: C4, name: "Tham gia tuyên truyền các chủ trương của Đảng, chính sách, pháp luật của Nhà nước trong cộng đồng"}
+  TC11: {group: C5, name: "Thành tích xuất sắc trong các kỳ thi, cuộc thi và rèn luyện"}
+  TC12: {group: C5, name: "Có tinh thần vượt khó, phấn đấu vươn lên trong học tập và cuộc sống"}
+  TC13: {group: C5, name: "Các trường hợp có hoàn cảnh đặc biệt"}
+
+# -----------------------------------------------------------------------------
+# TỪ VỰNG CHUẨN
+# -----------------------------------------------------------------------------
+levels: [lop, khoa, truong, dhqg, thanh_pho, quoc_gia, quoc_te]   # thấp → cao
+levels_note: "Thứ tự giữa dhqg và thanh_pho chỉ mang tính ước lệ; quy chế không phân biệt hai cấp này. Việc quy đổi mọi cấp từ trường trở lên về 'truong_tro_len' đã được người dùng xác nhận (Q8)."
+
+# Quy chế chỉ phân biệt 3 mức: cấp lớp, cấp khoa, "cấp trường trở lên".
+level_buckets:
+  lop: lop
+  khoa: khoa
+  truong: truong_tro_len
+  dhqg: truong_tro_len
+  thanh_pho: truong_tro_len
+  quoc_gia: truong_tro_len
+  quoc_te: truong_tro_len
+
+roles:
+  participant: "Tham gia / dự thi / dự sự kiện"
+  volunteer: "Tình nguyện viên"
+  organizer: "Thành viên Ban tổ chức (có xác nhận của Thường trực BTC)"
+  collaborator: "Cộng tác viên"
+  self: "Hồ sơ/thành tích cá nhân của sinh viên (không phải sự kiện)"
+
+# -----------------------------------------------------------------------------
+# CÁC MỤC (ITEMS) — theo đúng thứ tự Phụ lục
+# -----------------------------------------------------------------------------
+items:
+
+  # ======================= NHÓM C1 — HỌC TẬP & NCKH (tối đa 30) ==============
+  C1.khong_vi_pham_quy_che_dao_tao:
+    ref: "1.1"
+    group: C1
+    tieu_chi: TC1
+    name: "Không vi phạm Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 15
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: per_semester
+    repeatable: false
+
+  C1.diem_trung_binh_hoc_ky:
+    ref: "1.2"
+    group: C1
+    tieu_chi: TC2
+    name: "Điểm trung bình học kỳ"
+    name_quy_che: "Điểm trung bình tích lũy trong học kỳ"
+    kind: record
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: band
+    metric: diem_trung_binh_hoc_ky
+    bands:
+      - {from: 5.0, to: 6.5, points: 5}
+      - {from: 6.5, to: 8.0, points: 7}
+      - {from: 8.0, to: 9.0, points: 10}
+      - {from: 9.0, to: 10.0, to_inclusive: true, points: 15}
+    unit: flat
+    repeatable: false
+    notes: "Đã xác nhận (Q4): dùng ĐTB học kỳ."
+
+  C1.giu_xep_loai_xuat_sac:
+    ref: "1.3"
+    group: C1
+    tieu_chi: TC2
+    name: "Giữ xếp loại học tập Xuất sắc so với học kỳ trước đó"
+    kind: record
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 5}}
+    unit: flat
+    repeatable: false
+    metric: xep_loai_hoc_tap
+    notes: "Đã xác nhận (Q4): là xếp loại học tập."
+
+  C1.tang_diem_trung_binh:
+    ref: "1.4"
+    group: C1
+    tieu_chi: TC2
+    name: "Tăng điểm trung bình học kỳ so với học kỳ trước đó"
+    name_quy_che: "Tăng điểm trung bình tích lũy so với học kỳ trước đó"
+    kind: record
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: band
+    metric: muc_tang_diem_trung_binh_hoc_ky
+    notes: "Đã xác nhận (Q4b): dùng ĐTB học kỳ, so với ĐTB học kỳ liền trước."
+    bands:
+      - {from: 0.1, to: 0.2, points: 2}
+      - {from: 0.2, to: 0.4, points: 4}
+      - {from: 0.4, to: 0.6, points: 6}
+      - {from: 0.6, to: 0.8, points: 8}
+      - {from: 0.8, to: null, points: 10}
+    unit: flat
+    repeatable: false
+
+  C1.de_tai_nckh:
+    ref: "1.5"
+    group: C1
+    tieu_chi: TC3
+    name: "Là tác giả của đề tài nghiên cứu khoa học (khóa luận, tiểu luận tốt nghiệp, tham gia Chương trình, Cuộc thi nghiên cứu khoa học từ cấp Khoa trở lên)"
+    kind: achievement
+    event_matchable: true            # bài đăng kêu gọi đăng ký chương trình/cuộc thi NCKH
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    points_condition: selection_or_completion
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 15}}
+    unit: per_item                   # điểm/đề tài
+    repeatable: true
+    conditions: ["Phải là tác giả của đề tài"]
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi Sinh viên nghiên cứu khoa học cấp Khoa"
+      - "Chương trình nghiên cứu khoa học dành cho sinh viên"
+      - "Đăng ký đề tài nghiên cứu khoa học sinh viên năm học mới"
+    keywords: ["nghiên cứu khoa học", "nckh", "đề tài nghiên cứu", "khóa luận", "tiểu luận tốt nghiệp"]
+
+  C1.cuoc_thi_hoc_thuat:
+    ref: "1.6"
+    group: C1
+    tieu_chi: TC3
+    name: "Tham gia cuộc thi học thuật từ cấp khoa trở lên (hoàn tất vòng đầu tiên của cuộc thi)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 5}}
+    unit: per_item                   # điểm/cuộc thi
+    repeatable: true
+    role_items: {organizer: C1.btc_cuoc_thi_hoc_thuat, collaborator: C1.btc_cuoc_thi_hoc_thuat}
+    conditions: ["Hoàn tất vòng đầu tiên của cuộc thi"]
+    anchors_status: draft
+    anchors:
+      - "Olympic Tin học sinh viên"
+      - "Cuộc thi học thuật cấp Khoa dành cho sinh viên"
+      - "Cuộc thi lập trình sinh viên"
+      - "Cuộc thi Toán học sinh viên"
+    keywords: ["cuộc thi học thuật", "olympic", "thi lập trình", "cuộc thi toán", "cuộc thi sinh viên giỏi"]
+
+  C1.btc_cuoc_thi_hoc_thuat:
+    ref: "1.7"
+    group: C1
+    tieu_chi: TC3
+    name: "Thành viên Ban tổ chức / Cộng tác viên của một cuộc thi học thuật từ cấp khoa trở lên"
+    kind: role_variant
+    applies_to: [C1.cuoc_thi_hoc_thuat]
+    event_matchable: false
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    min_level: khoa
+    points:
+      organizer: {any: 10}
+      collaborator: {any: 5}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Xác nhận của Thường trực Ban tổ chức"]
+
+  C1.cau_lac_bo_hoc_thuat:
+    ref: "1.8"
+    group: C1
+    tieu_chi: TC3
+    name: "Sinh hoạt thường xuyên tại các câu lạc bộ học thuật, các phòng thí nghiệm, thư viện"
+    kind: membership
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 5}}
+    unit: per_semester
+    repeatable: false
+    conditions: ["Ít nhất sinh hoạt 3 lần/tháng"]
+    evidence: ["Xác nhận của các đơn vị"]
+
+  C1.sinh_hoat_hoc_thuat:
+    ref: "1.9"
+    group: C1
+    tieu_chi: TC3
+    name: "Tham gia hoặc tổ chức các buổi sinh hoạt, hội thảo chuyên đề học thuật, kỹ năng, nghiên cứu khoa học, tư vấn hướng nghiệp"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points:
+      participant: {any: 5}
+      organizer: {any: 5}
+    unit: per_activity
+    repeatable: true
+    anchors_status: draft
+    anchors:
+      - "Hội thảo chuyên đề chia sẻ kinh nghiệm nghiên cứu khoa học"
+      - "Workshop kỹ năng mềm dành cho sinh viên"
+      - "Buổi tư vấn hướng nghiệp cho sinh viên năm cuối"
+      - "Seminar học thuật do Khoa tổ chức"
+    keywords: ["hội thảo", "seminar", "workshop", "chuyên đề", "kỹ năng", "tư vấn hướng nghiệp", "talkshow học thuật"]
+
+  # ======================= NHÓM C2 — NỘI QUY (tối đa 20) ======================
+  C2.khong_vi_pham_noi_quy:
+    ref: "2.1"
+    group: C2
+    tieu_chi: TC4
+    name: "Không vi phạm nội quy, quy chế, quy định của Nhà trường (không bao gồm các nội dung tại mục 1.1)"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 15
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: flat
+    repeatable: false
+
+  C2.danh_gia_mon_hoc:
+    ref: "2.2"
+    group: C2
+    tieu_chi: TC4
+    name: "Tham gia đánh giá trên 50% số môn đã đăng ký trong học kỳ (mọi sinh viên) và đánh giá khóa học (sinh viên năm cuối)"
+    kind: task
+    event_matchable: true            # thông báo mở đợt khảo sát đánh giá môn học/khóa học
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: flat
+    repeatable: false
+    conditions:
+      - "Đánh giá trên 50% số môn đã đăng ký trong học kỳ được đánh giá"
+      - "Sinh viên năm cuối: thêm đánh giá khóa học"
+    anchors_status: draft
+    anchors:
+      - "Khảo sát lấy ý kiến sinh viên về môn học cuối học kỳ"
+      - "Thông báo mở đợt đánh giá môn học trực tuyến"
+      - "Khảo sát đánh giá khóa học dành cho sinh viên năm cuối"
+    keywords: ["đánh giá môn học", "khảo sát môn học", "lấy ý kiến sinh viên về môn học", "đánh giá khóa học"]
+
+  C2.khao_sat_dieu_tra:
+    ref: "2.3"
+    group: C2
+    tieu_chi: TC4
+    name: "Tham gia các đợt khảo sát, điều tra xã hội (trừ nội dung 2.2)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_round
+    repeatable: true
+    penalty_if_missed: P.khai_bao_khao_sat   # không tham gia/khai báo sai bị -5 (mục 6.1)
+    exclusive_with: [C2.danh_gia_mon_hoc]
+    anchors_status: draft
+    anchors:
+      - "Khảo sát tình hình việc làm của sinh viên"
+      - "Điều tra xã hội học về đời sống sinh viên"
+      - "Khảo sát nhu cầu sinh viên do Phòng Công tác Sinh viên tổ chức"
+    keywords: ["khảo sát", "điều tra xã hội", "điều tra", "phiếu khảo sát", "lấy ý kiến sinh viên"]
+
+  # ======================= NHÓM C3 — CT-XH, VH-VN, TDTT (tối đa 25) ===========
+  C3.cuoc_thi_ct_vhvn_tdtt:
+    ref: "3.1"
+    group: C3
+    tieu_chi: TC5
+    name: "Tham gia cuộc thi về khoa học chính trị, khoa học Mác-Lênin, tư tưởng Hồ Chí Minh, lịch sử, văn hóa - văn nghệ, thể dục - thể thao (hoàn tất vòng đầu tiên)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: level
+    min_level: khoa
+    points:
+      participant: {truong_tro_len: 10, khoa: 5}
+    unit: per_item                   # điểm/cuộc thi
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    conditions: ["Hoàn tất vòng đầu tiên của cuộc thi"]
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi tìm hiểu tư tưởng Hồ Chí Minh"
+      - "Cuộc thi tìm hiểu lịch sử Đảng dành cho sinh viên"
+      - "Hội thi văn nghệ sinh viên cấp Trường"
+      - "Giải bóng đá sinh viên cấp Khoa"
+      - "Hội thao sinh viên"
+    keywords: ["tư tưởng hồ chí minh", "mác-lênin", "lịch sử", "hội thi", "văn nghệ", "hội thao", "giải bóng", "giải cờ", "cuộc thi thể thao", "cuộc thi văn hóa"]
+
+  C3.chung_nhan_the_luc:
+    ref: "3.2"
+    group: C3
+    tieu_chi: TC5
+    name: "Nhận được giấy chứng nhận danh hiệu về sức khỏe thể chất trong các ngày hội thể dục thể thao (giải chạy bộ, thử thách sức khỏe, danh hiệu Thanh niên khỏe,…)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Giấy chứng nhận danh hiệu về sức khỏe thể chất"]
+    anchors_status: draft
+    anchors:
+      - "Ngày hội Thanh niên khỏe"
+      - "Giải chạy bộ sinh viên"
+      - "Thử thách sức khỏe sinh viên"
+      - "Ngày hội thể dục thể thao toàn trường"
+    keywords: ["thanh niên khỏe", "giải chạy", "chạy bộ", "thử thách sức khỏe", "ngày hội thể dục thể thao", "sức khỏe thể chất"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C3.huy_dong_luc_luong:
+    ref: "3.3"
+    group: C3
+    tieu_chi: TC5
+    name: "Tham gia các đợt huy động lực lượng cấp Trường, cấp Khoa"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: draft
+    anchors:
+      - "Huy động sinh viên hỗ trợ lễ khai giảng"
+      - "Kêu gọi sinh viên tham gia lực lượng hỗ trợ lễ tốt nghiệp"
+      - "Huy động lực lượng sinh viên hỗ trợ sự kiện của Khoa"
+    keywords: ["huy động lực lượng", "huy động sinh viên", "lực lượng hỗ trợ", "kêu gọi sinh viên tham gia hỗ trợ"]
+
+  C3.clb_so_thich_doi_nhom:
+    ref: "3.4"
+    group: C3
+    tieu_chi: TC5
+    name: "Thành viên tích cực và sinh hoạt thường xuyên của một Câu lạc bộ sở thích cấp khoa trở lên; thành viên đội, nhóm được phân công giữ gìn an ninh, trật tự, nâng cao ý thức chấp hành nội quy, quy chế trong nhà trường"
+    kind: membership
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    min_level: khoa
+    points: {self: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Xác nhận của cấp quản lý Câu lạc bộ, đội, nhóm"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C3.hoat_dong_cap_lop:
+    ref: "3.5"
+    group: C3
+    tieu_chi: TC5
+    name: "Tham gia các hoạt động cấp lớp"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Xác nhận của Ban cán sự lớp hoặc Ban chấp hành Chi đoàn, Chi hội"]
+    anchors_status: draft
+    anchors:
+      - "Sinh hoạt lớp cuối học kỳ"
+      - "Hoạt động giao lưu tập thể của lớp"
+      - "Chuyến dã ngoại do Ban cán sự lớp tổ chức"
+    keywords: ["sinh hoạt lớp", "hoạt động lớp", "chi đoàn", "chi hội", "ban cán sự lớp"]
+
+  C3.doi_tuyen_cap_truong:
+    ref: "3.6"
+    group: C3
+    tieu_chi: TC5
+    name: "Là thành viên đội tuyển cấp trường hoặc cấp cao hơn của một cuộc thi/chương trình bất kỳ có quy mô tham dự từ 4 đội tuyển trở lên"
+    kind: achievement
+    event_matchable: true            # thông báo tuyển thành viên đội tuyển
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    points_condition: selection_or_completion
+    variant_by: none
+    min_level: truong
+    points: {participant: {any: 15}}
+    unit: per_activity
+    repeatable: true
+    conditions: ["Cuộc thi/chương trình có quy mô tham dự từ 4 đội tuyển trở lên"]
+    anchors_status: draft
+    anchors:
+      - "Tuyển chọn thành viên đội tuyển Trường tham dự cuộc thi cấp thành phố"
+      - "Thông báo tuyển đội tuyển bóng chuyền của Trường"
+      - "Tuyển đội tuyển Olympic của Trường"
+    keywords: ["đội tuyển", "tuyển chọn đội tuyển", "đại diện trường tham dự"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C3.khong_vi_pham_te_nan:
+    ref: "3.7"
+    group: C3
+    tieu_chi: TC6
+    name: "Không có hành vi vi phạm hoặc che giấu các tệ nạn xã hội"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 10
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: flat
+    repeatable: false
+
+  C3.tu_van_tuyen_sinh_viec_lam:
+    ref: "3.8"
+    group: C3
+    tieu_chi: TC7
+    name: "Tham gia các đợt hoạt động tư vấn tuyển sinh, Ngày hội việc làm từ cấp Khoa trở lên"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 5}}
+    unit: per_round                  # điểm/đợt hoạt động
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: draft
+    anchors:
+      - "Tư vấn tuyển sinh tại trường THPT"
+      - "Ngày hội việc làm của Trường"
+      - "Ngày hội tuyển sinh - Open Day"
+    keywords: ["tư vấn tuyển sinh", "ngày hội việc làm", "open day", "ngày hội tuyển sinh", "job fair"]
+
+  C3.tim_hieu_lich_su_truong:
+    ref: "3.9"
+    group: C3
+    tieu_chi: TC7
+    name: "Tham gia các cuộc thi, chương trình tìm hiểu về lịch sử phát triển Nhà trường, các tổ chức đoàn thể trong Nhà trường và ĐHQG-HCM"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi tìm hiểu lịch sử truyền thống của Trường"
+      - "Chương trình tìm hiểu về Hội Sinh viên Việt Nam"
+      - "Cuộc thi tìm hiểu về Đại học Quốc gia TP.HCM"
+    keywords: ["lịch sử phát triển nhà trường", "truyền thống nhà trường", "tìm hiểu về trường", "tìm hiểu đoàn thanh niên", "tìm hiểu hội sinh viên", "tìm hiểu đhqg"]
+
+  C3.gop_y_van_ban:
+    ref: "3.10"
+    group: C3
+    tieu_chi: TC7
+    name: "Tham gia đóng góp cho các đợt lấy ý kiến về văn bản quy phạm pháp luật các cấp, các văn bản nội bộ, các chương trình đối thoại với lãnh đạo nhằm xây dựng, phát triển Nhà trường và ĐHQG-HCM"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: draft
+    anchors:
+      - "Lấy ý kiến sinh viên về dự thảo quy chế của Trường"
+      - "Chương trình đối thoại giữa sinh viên và Ban Giám hiệu"
+      - "Góp ý dự thảo văn bản nội bộ của Trường"
+    keywords: ["đối thoại", "lấy ý kiến dự thảo", "góp ý dự thảo", "góp ý văn bản", "gặp gỡ lãnh đạo"]
+
+  C3.san_pham_truyen_thong:
+    ref: "3.11"
+    group: C3
+    tieu_chi: TC7
+    name: "Là tác giả, đồng tác giả của sản phẩm/dự án truyền thông nhằm giới thiệu, quảng bá hình ảnh về Trường hoặc ĐHQG-HCM, được đăng tải, chia sẻ trên các kênh thông tin chính thống của Nhà trường"
+    kind: achievement
+    event_matchable: true            # cuộc thi/chương trình kêu gọi sản phẩm truyền thông
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    points_condition: selection_or_completion
+    variant_by: none
+    points: {participant: {any: 15}}
+    unit: per_item                   # điểm/dự án
+    repeatable: true
+    conditions: ["Sản phẩm được đăng tải trên kênh thông tin chính thống của Nhà trường"]
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi sáng tạo nội dung quảng bá hình ảnh Trường"
+      - "Cuộc thi làm video giới thiệu về Trường"
+      - "Dự án truyền thông của sinh viên đăng trên fanpage của Trường"
+    keywords: ["quảng bá hình ảnh", "sản phẩm truyền thông", "dự án truyền thông", "video giới thiệu trường", "sáng tạo nội dung"]
+
+  C3.dai_bieu_duoc_tuyen_chon:
+    ref: "3.12"
+    group: C3
+    tieu_chi: TC7
+    name: "Được Nhà trường hoặc ĐHQG-HCM tuyển chọn là đại biểu chính thức tham gia các chương trình giao lưu, trao đổi văn hóa, học thuật trong khu vực và quốc tế"
+    kind: event
+    event_matchable: true
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    points_condition: selection_or_completion
+    variant_by: none
+    points: {participant: {any: 15}}
+    unit: per_activity
+    repeatable: true
+    conditions: ["Được Nhà trường hoặc ĐHQG-HCM tuyển chọn là đại biểu chính thức"]
+    anchors_status: draft
+    anchors:
+      - "Tuyển chọn sinh viên tham gia chương trình giao lưu văn hóa quốc tế"
+      - "Chương trình trao đổi sinh viên do Trường cử đi"
+      - "Tuyển đại biểu tham dự chương trình giao lưu học thuật khu vực"
+    keywords: ["giao lưu văn hóa", "trao đổi sinh viên", "đại biểu chính thức", "giao lưu quốc tế", "giao lưu học thuật"]
+
+  C3.dai_bieu_tu_ung_tuyen:
+    ref: "3.13"
+    group: C3
+    tieu_chi: TC7
+    name: "Là đại biểu tham gia các chương trình giao lưu, trao đổi văn hóa, học thuật, hội thảo khoa học mang tính quốc tế do cá nhân tự ứng tuyển"
+    kind: event
+    event_matchable: true
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    points_condition: selection_or_completion
+    variant_by: none
+    points: {participant: {any: 10}}
+    unit: per_activity
+    repeatable: true
+    conditions: ["Cá nhân tự ứng tuyển"]
+    exclusive_with: [C3.dai_bieu_duoc_tuyen_chon]   # hai mục phân biệt theo cách được chọn
+    anchors_status: draft
+    anchors:
+      - "Hội thảo khoa học quốc tế dành cho sinh viên, đăng ký tự do"
+      - "Chương trình giao lưu quốc tế mở đơn ứng tuyển cá nhân"
+      - "Summer school quốc tế cho sinh viên"
+    keywords: ["hội thảo quốc tế", "ứng tuyển", "summer school", "chương trình quốc tế", "exchange"]
+
+  C3.btc_ctv_hoat_dong:
+    ref: "3.14"
+    group: C3
+    tieu_chi: TC7
+    name: "Thành viên Ban tổ chức / Cộng tác viên của các hoạt động nêu ở các mục từ 3.1 đến 3.13"
+    kind: role_variant
+    applies_to:
+      - C3.cuoc_thi_ct_vhvn_tdtt
+      - C3.huy_dong_luc_luong
+      - C3.tu_van_tuyen_sinh_viec_lam
+      - C3.tim_hieu_lich_su_truong
+      - C3.gop_y_van_ban
+    applies_to_note: "Quy chế ghi 'toàn bộ các mục 3.1–3.13'; chỉ liệt kê các mục dạng hoạt động có thể có Ban tổ chức."
+    event_matchable: false
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: level
+    points:
+      organizer:    {truong_tro_len: 10, khoa: 5, lop: 5}
+      collaborator: {truong_tro_len: 5, khoa: 3, lop: 0}   # cấp lớp: quy chế không quy định → tạm 0 điểm (Q6)
+    decisions:
+      - {role: collaborator, level_bucket: lop, points: 0, note: "Quy chế không nêu; người dùng chốt tạm thời không tính điểm (Q6)"}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Xác nhận của Thường trực Ban tổ chức"]
+
+  # ======================= NHÓM C4 — CỘNG ĐỒNG (tối đa 25) ====================
+  C4.khong_vi_pham_phap_luat:
+    ref: "4.1"
+    group: C4
+    tieu_chi: TC8
+    name: "Không vi phạm pháp luật"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 10
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: flat
+    repeatable: false
+
+  C4.hien_mau:
+    ref: "4.2"
+    group: C4
+    tieu_chi: TC9
+    name: "Tham gia hiến máu tình nguyện"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 10}}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Giấy chứng nhận hiến máu"]
+    anchors_status: draft
+    anchors:
+      - "Ngày hội hiến máu tình nguyện"
+      - "Chương trình Giọt hồng hiến máu nhân đạo"
+      - "Hiến máu tình nguyện do Hội Sinh viên tổ chức"
+    keywords: ["hiến máu", "giọt hồng", "hiến máu nhân đạo", "ngày hội hiến máu"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C4.tinh_nguyen:
+    ref: "4.3"
+    group: C4
+    tieu_chi: TC9
+    name: "Là tình nguyện viên của các hoạt động, chương trình tình nguyện vì cộng đồng từ cấp lớp trở lên (đối với trong Nhà trường) hoặc tổ chức bởi đơn vị có tư cách pháp nhân và hoạt động trong khuôn khổ pháp luật"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: duration
+    duration_definition: "Thời gian lao động = thời gian thực tế làm việc với cộng đồng thụ hưởng"
+    duration_buckets:
+      lt_24h: "Dưới 24 giờ (ngắn hạn)"
+      "24h_to_lt_1w": "Từ 24 giờ đến dưới 01 tuần (trung hạn)"
+      ge_1w: "Từ 01 tuần trở lên (dài hạn)"
+    points:
+      volunteer: {lt_24h: 5, "24h_to_lt_1w": 10, ge_1w: 15}
+    role_alias: {participant: volunteer}
+    unit: per_activity
+    repeatable: true
+    role_items: {organizer: C4.btc_ctv_tinh_nguyen, collaborator: C4.btc_ctv_tinh_nguyen}
+    conditions:
+      - "Hoạt động tình nguyện vì cộng đồng từ cấp lớp trở lên (trong Nhà trường), hoặc do tổ chức có tư cách pháp nhân, hoạt động trong khuôn khổ pháp luật"
+      - "Có thời gian lao động thực tế với cộng đồng thụ hưởng"
+    anchors_status: draft
+    anchors:
+      - "Chiến dịch Mùa hè xanh"
+      - "Chiến dịch Xuân tình nguyện"
+      - "Hoạt động tình nguyện dọn vệ sinh môi trường"
+      - "Tình nguyện dạy học cho trẻ em có hoàn cảnh khó khăn"
+    keywords: ["tình nguyện", "mùa hè xanh", "xuân tình nguyện", "chiến dịch", "thiện nguyện", "vì cộng đồng", "tiếp sức mùa thi"]
+
+  C4.btc_ctv_tinh_nguyen:
+    ref: "4.4"
+    group: C4
+    tieu_chi: TC9
+    name: "Thành viên Ban tổ chức / Cộng tác viên của các hoạt động tình nguyện"
+    kind: role_variant
+    applies_to: [C4.tinh_nguyen]
+    event_matchable: false
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: level
+    points:
+      organizer:    {truong_tro_len: 10, khoa: 5, lop: 5}
+      collaborator: {truong_tro_len: 5, khoa: 3, lop: 0}   # cấp lớp: quy chế không quy định → tạm 0 điểm (Q6)
+    decisions:
+      - {role: collaborator, level_bucket: lop, points: 0, note: "Quy chế không nêu; người dùng chốt tạm thời không tính điểm (Q6)"}
+    unit: per_activity
+    repeatable: true
+
+  C4.quyen_gop:
+    ref: "4.5"
+    group: C4
+    tieu_chi: TC9
+    name: "Tham gia các hoạt động quyên góp do các tổ chức, đơn vị trong trường hoặc ngoài trường phát động"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 3}}
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+    anchors_status: draft
+    anchors:
+      - "Quyên góp sách cũ cho trẻ em vùng cao"
+      - "Quyên góp ủng hộ đồng bào bị thiên tai"
+      - "Chương trình gây quỹ từ thiện của Hội Sinh viên"
+    keywords: ["quyên góp", "ủng hộ", "gây quỹ", "từ thiện", "đồng bào", "quỹ"]
+
+  C4.tuyen_truyen_phap_luat:
+    ref: "4.6"
+    group: C4
+    tieu_chi: TC10
+    name: "Tham gia các cuộc thi, chương trình tuyên truyền về Hiến pháp và các văn bản luật, đẩy lùi tệ nạn, phòng chống dịch bệnh các cấp hoặc do chính quyền, đoàn thể nơi cư trú phát động và tổ chức"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    variant_by: none
+    points: {participant: {any: 10}}
+    unit: per_activity
+    repeatable: true
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi tìm hiểu Hiến pháp và pháp luật"
+      - "Chương trình tuyên truyền phòng chống ma túy"
+      - "Chiến dịch tuyên truyền phòng chống dịch bệnh"
+      - "Cuộc thi tìm hiểu pháp luật do địa phương phát động"
+    keywords: ["hiến pháp", "pháp luật", "tuyên truyền", "phòng chống ma túy", "phòng chống dịch", "đẩy lùi tệ nạn", "an toàn giao thông"]
+
+  C4.ban_can_su_lop:
+    ref: "4.7"
+    group: C4
+    tieu_chi: TC10
+    name: "Được đánh giá hoàn thành tốt nhiệm vụ trở lên đối với vai trò là thành viên Ban cán sự lớp trong năm học"
+    kind: status
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester               # + 10 điểm tại học kỳ đánh giá
+    repeatable: false
+
+  C4.doan_vien_dang_vien_xuat_sac:
+    ref: "4.8"
+    group: C4
+    tieu_chi: TC10
+    name: "Được đánh giá phân loại một trong 2 danh hiệu: Đoàn viên hoàn thành xuất sắc nhiệm vụ; Đảng viên hoàn thành tốt nhiệm vụ"
+    kind: status
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester               # + 10 điểm tại học kỳ đánh giá
+    repeatable: false
+
+  # ======================= NHÓM C5 — KHUYẾN KHÍCH (tối đa 30) =================
+  C5.khen_thuong_thanh_tich:
+    ref: "5.1"
+    group: C5
+    tieu_chi: TC11
+    name: "Thành tích xuất sắc trong các kỳ thi, cuộc thi, học tập và rèn luyện; nhận được các hình thức khen thưởng"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    variant_by: award_tier
+    points:
+      self:
+        huy_chuong_quoc_te: 20            # HCV/HCB/HCĐ Olympic, kỳ thi học thuật, nghiên cứu cấp quốc tế
+        huy_chuong_quoc_gia: 15           # tương tự, cấp quốc gia
+        bang_khen_giam_doc_dhqg_hoac_ubnd_tinh_tp: 15
+        bang_khen_to_chuc_doan_the: 10
+        giay_khen_hieu_truong: 10
+        giay_khen_doan_the_chinh_quyen_tu_cap_xa: 5
+    unit: per_occurrence             # điểm/lần
+    repeatable: true
+    count_rule: "Chỉ tính một hình thức khen thưởng cao nhất đối với một nội dung khen thưởng"
+    exclusive_with: [C5.giai_thuong_cuoc_thi]
+
+  C5.giai_thuong_cuoc_thi:
+    ref: "5.2"
+    group: C5
+    tieu_chi: TC11
+    name: "Đạt giải thưởng trong các cuộc thi, sân chơi từ cấp khoa trở lên"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    variant_by: award_tier
+    min_level: khoa
+    points:
+      self:
+        vo_dich_dac_biet_nhat: 5          # Giải Vô địch, Giải Đặc biệt, Giải Nhất
+        nhi_ba_khuyen_khich_phu: 3        # Giải Nhì, Ba, Khuyến khích và các giải phụ (nếu có)
+    unit: per_occurrence
+    repeatable: true
+    count_rule: "Chỉ tính giải thưởng cao nhất"
+    exclusive_with: [C5.khen_thuong_thanh_tich]   # không áp dụng các trường hợp tại 5.1
+
+  C5.doi_tuyen_giai_thuong_cap_thanh:
+    ref: "5.3"
+    group: C5
+    tieu_chi: TC11
+    name: "Là thành viên đội tuyển tham dự kỳ thi Olympic / kỳ thi học thuật cấp thành trở lên; là thành viên của nhóm hoặc cá nhân đạt giải thưởng học thuật, sản phẩm nghiên cứu, sáng tạo, ứng dụng, khởi nghiệp từ cấp thành trở lên"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: per_activity
+    repeatable: true
+    notes: "Đã xác nhận (Q7): 'cấp thành' = cấp thành phố. Theo Q5: mỗi hoạt động cộng 1 lần, tổng bị chặn bởi trần nhóm C5."
+
+  C5.bai_bao_quoc_te:
+    ref: "5.4"
+    group: C5
+    tieu_chi: TC11
+    name: "Là tác giả/đồng tác giả của bài báo khoa học đăng trên tạp chí quốc tế uy tín hoặc hội thảo khoa học cấp quốc tế"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 25}}
+    unit: per_item                   # điểm/bài tại học kỳ được đăng bài
+    repeatable: true
+    conditions: ["Tính tại học kỳ được đăng bài"]
+
+  C5.bai_bao_quoc_gia:
+    ref: "5.5"
+    group: C5
+    tieu_chi: TC11
+    name: "Là tác giả/đồng tác giả của bài báo đăng trên các tạp chí khoa học trong nước có uy tín hoặc hội thảo khoa học cấp quốc gia"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: per_item
+    repeatable: true
+    conditions: ["Tính tại học kỳ được đăng bài"]
+
+  C5.giai_thuong_to_chuc:
+    ref: "5.6"
+    group: C5
+    tieu_chi: TC11
+    name: "Đạt giải thưởng do các tổ chức chính phủ, phi chính phủ, tổ chức đa quốc gia (được cấp phép hoạt động tại Việt Nam) trao tặng"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_item                   # điểm/giải thưởng
+    repeatable: true
+
+  C5.hoc_bong_vuot_kho:
+    ref: "5.7"
+    group: C5
+    tieu_chi: TC12
+    name: "Nhận học bổng do tổ chức có tư cách pháp nhân trao tặng vì tinh thần vượt khó, phấn đấu vươn lên; hoặc không được học bổng nhưng được Hội đồng cấp Khoa thống nhất đề xuất"
+    kind: status
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester               # tại học kỳ được trao tặng học bổng
+    repeatable: false
+
+  C5.mo_coi:
+    ref: "5.8"
+    group: C5
+    tieu_chi: TC13
+    name: "Mồ côi cả cha lẫn mẹ"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 20}}
+    unit: per_semester
+    repeatable: false
+    notes: "Thông tin nhạy cảm do Nhà trường/CTSV xác nhận; hệ thống KHÔNG suy đoán, KHÔNG hỏi và KHÔNG lưu vào hồ sơ người dùng ở dạng nhận diện được."
+
+  C5.khuyet_tat:
+    ref: "5.9"
+    group: C5
+    tieu_chi: TC13
+    name: "Sinh viên khuyết tật, khó khăn trong đi lại và sinh hoạt"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester
+    repeatable: false
+    notes: "Thông tin nhạy cảm — xử lý như mục 5.8."
+
+  C5.ho_ngheo:
+    ref: "5.10"
+    group: C5
+    tieu_chi: TC13
+    name: "Hộ nghèo, hộ cận nghèo được hưởng chính sách theo quy định của Bộ Giáo dục & Đào tạo"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester
+    repeatable: false
+    notes: "Thông tin nhạy cảm — xử lý như mục 5.8."
+
+  C5.mien_giam_hoc_phi:
+    ref: "5.11"
+    group: C5
+    tieu_chi: TC13
+    name: "Được miễn giảm học phí (không bao gồm trường hợp tại 03 nội dung trên)"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester
+    repeatable: false
+    exclusive_with: [C5.mo_coi, C5.khuyet_tat, C5.ho_ngheo]
+    notes: "Thông tin nhạy cảm — xử lý như mục 5.8."
+
+  # ======================= NHÓM P — ĐIỂM TRỪ (không giới hạn) =================
+  P.khai_bao_khao_sat:
+    ref: "6.1"
+    group: P
+    name: "Không tham gia hoặc cung cấp thông tin không chính xác các khai báo, điều tra xã hội do Nhà trường yêu cầu"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: -5}}
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+
+  P.ngoai_tru:
+    ref: "6.2"
+    group: P
+    name: "Không thực hiện khai báo, xác nhận ngoại trú theo quy định"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: -15}}
+    unit: per_semester
+    repeatable: false
+
+  P.khong_hoan_thanh_nhiem_vu_can_bo:
+    ref: "6.3"
+    group: P
+    name: "Không hoàn thành nhiệm vụ trong vai trò là Ban cán sự lớp, cán bộ Đoàn thanh niên – Hội Sinh viên các cấp"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: -5}}
+    unit: per_occurrence             # điểm/lần
+    repeatable: true
+
+  P.sinh_hoat_cong_dan:
+    ref: "6.4"
+    group: P
+    name: "Không tham gia đầy đủ tuần sinh hoạt công dân đầu khóa, đầu năm học và cuối khóa"
+    kind: mandatory_event
+    event_matchable: true            # sự kiện BẮT BUỘC: tham dự để TRÁNH bị trừ điểm
+    tier: 4
+    mvp_scope: remind
+    verification: none
+    mandatory: true
+    variant_by: outcome
+    points:
+      self:
+        khong_tham_gia_du_noi_dung: -20            # không tham gia đủ nội dung theo yêu cầu
+        tham_gia_nhung_khong_thu_hoach_hoac_khong_dat: -10   # tham gia đầy đủ nhưng không làm / làm không đạt bài thu hoạch
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+    notes: "Quy chế KHÔNG cộng điểm cho tuần sinh hoạt công dân; chỉ trừ nếu bỏ lỡ. Nên xử lý là nhắc nhở ưu tiên cao, không phải đề xuất 'kiếm điểm'."
+    anchors_status: draft
+    anchors:
+      - "Tuần sinh hoạt công dân đầu khóa dành cho tân sinh viên"
+      - "Tuần sinh hoạt công dân đầu năm học"
+      - "Tuần sinh hoạt công dân cuối khóa"
+    keywords: ["sinh hoạt công dân", "tuần sinh hoạt công dân", "bài thu hoạch", "sinh hoạt công dân đầu khóa", "sinh hoạt công dân cuối khóa"]
+
+  P.ky_luat_khien_trach:
+    ref: "6.5"
+    group: P
+    name: "Bị kỷ luật ở mức Khiển trách"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: -10}}
+    unit: per_semester               # trong học kỳ nhận Quyết định kỷ luật
+    repeatable: false
+
+  P.ky_luat_canh_cao:
+    ref: "6.6"
+    group: P
+    name: "Bị kỷ luật ở mức Cảnh cáo"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    variant_by: none
+    points: {self: {any: -20}}
+    unit: per_semester               # trong học kỳ nhận Quyết định kỷ luật
+    repeatable: false
+
+# -----------------------------------------------------------------------------
+# NHÃN ĐẶC BIỆT CHO BỘ PHÂN LOẠI
+# -----------------------------------------------------------------------------
+meta_labels:
+  NONE:
+    name: "Không tính điểm rèn luyện"
+    description: "Sự kiện/bài đăng không thuộc mục nào của Phụ lục: giải trí thuần túy, thương mại, quảng cáo."
+    anchors_status: draft
+    anchors:
+      - "Tiệc liên hoan cuối năm của lớp"
+      - "Quảng cáo khóa học kỹ năng của trung tâm bên ngoài"
+      - "Khuyến mãi, bán vé sự kiện giải trí thương mại"
+      - "Buổi gặp mặt giao lưu giải trí không nằm trong kế hoạch của Đoàn - Hội"
+    keywords: ["khuyến mãi", "giảm giá", "mua vé", "tiệc", "liên hoan", "quảng cáo", "tuyển dụng việc làm part-time"]
+
+# -----------------------------------------------------------------------------
+# QUY TẮC CHUNG (Điều 7, Điều 8, Điều 9)
+# -----------------------------------------------------------------------------
+global_rules:
+  classification:                    # Điều 7
+    - {label: xuat_sac, name: "Xuất sắc", from: 90, to: 100}
+    - {label: tot, name: "Tốt", from: 80, to: 89}
+    - {label: kha, name: "Khá", from: 65, to: 79}
+    - {label: trung_binh, name: "Trung bình", from: 50, to: 64}
+    - {label: yeu, name: "Yếu", from: 35, to: 49}
+    - {label: kem, name: "Kém", from: null, to: 35, to_inclusive: false}
+  classification_note: "Quy chế dùng các khoảng nguyên (vd 80–89, 65–79); cách xếp loại điểm không nguyên (vd 89,5) cần CTSV xác nhận."
+  discipline_effects:                # Điều 8.1–8.4
+    khien_trach: {max_classification: kha, note: "Trong thời gian bị kỷ luật khiển trách, kết quả không vượt quá loại Khá"}
+    canh_cao: {max_classification: trung_binh, note: "Trong thời gian bị kỷ luật cảnh cáo, kết quả không vượt quá loại Trung bình"}
+    dinh_chi_hoc_tap: {evaluated: false, note: "Không đánh giá trong thời gian bị đình chỉ"}
+    buoc_thoi_hoc: {evaluated: false}
+  special_cases:                     # Điều 8.5–8.9
+    nghi_hoc_tam_thoi_hoac_khong_dang_ky_hoc_phan: {fixed_score: 50, classification: trung_binh}
+    hai_chuong_trinh: "Đánh giá tại đơn vị quản lý chương trình thứ nhất, lấy nhận xét đơn vị thứ hai làm căn cứ"
+    chuyen_truong: "Được bảo lưu kết quả rèn luyện nếu được Hiệu trưởng hai cơ sở đồng ý"
+    tot_nghiep_tre_tien_do: "Không vi phạm pháp luật/không bị kỷ luật thì không áp điểm trừ trong học kỳ trễ tiến độ; chưa đủ điều kiện tốt nghiệp thì không đánh giá"
+    uu_tien_hoan_canh_dac_biet: "Sinh viên khuyết tật/mồ côi/hoàn cảnh đặc biệt khó khăn có xác nhận của địa phương được ưu tiên, khuyến khích, cộng điểm"
+    truong_hop_khac: "Hội đồng đánh giá cấp Trường xem xét và quyết định (Điều 8.12)"
+  course_level_bonuses:              # Điều 8.10–8.11: cộng vào điểm toàn khóa, KHÔNG vào điểm học kỳ
+    thu_khoa_dau_ra: {points: 10, scope: toan_khoa, condition: "Không vi phạm kỷ luật trong toàn bộ quá trình học"}
+    giai_quoc_gia_tro_len: {points: 5, scope: toan_khoa, condition: "Đạt giải kỳ thi cấp Quốc gia trở lên và không vi phạm nội quy, quy chế hoặc bị kỷ luật trong toàn bộ quá trình học"}
+  process:                           # Điều 9 — hữu ích cho Module 5 (nhắc việc)
+    sinh_vien_tu_danh_gia: "Mỗi học kỳ, sinh viên tự đánh giá theo Phụ lục"
+    don_vi_cap_nhat: "Cuối mỗi tháng và cuối mỗi học kỳ, Khoa/Đoàn thanh niên/Hội Sinh viên cập nhật thành tích và danh sách tham gia"
+    phan_hoi_trong_ngay: 15          # kể từ khi CTSV công bố kết quả dự kiến qua email sinh viên
+    cong_bo_chinh_thuc: "Qua email sinh viên và hệ thống theo dõi điểm rèn luyện"
+
+# -----------------------------------------------------------------------------
+# CÁC CÂU HỎI ĐÃ ĐƯỢC TRẢ LỜI (để truy vết quyết định)
+# -----------------------------------------------------------------------------
+resolved_questions:
+  - {id: Q1, topic: "Hiệu lực văn bản", answer: "Quy chế đã hết hiệu lực nhưng dùng làm cơ sở cho MVP đồ án", applied_in: "meta.validity"}
+  - {id: Q2, topic: "Điểm sàn học kỳ", answer: "Điểm trừ không giới hạn; điểm học kỳ thấp nhất là 0", applied_in: "scoring.floor, scoring.formula"}
+  - {id: Q3, topic: "Thứ tự áp trần và điểm trừ", answer: "Áp trần từng nhóm trước, sau đó mới trừ điểm", applied_in: "scoring.formula_status"}
+  - {id: Q4, topic: "Mục 1.2 / 1.3", answer: "1.2 là ĐTB học kỳ; 1.3 là xếp loại học tập", applied_in: "C1.diem_trung_binh_hoc_ky, C1.giu_xep_loai_xuat_sac"}
+  - {id: Q5, topic: "Mục không ghi đơn vị", answer: "Mỗi hoạt động cộng 1 lần; nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm lớn", applied_in: "scoring.repeat_rule; mục 3.2, 3.4, 3.6, 4.2, 5.3"}
+  - {id: Q6, topic: "Cộng tác viên cấp lớp", answer: "Tạm thời không tính điểm (0)", applied_in: "C3.btc_ctv_hoat_dong, C4.btc_ctv_tinh_nguyen"}
+  - {id: Q7, topic: "Mục 5.3 'cấp thành'", answer: "Đúng, là cấp thành phố", applied_in: "C5.doi_tuyen_giai_thuong_cap_thanh"}
+  - {id: Q4b, topic: "Mục 1.4", answer: "Dùng ĐTB học kỳ (như mục 1.2)", applied_in: "C1.tang_diem_trung_binh"}
+  - {id: Q8, topic: "Quy đổi cấp", answer: "Cấp ĐHQG, thành phố, quốc gia, quốc tế tính chung là 'cấp trường trở lên'", applied_in: "level_buckets"}
+
+decisions:
+  - {id: D1, topic: "Giả định mặc định cho nhóm tuân thủ", decision: "Mặc định coi là KHÔNG vi phạm (mục 1.1, 2.1, 3.7, 4.1); sinh viên có thể tắt", applied_in: "default_assumption, capabilities.ledger.baseline"}
+  - {id: D2, topic: "Chức năng tự khai báo", decision: "Tự khai báo hoạt động/thành tích/minh chứng sẽ mở rộng sau MVP", applied_in: "mvp_scope: track_later; post_types.result_announcement: deferred", note: "Người soạn suy ra bài kết quả/vinh danh cũng để sau; điều chỉnh nếu hiểu sai"}
+
+# -----------------------------------------------------------------------------
+# CÂU HỎI CÒN MỞ
+# -----------------------------------------------------------------------------
+open_questions:
+  - id: Q9
+    topic: "Nguồn dữ liệu minh chứng"
+    question: "Danh sách sinh viên tham gia sự kiện do Khoa/Đoàn/Hội cập nhật theo kênh nào (file, hệ thống)? Có API/biểu mẫu nào để Module 6–7 đối chiếu không? (người dùng sẽ cung cấp sau)"
+
+# -----------------------------------------------------------------------------
+# VIỆC CẦN LÀM TIẾP
+# -----------------------------------------------------------------------------
+next_steps:
+  - "Thay `anchors` (bản nháp) bằng 3–8 tiêu đề sự kiện THẬT của trường cho mỗi mục có event_matchable: true (lấy từ fanpage Đoàn–Hội, khoa, CTSV)."
+  - "Rà `keywords` với bài đăng thật (xem keyword_rules.yaml) để loại từ gây nhầm."
+  - "Trả lời Q9, sau đó đổi meta.status thành confirmed."
+  - "Khi làm chức năng tự khai báo: chuyển các mục mvp_scope=track_later sang self_reported và dùng post_types.result_announcement để gợi ý ghi nhận thành tích."

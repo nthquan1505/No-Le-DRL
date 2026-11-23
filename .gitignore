@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Hugging Face cache
+.cache/
+huggingface_cache/
+
+# Local model weights
+models/
+checkpoints/
+
+# Generated files
+outputs/
+logs/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
