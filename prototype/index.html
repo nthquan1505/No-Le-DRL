@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>No-Le-DRL · Prototype Module 3 (HCMUS)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3L2 8l10 5 10-5-10-5z" />
+              <path d="M2 16l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">No-Le-DRL <span class="badge badge-teal">Module 3 Prototype</span></div>
+            <div class="brand-sub">Hệ thống Phân loại &amp; Gợi ý Hoạt động Điểm Rèn Luyện · HCMUS</div>
+          </div>
+        </div>
+
+        <nav class="main-nav" role="tablist" aria-label="Các phân hệ Module 3">
+          <button class="nav-tab active" role="tab" aria-selected="true" data-tab="dashboard">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            <span>Gợi ý ĐRL</span>
+          </button>
+          <button class="nav-tab" role="tab" aria-selected="false" data-tab="planner">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span>Lập kế hoạch (P7)</span>
+          </button>
+          <button class="nav-tab" role="tab" aria-selected="false" data-tab="classifier">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span>Thử phân loại (P2)</span>
+          </button>
+          <button class="nav-tab" role="tab" aria-selected="false" data-tab="profile">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Hồ sơ &amp; Feedback</span>
+          </button>
+        </nav>
+
+        <div class="topbar-actions">
+          <div id="studentChip" class="student-pill"></div>
+        </div>
+      </div>
+
+      <!-- P2.1 e5-small Status Ribbon -->
+      <div id="embedderBanner" class="status-ribbon"></div>
+    </header>
+
+    <main class="main-content">
+      <!-- ================================================================
+           TAB 1: DASHBOARD & RECOMMENDATIONS (P5 -> P8 + MODULE 6)
+      ================================================================= -->
+      <section id="tab-dashboard" class="tab-panel active" role="tabpanel">
+        <!-- DRL Progress Strip (Module 6) -->
+        <div class="progress-card card">
+          <div class="progress-head">
+            <div>
+              <div class="eyebrow">Tiến độ ĐRL Học kỳ 1 (2026–2027) · Module 6</div>
+              <div class="score-row">
+                <span id="totalScoreVal" class="big-score">--</span>
+                <span class="score-denom">/ <span id="targetScoreVal">85</span>đ mục tiêu</span>
+                <span class="badge badge-muted">Ước tính — chưa xác nhận</span>
+              </div>
+            </div>
+            <div class="kpi-strip">
+              <div class="kpi-box">
+                <div class="kpi-label">Sự kiện trong Cache</div>
+                <div id="kpiTotalEvents" class="kpi-val">--</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-label">Đạt lọc cứng (P5)</div>
+                <div id="kpiEligible" class="kpi-val text-teal">--</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-label">Bị lọc / Ẩn (P5)</div>
+                <div id="kpiDropped" class="kpi-val text-muted">--</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-label">Mẫu ClsIndex</div>
+                <div id="kpiClsSize" class="kpi-val mono">--</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="groupCapsGrid" class="group-caps-grid"></div>
+        </div>
+
+        <div class="dashboard-layout">
+          <!-- Left Sidebar: P4 Weights (w1..w4), P5 Toggles & M5 Reminders -->
+          <aside class="sidebar-col">
+            <div class="card">
+              <div class="card-title-row">
+                <h2 class="card-title">Trọng số chấm điểm P6 (D-5)</h2>
+                <span class="mono tag-soft">w1..w4</span>
+              </div>
+              <p class="helper-text">
+                Công thức: <code class="mono">w1·Gain + w2·Interest + w3·Fit + w4·Urgency + Penalty</code>
+              </p>
+
+              <div id="presetButtons" class="preset-grid"></div>
+
+              <div class="slider-group">
+                <label class="slider-label" for="w1Slider">
+                  <span>w1 · Điểm thực nhận (Gain · M6)</span>
+                  <strong id="w1Val" class="mono">40%</strong>
+                </label>
+                <input id="w1Slider" type="range" min="0" max="100" value="40" />
+
+                <label class="slider-label" for="w2Slider">
+                  <span>w2 · Sở thích (Interest · E5)</span>
+                  <strong id="w2Val" class="mono">25%</strong>
+                </label>
+                <input id="w2Slider" type="range" min="0" max="100" value="25" />
+
+                <label class="slider-label" for="w3Slider">
+                  <span>w3 · Thuận tiện lịch (Fit · M4)</span>
+                  <strong id="w3Val" class="mono">20%</strong>
+                </label>
+                <input id="w3Slider" type="range" min="0" max="100" value="20" />
+
+                <label class="slider-label" for="w4Slider">
+                  <span>w4 · Sắp hết hạn (Urgency)</span>
+                  <strong id="w4Val" class="mono">15%</strong>
+                </label>
+                <input id="w4Slider" type="range" min="0" max="100" value="15" />
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="card-title-row">
+                <h3 class="card-subtitle">Bộ lọc cứng P5 &amp; Bối cảnh M4</h3>
+              </div>
+              <div class="toggle-list">
+                <label class="toggle-item">
+                  <input id="toggleConflicts" type="checkbox" checked />
+                  <span>Lọc sự kiện trùng TKB (Module 4)</span>
+                </label>
+                <label class="toggle-item">
+                  <input id="toggleCap" type="checkbox" checked />
+                  <span>Ẩn nhóm đã chạm trần điểm (Module 6)</span>
+                </label>
+                <label class="toggle-item">
+                  <input id="toggleExamWeek" type="checkbox" />
+                  <span>Chế độ tuần thi (ưu tiên sự kiện online)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Module 5 Reminders -->
+            <div class="card">
+              <div class="card-title-row">
+                <h2 class="card-title">Nhắc việc &amp; Hạn gần (M5)</h2>
+                <span class="badge badge-orange">Urgency</span>
+              </div>
+              <div id="remindersList" class="reminders-list"></div>
+            </div>
+          </aside>
+
+          <!-- Main Feed: P7 MMR + 1 Exploration Slot + P8 Explain -->
+          <div class="feed-col">
+            <div class="feed-header">
+              <div>
+                <h1 class="section-heading">Top-N Hoạt động gợi ý cho bạn</h1>
+                <p class="helper-text">
+                  Chọn lọc bằng <strong class="mono">MMR + 1 slot khám phá (P7)</strong> trên dữ liệu sự kiện HCMUS thực tế (mốc giả lập <span id="refNowLabel" class="mono"></span>).
+                </p>
+              </div>
+              <div class="feed-controls">
+                <input
+                  id="feedSearch"
+                  type="search"
+                  class="input-text"
+                  placeholder="Tìm nhanh theo tên sự kiện, đơn vị, mã mục..."
+                  aria-label="Tìm kiếm hoạt động"
+                />
+              </div>
+            </div>
+
+            <div id="recommendationsGrid" class="rec-grid"></div>
+
+            <!-- P5 Diagnostics: Why Not? -->
+            <details class="card why-not-box">
+              <summary class="why-not-summary">
+                <span>Tại sao không gợi ý? — Nhật ký lọc cứng P5 (<strong id="droppedSummaryCount">0</strong> sự kiện bị loại)</span>
+                <span class="mono tag-soft">P5 · DropReason</span>
+              </summary>
+              <div id="droppedList" class="dropped-list"></div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           TAB 2: SCHEDULE PLANNER (P7 LP/CP-SAT + MODULE 4 TIMETABLE)
+      ================================================================= -->
+      <section id="tab-planner" class="tab-panel" role="tabpanel">
+        <div class="card planner-hero">
+          <div class="planner-hero-left">
+            <div class="eyebrow">P7 · Lập kế hoạch không trùng giờ &amp; Tôn trọng trần nhóm</div>
+            <h1 class="section-heading">Tối ưu lộ trình đạt mục tiêu ĐRL học kỳ</h1>
+            <p class="helper-text" id="plannerSolverNote"></p>
+          </div>
+          <div class="planner-controls">
+            <label class="planner-goal-label" for="plannerGoalRange">
+              Mục tiêu ĐRL: <strong id="plannerGoalVal" class="mono text-teal">85đ</strong>
+            </label>
+            <input id="plannerGoalRange" type="range" min="60" max="100" step="5" value="85" />
+            <button id="btnRunPlan" class="btn btn-primary">Tính lại kế hoạch tối ưu</button>
+          </div>
+        </div>
+
+        <div class="planner-summary-row">
+          <div class="card stat-highlight">
+            <div class="kpi-label">Điểm hiện tại (M6)</div>
+            <div id="planCurrentScore" class="big-score">--</div>
+          </div>
+          <div class="card stat-highlight">
+            <div class="kpi-label">Dự kiến sau kế hoạch</div>
+            <div id="planProjectedScore" class="big-score text-teal">--</div>
+          </div>
+          <div class="card stat-highlight">
+            <div class="kpi-label">Số sự kiện cần tham gia</div>
+            <div id="planEventCount" class="big-score">--</div>
+          </div>
+          <div class="card stat-highlight">
+            <div class="kpi-label">Xung đột lịch / Tràn trần</div>
+            <div class="big-score text-teal">0 / 0</div>
+          </div>
+        </div>
+
+        <div class="planner-grid">
+          <div class="card">
+            <div class="card-title-row">
+              <h2 class="card-title">Lộ trình sự kiện đề xuất (Không trùng giờ)</h2>
+              <span class="badge badge-teal">Zero Conflict</span>
+            </div>
+            <div id="plannedEventsList" class="planned-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row">
+              <h2 class="card-title">Thời khóa biểu cố định (Mock Module 4)</h2>
+              <span class="mono tag-soft">+30p đệm di chuyển</span>
+            </div>
+            <div id="timetableList" class="timetable-list"></div>
+            <div class="divider"></div>
+            <h3 class="card-subtitle">Phân bổ điểm theo nhóm sau kế hoạch</h3>
+            <div id="planGroupBars" class="plan-group-bars"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           TAB 3: LIVE P2 HIERARCHICAL KNN INSPECTOR (e5-small + D-2)
+      ================================================================= -->
+      <section id="tab-classifier" class="tab-panel" role="tabpanel">
+        <div class="classifier-grid">
+          <div class="card">
+            <div class="card-title-row">
+              <h1 class="card-title">Kiểm thử luồng P2 Live (D-2)</h1>
+              <span id="clsModelBadge" class="badge badge-teal mono">e5-small · 384d</span>
+            </div>
+            <p class="helper-text">
+              Nhập sự kiện bất kỳ để quan sát trực tiếp 3 bước: <strong>P2.1 Embedding</strong> → <strong>P2.2 Stage 1 (Top-k nhóm C1–C5)</strong> → <strong>P2.3 Stage 2 (Union KNN mục nhỏ &lt;mục_lớn&gt;.&lt;mục_nhỏ&gt;)</strong> → <strong>Module 6</strong>.
+            </p>
+
+            <div class="quick-samples">
+              <span class="helper-text">Mẫu thử nhanh:</span>
+              <button class="chip-btn" data-sample="ctf">Cuộc thi CTF (1.6)</button>
+              <button class="chip-btn" data-sample="ctf_btc">CTF · Vai trò BTC (1.7)</button>
+              <button class="chip-btn" data-sample="seminar">Seminar AI (1.9)</button>
+              <button class="chip-btn" data-sample="volunteer">Tình nguyện 3 ngày (4.3)</button>
+            </div>
+
+            <form id="classifyForm" class="form-stack">
+              <div class="form-field">
+                <label for="clsTitle">Tên hoạt động</label>
+                <input
+                  id="clsTitle"
+                  type="text"
+                  class="input-text"
+                  value="Cuộc thi An toàn thông tin HCMUS CTF 2026"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="clsDesc">Mô tả ngắn</label>
+                <textarea id="clsDesc" rows="3" class="input-text">Cuộc thi học thuật cấp Khoa dành cho sinh viên yêu thích bảo mật và lập trình.</textarea>
+              </div>
+              <div class="form-row-2">
+                <div class="form-field">
+                  <label for="clsOrg">Đơn vị tổ chức</label>
+                  <input id="clsOrg" type="text" class="input-text" value="Khoa CNTT" />
+                </div>
+                <div class="form-field">
+                  <label for="clsRole">Vai trò sinh viên</label>
+                  <select id="clsRole" class="input-text">
+                    <option value="participant">Tham gia (participant)</option>
+                    <option value="organizer">Ban tổ chức (organizer)</option>
+                    <option value="collaborator">Cộng tác viên (collaborator)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="open-params-box">
+                <div class="card-title-row">
+                  <span class="card-subtitle">Tham số thử nghiệm mở (D-2)</span>
+                  <span class="badge badge-orange">Chưa khóa production</span>
+                </div>
+                <div class="form-row-3">
+                  <div class="form-field">
+                    <label for="paramTopK">Stage 1 Top-k</label>
+                    <input id="paramTopK" type="number" min="1" max="5" value="2" class="input-text mono" />
+                  </div>
+                  <div class="form-field">
+                    <label for="paramK1">Stage 1 k-NN</label>
+                    <input id="paramK1" type="number" min="1" max="20" value="5" class="input-text mono" />
+                  </div>
+                  <div class="form-field">
+                    <label for="paramK2">Stage 2 k-NN</label>
+                    <input id="paramK2" type="number" min="1" max="20" value="3" class="input-text mono" />
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full">Chạy phân loại P2.1 → P2.3 + Module 6</button>
+            </form>
+          </div>
+
+          <div id="classifyResultPane" class="trace-col">
+            <!-- Populated live via /api/classify -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           TAB 4: USER PROFILE (COLD-START + P4 + FEEDBACK STORE)
+      ================================================================= -->
+      <section id="tab-profile" class="tab-panel" role="tabpanel">
+        <div class="profile-grid">
+          <div class="card">
+            <div class="card-title-row">
+              <h1 class="card-title">Cold-Start &amp; Hồ sơ sinh viên (P4)</h1>
+              <span class="badge badge-teal">Adaptive Vector</span>
+            </div>
+            <p class="helper-text">
+              Chọn các chủ đề sở thích để khởi tạo vector <code class="mono">u_declared</code> (384d) và kết hợp với hành vi Lưu / Tham gia / Bỏ qua (<code class="mono">u_learned</code>).
+            </p>
+
+            <div class="form-stack">
+              <div class="form-field">
+                <label>Chip sở thích (E5 Interest Chips)</label>
+                <div id="interestChipsGrid" class="chips-wrap"></div>
+              </div>
+
+              <div class="form-row-3">
+                <div class="form-field">
+                  <label for="profCohort">Khóa</label>
+                  <input id="profCohort" type="text" class="input-text" value="K23" />
+                </div>
+                <div class="form-field">
+                  <label for="profFaculty">Khoa</label>
+                  <input id="profFaculty" type="text" class="input-text" aria-label="Khoa" value="Khoa Công nghệ Thông tin" />
+                </div>
+                <div class="form-field">
+                  <label for="profBudget">Ngân sách tối đa (VNĐ)</label>
+                  <input id="profBudget" type="number" step="5000" class="input-text mono" value="50000" />
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button id="btnSaveProfile" class="btn btn-primary">Lưu hồ sơ &amp; Cập nhật gợi ý</button>
+                <button id="btnResetDemo" class="btn btn-ghost">Khôi phục trạng thái demo ban đầu</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row">
+              <h2 class="card-title">Feedback Store (Vòng lặp học tăng cường)</h2>
+              <span id="feedbackCountBadge" class="badge badge-muted mono">0 sự kiện</span>
+            </div>
+            <p class="helper-text">
+              Mọi thao tác <strong>Lưu, Tham gia, Bỏ qua, Sửa nhãn</strong> đều ghi vào Feedback Store để cập nhật <strong>P4</strong> và nạp mẫu mới trực tiếp vào <strong>ClsIndex</strong>.
+            </p>
+            <div id="feedbackTimeline" class="feedback-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Label Correction Modal (UI -> Feedback Store -> ClsIndex) -->
+  <div id="labelModal" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="card-title-row">
+        <h2 id="modalTitle" class="card-title">Sửa nhãn mục ĐRL (T-4 · Feedback → ClsIndex)</h2>
+        <button id="modalClose" class="icon-btn" aria-label="Đóng hộp thoại">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <p id="modalEventName" class="modal-event-title"></p>
+      <p class="helper-text">
+        Chọn mã mục chuẩn <code class="mono">&lt;mục_lớn&gt;.&lt;mục_nhỏ&gt;</code>. Hệ thống sẽ ghi nhận vào Feedback Store và thêm vector mẫu mới vào đúng phân vùng nhóm cha trong <code class="mono">ClsIndex</code>.
+      </p>
+      <div class="form-field">
+        <label for="modalLabelSelect">Mã mục ĐRL chính xác</label>
+        <select id="modalLabelSelect" class="input-text"></select>
+      </div>
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn btn-ghost">Hủy</button>
+        <button id="modalConfirm" class="btn btn-primary">Xác nhận sửa nhãn &amp; Nạp ClsIndex</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -10,10 +10,12 @@ Provides:
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import re
 import unicodedata
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from dataclasses import dataclass
+from typing import List, Optional, Sequence, Tuple
 
 from configs.model_config import (
     E5_PASSAGE_PREFIX,
@@ -74,7 +76,25 @@ class E5Embedder(BaseEmbedder):
                     "sentence-transformers is required for E5Embedder. "
                     "Install with `pip install 'no-le-drl[ml]'` or `pip install sentence-transformers`."
                 ) from exc
-            self._model = SentenceTransformer(self.model_id, device=self.device)
+
+            # Resolve local HuggingFace cache snapshot path first so offline startup works
+            # instantaneously without triggering HuggingFace Hub network metadata calls.
+            local_snapshot: Optional[str] = None
+            try:
+                from huggingface_hub import snapshot_download  # type: ignore
+
+                local_snapshot = snapshot_download(self.model_id, local_files_only=True)
+            except Exception:
+                local_snapshot = None
+
+            if local_snapshot:
+                self._model = SentenceTransformer(
+                    local_snapshot,
+                    device=self.device,
+                    local_files_only=True,
+                )
+            else:
+                self._model = SentenceTransformer(self.model_id, device=self.device)
         return self._model
 
     def _encode_prefixed(self, texts: Sequence[str], prefix: str) -> List[List[float]]:
@@ -138,3 +158,76 @@ class HashingDemoEmbedder(BaseEmbedder):
 
     def encode_passages(self, texts: Sequence[str]) -> List[List[float]]:
         return [self._embed_one(t) for t in texts]
+
+
+@dataclass(frozen=True)
+class EmbedderStatus:
+    """Metadata describing which P2.1 embedder backend is active."""
+
+    requested_model: str
+    active_model: str
+    is_e5_active: bool
+    dimension: int
+    device: str
+    fallback_reason: Optional[str] = None
+
+
+def is_e5_runtime_available() -> bool:
+    """Return True if sentence-transformers is importable in the current environment."""
+    return importlib.util.find_spec("sentence_transformers") is not None
+
+
+def create_embedder(
+    mode: str = "e5",
+    model_id: str = MODEL_ID,
+    device: str = MODEL_DEVICE,
+    allow_fallback: bool = True,
+) -> Tuple[BaseEmbedder, EmbedderStatus]:
+    """Instantiate the P2.1 embedder, preferring `intfloat/multilingual-e5-small` by default.
+
+    Args:
+        mode: "e5" (default, uses E5Embedder) or "demo" (forces HashingDemoEmbedder).
+        model_id: HuggingFace model ID (default: "intfloat/multilingual-e5-small").
+        device: Torch device ("cpu", "mps", "cuda").
+        allow_fallback: If True and sentence-transformers is not installed yet, fall back
+            to HashingDemoEmbedder while reporting the exact reason in EmbedderStatus.
+    """
+    if mode == "demo":
+        emb = HashingDemoEmbedder(dimension=EMBEDDING_DIMENSION)
+        return emb, EmbedderStatus(
+            requested_model=model_id,
+            active_model=emb.model_version,
+            is_e5_active=False,
+            dimension=emb.dimension,
+            device="cpu",
+            fallback_reason="Demo embedder explicitly requested.",
+        )
+
+    if is_e5_runtime_available():
+        emb_e5 = E5Embedder(model_id=model_id, device=device, dimension=EMBEDDING_DIMENSION)
+        return emb_e5, EmbedderStatus(
+            requested_model=model_id,
+            active_model=model_id,
+            is_e5_active=True,
+            dimension=emb_e5.dimension,
+            device=device,
+            fallback_reason=None,
+        )
+
+    reason = (
+        "Chưa cài đặt `sentence-transformers` trong môi trường Python hiện tại. "
+        "Cài bằng `pip install sentence-transformers torch` để kích hoạt model thật "
+        f"`{model_id}`."
+    )
+    if not allow_fallback:
+        raise ImportError(reason)
+
+    fallback = HashingDemoEmbedder(dimension=EMBEDDING_DIMENSION)
+    return fallback, EmbedderStatus(
+        requested_model=model_id,
+        active_model=fallback.model_version,
+        is_e5_active=False,
+        dimension=fallback.dimension,
+        device="cpu",
+        fallback_reason=reason,
+    )
