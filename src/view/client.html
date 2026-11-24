@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Client Workspace</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #ffffff;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #2f2a44;
+    }
+    .session-bar {
+      position: fixed;
+      top: 14px;
+      right: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #7e7896;
+    }
+    .logout-btn {
+      background: #f5f2ff;
+      color: #7c69ef;
+      border: 1px solid #e5dff7;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12.5px;
+    }
+    .logout-btn:hover { filter: brightness(0.97); }
+  </style>
+</head>
+<body>
+  <div class="session-bar">
+    <span id="clientLabel"></span>
+    <button class="logout-btn" onclick="logoutClient()">Logout</button>
+  </div>
+
+  <script>
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!data.authenticated || !data.user) {
+          window.location.href = '/login';
+          return;
+        }
+        document.getElementById('clientLabel').textContent = data.user.username;
+      } catch (e) {
+        window.location.href = '/login';
+      }
+    }
+
+    async function logoutClient() {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+      } catch (e) {}
+      window.location.href = '/login';
+    }
+
+    checkSession();
+  </script>
+</body>
+</html>

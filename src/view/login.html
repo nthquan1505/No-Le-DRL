@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign In — Event Extractor Web App</title>
+  <style>
+    :root {
+      --bg: #f6f3ff;
+      --card: #ffffff;
+      --accent: #7c69ef;
+      --accent-soft: #ece8ff;
+      --mint: #d6f5e8;
+      --mint-text: #1f7a58;
+      --rose: #ffdce6;
+      --rose-text: #b83b5e;
+      --sky: #dcecff;
+      --sky-text: #2e62a6;
+      --text: #2f2a44;
+      --muted: #7e7896;
+      --border: #e5dff7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f6f3ff 0%, #eaf4ff 55%, #fff1f6 100%);
+      background-attachment: fixed;
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .auth-shell {
+      width: min(480px, 96vw);
+      background: var(--card);
+      border-radius: 22px;
+      padding: 32px 34px;
+      box-shadow: 0 12px 36px #b8a9e833;
+    }
+    h2 { margin: 0 0 6px 0; font-size: 23px; }
+    .sub { color: var(--muted); font-size: 13.5px; margin-bottom: 20px; }
+    .session-banner {
+      display: none;
+      background: #f8f6ff;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      font-size: 13.5px;
+    }
+    .session-banner-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      background: #f5f2ff;
+      padding: 6px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13.5px;
+      transition: background .15s, color .15s;
+    }
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--accent);
+      box-shadow: 0 2px 8px #b8a9e82b;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .field { margin-bottom: 14px; }
+    input {
+      width: 100%;
+      background: #faf9ff;
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-size: 14.5px;
+      outline: none;
+      font-family: inherit;
+    }
+    input:focus { border-color: var(--accent); }
+    button.primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      margin-top: 4px;
+    }
+    button.primary:hover { filter: brightness(1.05); }
+    button.small {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12.5px;
+    }
+    button.small.danger {
+      background: var(--rose);
+      color: var(--rose-text);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--mint);
+      color: var(--mint-text);
+    }
+    .badge.sky { background: var(--sky); color: var(--sky-text); }
+    #msg {
+      margin-top: 14px;
+      min-height: 20px;
+      font-size: 13.5px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-shell">
+    <h2>Welcome</h2>
+    <div class="sub">Sign in or register as a Client user, or log into the Server Admin Console.</div>
+
+    <!-- Active Session Status -->
+    <div id="sessionBanner" class="session-banner">
+      <strong>Active Session(s)</strong>
+      <div id="userSessionRow" class="session-banner-row" style="display:none;">
+        <span id="userSessionLabel" class="badge"></span>
+        <div style="display:flex; gap:6px;">
+          <button class="small" onclick="window.location.href='/client'">Open Client Page</button>
+          <button class="small danger" onclick="logoutUser()">Logout User</button>
+        </div>
+      </div>
+      <div id="adminSessionRow" class="session-banner-row" style="display:none;">
+        <span class="badge sky">🔐 Admin Session Active</span>
+        <div style="display:flex; gap:6px;">
+          <button class="small" onclick="window.location.href='/admin'">Open Admin Console</button>
+          <button class="small danger" onclick="logoutAdmin()">Logout Admin</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role / Mode Tabs -->
+    <div class="tabs">
+      <button id="tabSignin" class="tab-btn active" onclick="switchMode('signin')">User Sign In</button>
+      <button id="tabSignup" class="tab-btn" onclick="switchMode('signup')">User Sign Up</button>
+      <button id="tabAdmin" class="tab-btn" onclick="switchMode('admin')">Admin Login</button>
+    </div>
+
+    <!-- User Sign In / Sign Up Form -->
+    <div id="userForm">
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" autocomplete="username" placeholder="e.g. student_k24" onkeydown="if(event.key==='Enter') submitForm()" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Enter password" onkeydown="if(event.key==='Enter') submitForm()" />
+      </div>
+      <div class="field" id="startYearField" style="display:none;">
+        <label for="startYear">Enrollment / Start Year</label>
+        <input id="startYear" type="number" min="2000" max="2035" value="2024" onkeydown="if(event.key==='Enter') submitForm()" />
+      </div>
+      <button id="userSubmitBtn" class="primary" onclick="submitForm()">Sign In</button>
+    </div>
+
+    <!-- Admin Session Form -->
+    <div id="adminForm" style="display:none;">
+      <div class="field">
+        <label for="adminToken">Server Admin Token (<code>ADMIN_TOKEN</code>)</label>
+        <input id="adminToken" type="password" placeholder="Enter ADMIN_TOKEN" onkeydown="if(event.key==='Enter') submitForm()" />
+      </div>
+      <button id="adminSubmitBtn" class="primary" onclick="submitForm()">Sign In as Admin</button>
+    </div>
+
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    let mode = 'signin';
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'signup' || params.get('tab') === 'register') mode = 'signup';
+    if (params.get('tab') === 'admin') mode = 'admin';
+
+    function setMsg(text, isError = false) {
+      const el = document.getElementById('msg');
+      el.textContent = text;
+      el.style.color = isError ? 'var(--rose-text)' : 'var(--mint-text)';
+    }
+
+    async function apiJson(url, options = {}) {
+      const res = await fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          ...(options.headers || {}),
+        },
+      });
+      const raw = await res.text();
+      let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch (e) {}
+      if (!res.ok) throw new Error(data.detail || data.message || res.statusText);
+      return data;
+    }
+
+    function switchMode(nextMode) {
+      mode = nextMode;
+      document.getElementById('tabSignin').classList.toggle('active', mode === 'signin');
+      document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
+      document.getElementById('tabAdmin').classList.toggle('active', mode === 'admin');
+
+      document.getElementById('userForm').style.display = mode === 'admin' ? 'none' : 'block';
+      document.getElementById('adminForm').style.display = mode === 'admin' ? 'block' : 'none';
+      document.getElementById('startYearField').style.display = mode === 'signup' ? 'block' : 'none';
+      document.getElementById('userSubmitBtn').textContent = mode === 'signup' ? 'Create Account & Sign In' : 'Sign In';
+      setMsg('');
+    }
+
+    async function refreshSessionBanner() {
+      try {
+        const s = await apiJson('/api/auth/session', { method: 'GET' });
+        const banner = document.getElementById('sessionBanner');
+        const uRow = document.getElementById('userSessionRow');
+        const aRow = document.getElementById('adminSessionRow');
+
+        if (s.user_authenticated && s.user) {
+          uRow.style.display = 'flex';
+          document.getElementById('userSessionLabel').textContent = `👤 ${s.user.username} (Start ${s.user.start_year})`;
+        } else {
+          uRow.style.display = 'none';
+        }
+
+        aRow.style.display = s.admin_authenticated ? 'flex' : 'none';
+        banner.style.display = (s.user_authenticated || s.admin_authenticated) ? 'block' : 'none';
+      } catch (e) {}
+    }
+
+    async function submitForm() {
+      const nextUrl = params.get('next');
+      if (mode === 'admin') {
+        const token = document.getElementById('adminToken').value.trim();
+        if (!token) return setMsg('Please enter ADMIN_TOKEN.', true);
+        const btn = document.getElementById('adminSubmitBtn');
+        btn.disabled = true;
+        setMsg('Authenticating admin session...');
+        try {
+          await apiJson('/api/admin/login', { method: 'POST', body: JSON.stringify({ token }) });
+          sessionStorage.setItem('adminToken', token);
+          window.location.href = nextUrl || '/admin';
+        } catch (err) {
+          setMsg(err.message, true);
+        } finally {
+          btn.disabled = false;
+        }
+        return;
+      }
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const start_year = parseInt(document.getElementById('startYear').value || '2024', 10) || 2024;
+      if (!username || !password) return setMsg('Username and password are required.', true);
+
+      const btn = document.getElementById('userSubmitBtn');
+      btn.disabled = true;
+      setMsg(mode === 'signup' ? 'Creating account...' : 'Signing in...');
+      try {
+        const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login';
+        const payload = mode === 'signup' ? { username, password, start_year } : { username, password };
+        await apiJson(endpoint, { method: 'POST', body: JSON.stringify(payload) });
+        window.location.href = nextUrl || '/client';
+      } catch (err) {
+        setMsg(err.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function logoutUser() {
+      try { await apiJson('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+      refreshSessionBanner();
+    }
+
+    async function logoutAdmin() {
+      try { await apiJson('/api/admin/logout', { method: 'POST' }); } catch (e) {}
+      sessionStorage.removeItem('adminToken');
+      refreshSessionBanner();
+    }
+
+    switchMode(mode);
+    refreshSessionBanner();
+  </script>
+</body>
+</html>

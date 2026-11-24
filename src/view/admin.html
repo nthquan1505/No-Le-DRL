@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Console — Event Extractor Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f6f3ff;
+      --card: #ffffff;
+      --accent: #7c69ef;
+      --accent-soft: #ece8ff;
+      --mint: #d6f5e8;
+      --mint-text: #1f7a58;
+      --amber: #fff0d6;
+      --amber-text: #9c6514;
+      --rose: #ffdce6;
+      --rose-text: #b83b5e;
+      --sky: #dcecff;
+      --sky-text: #2e62a6;
+      --text: #2f2a44;
+      --muted: #7e7896;
+      --border: #e5dff7;
+      --code-bg: #1f1d2e;
+      --code-text: #e6e1ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f6f3ff 0%, #eaf4ff 55%, #fff1f6 100%);
+      background-attachment: fixed;
+      color: var(--text);
+      margin: 0;
+      padding: 28px 36px;
+      font-size: 15px;
+    }
+    .container { max-width: 1440px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      background: var(--card);
+      padding: 22px 28px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 24px #b8a9e822;
+    }
+    .header h2 { margin: 0; font-size: 23px; }
+    .sub-links { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 6px; font-size: 13.5px; }
+    .badge { padding: 6px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: var(--mint); color: var(--mint-text); }
+    .badge.mint { background: var(--mint); color: var(--mint-text); }
+    .badge.sky { background: var(--sky); color: var(--sky-text); }
+    .badge.amber { background: var(--amber); color: var(--amber-text); }
+    .badge.rose { background: var(--rose); color: var(--rose-text); }
+    .badge.muted { background: #efedf7; color: var(--muted); }
+    .grid-2 { display: grid; grid-template-columns: 1.08fr 1fr; gap: 24px; align-items: start; margin-bottom: 24px; }
+    .panel {
+      background: var(--card);
+      padding: 24px 26px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 24px #b8a9e822;
+    }
+    .panel-title, .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .panel-title h3, .panel-head h3 { margin: 0; font-size: 19px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    input, textarea, select {
+      background: #faf9ff;
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 11px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      width: 100%;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { min-height: 105px; resize: vertical; }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: transform .1s, filter .15s;
+    }
+    button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+    button.secondary { background: var(--sky); color: var(--sky-text); }
+    button.ghost { background: var(--accent-soft); color: var(--accent); padding: 6px 12px; font-size: 12.5px; border-radius: 8px; }
+    button.danger { background: var(--rose); color: var(--rose-text); padding: 7px 13px; font-size: 13px; border-radius: 9px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+
+    /* Directory Tree Styles */
+    .tree-root {
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      background: #fbfaff;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    details.tree-folder {
+      margin: 6px 0;
+      border-left: 2px dashed #d7cff5;
+      padding-left: 12px;
+    }
+    details.tree-folder > summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #463a7c;
+      padding: 6px 8px;
+      border-radius: 8px;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    details.tree-folder > summary:hover { background: var(--accent-soft); }
+    .tree-folder-desc { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12.5px; color: var(--muted); margin: 2px 0 8px 8px; }
+    .tree-files { list-style: none; padding-left: 18px; margin: 4px 0 10px 0; }
+    .tree-file {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      border-bottom: 1px solid #f1eefb;
+    }
+    .tree-file:hover { background: #f3f0ff; }
+    .tree-file-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; word-break: break-all; }
+    .tree-file-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .inbox-list { max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+    .inbox-item {
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: #fcfbff;
+    }
+    .inbox-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
+    .changes-box {
+      background: var(--amber);
+      color: var(--amber-text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    pre.code-block {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 14px 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-size: 12.5px;
+      line-height: 1.5;
+      margin: 10px 0 0 0;
+    }
+    #postsContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
+    .post { background: var(--card); padding: 20px 22px; border-radius: 18px; border-top: 6px solid var(--accent); box-shadow: 0 6px 24px #b8a9e822; }
+    .post-meta { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; margin-bottom: 10px; }
+    .post-content { white-space: pre-wrap; line-height: 1.65; margin-bottom: 12px; word-break: break-word; }
+    .post-imgs { display: flex; gap: 10px; overflow-x: auto; }
+    .post-imgs img { max-height: 220px; border-radius: 10px; }
+    a { color: #526fd4; text-decoration: none; font-weight: 500; }
+    a:hover { text-decoration: underline; }
+    #status { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+    #jsonModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(25, 20, 45, 0.55);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-card {
+      background: var(--card);
+      width: min(920px, 96vw);
+      max-height: 86vh;
+      border-radius: 20px;
+      padding: 22px 26px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+    }
+    @media (max-width: 980px) {
+      body { padding: 16px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      #postsContainer { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Top Admin Header -->
+    <div class="header">
+      <div>
+        <h2>🔐 Admin Console — Event Extractor, Feeds &amp; User Management</h2>
+        <div id="status">Connecting real-time WebSocket...</div>
+        <div class="sub-links">
+          <span>· <a href="/feeds/all/events.json" target="_blank">All Events JSON ↗</a></span>
+          <span>· <a href="/feeds/emails/events.json" target="_blank">Email Events JSON ↗</a></span>
+          <span>· <a href="/feeds/all.xml" target="_blank">Combined RSS XML ↗</a></span>
+          <span>· <a href="/api/tree" target="_blank">API Tree Index ↗</a></span>
+          <span>· <a href="/docs" target="_blank">OpenAPI Docs ↗</a></span>
+        </div>
+      </div>
+      <div class="row">
+        <span id="scheduleBadge" class="badge sky">Schedule: 08:00, 14:00, 20:00 ICT</span>
+        <span id="wsBadge" class="badge">Disconnected</span>
+        <span class="badge mint">✓ Admin Session</span>
+        <button class="secondary" onclick="scrapeAll()">↻ Scrape All Now</button>
+        <button class="danger" onclick="logoutAdmin()">🔒 Lock &amp; Logout</button>
+      </div>
+    </div>
+
+    <!-- Fanpage Management & Refetch Controls -->
+    <div class="grid-2">
+      <div class="panel" style="margin-bottom:0;">
+        <h3 style="margin-top:0;">➕ Add Facebook Fanpage or Extract Single Post URL</h3>
+        <div class="row">
+          <input id="url" placeholder="Fanpage URL (e.g. fb.com/nasa) OR Post URL (fb.com/.../posts/...)" style="flex:2; min-width:220px;" onkeydown="if(event.key==='Enter')addFanpage()" />
+          <input id="name" placeholder="Display name (optional)" style="flex:1; min-width:160px;" />
+          <button id="addExtractBtn" onclick="addFanpage()">+ Add / Extract</button>
+        </div>
+        <div id="actionMsg" style="margin-top:10px; font-size:13.5px; min-height:20px;"></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:0;">
+        <h3 style="margin-top:0;">↻ Refetch Latest Posts &amp; Refeed Event Extractor</h3>
+        <div class="row">
+          <select id="refetchFanpage" style="flex:2; min-width:200px;">
+            <option value="all">All Tracked Fanpages</option>
+          </select>
+          <input id="refetchLimit" type="number" min="1" max="50" value="5" style="width:95px; flex:none;" title="Latest posts per fanpage" />
+          <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; cursor:pointer; user-select:none;">
+            <input id="refetchForceRecheck" type="checkbox" checked style="width:auto;" />
+            Re-check non-events
+          </label>
+          <button id="refetchBtn" class="secondary" onclick="refetchAndExtract()">↻ Refetch &amp; Extract</button>
+        </div>
+        <div id="refetchMsg" style="margin-top:10px; font-size:13.5px; min-height:20px;"></div>
+      </div>
+    </div>
+
+    <!-- Tracked Facebook Fanpages Table -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3 style="margin:0;">📡 Tracked Facebook Fanpages (<span id="fanpageCount">0</span>)</h3>
+        <button class="ghost" onclick="loadFanpages()">↻ Refresh Fanpages</button>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>URL</th><th>Posts</th><th>Events</th><th>Last Checked</th><th></th></tr></thead>
+        <tbody id="fanpageRows"></tbody>
+      </table>
+    </div>
+
+    <!-- Classified Events Explorer & Classification Module -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="row">
+          <h3 style="margin:0;">📅 Classified Events (<span id="allEventsCount">0</span>)</h3>
+          <span id="classifyMsg" style="font-size:13px; color:var(--muted);"></span>
+        </div>
+        <div class="row">
+          <button id="classifyBtn" class="secondary" onclick="runClassify()">✦ Run Classification Module</button>
+          <button class="ghost" onclick="loadUnifiedEvents()">↻ Refresh Events</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+        <input id="evSearch" placeholder="Search title, organizer, location..." style="flex:2; min-width:200px;" oninput="renderEventsPanel()" />
+        <select id="evCategory" style="flex:1; min-width:140px;" onchange="renderEventsPanel()">
+          <option value="">All Categories</option>
+        </select>
+        <select id="evFormat" style="flex:1; min-width:130px;" onchange="renderEventsPanel()">
+          <option value="">All Formats</option>
+        </select>
+        <select id="evOnline" style="flex:1; min-width:120px;" onchange="renderEventsPanel()">
+          <option value="">Online &amp; Offline</option>
+          <option value="true">Online Only</option>
+          <option value="false">Offline Only</option>
+        </select>
+        <select id="evSource" style="flex:1; min-width:130px;" onchange="renderEventsPanel()">
+          <option value="">All Sources</option>
+          <option value="facebook">Facebook</option>
+          <option value="email">Email</option>
+        </select>
+      </div>
+
+      <div id="eventsPanelGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:14px; max-height:520px; overflow-y:auto; padding-right:4px;"></div>
+    </div>
+
+    <!-- 2-Column Grid: Distributed Feeds Directory Tree + Email Inbox -->
+    <div class="grid-2">
+      <div class="panel" style="margin-bottom:0;">
+        <div class="panel-title">
+          <div>
+            <h3>📁 Distributed Feeds Directory Tree</h3>
+            <div style="font-size:13px; color:var(--muted); margin-top:3px;">
+              Extracted <code>events.json</code> &amp; <code>.xml</code> files organized by folder
+            </div>
+          </div>
+          <button class="secondary" onclick="loadDirectoryTree()">↻ Refresh Tree</button>
+        </div>
+        <div id="directoryTreeContainer" class="tree-root">Loading directory tree...</div>
+      </div>
+
+      <div class="panel" style="margin-bottom:0;">
+        <div class="panel-title">
+          <div>
+            <h3>📥 Email Inbox &rarr; Unified Extractor</h3>
+            <div style="font-size:13px; color:var(--muted); margin-top:3px;">
+              Ingest event emails, compare anchor fields, deduplicate or update, and export JSON
+            </div>
+          </div>
+          <span class="badge sky">POST /api/inbox</span>
+        </div>
+
+        <div class="form-grid">
+          <input id="emailClientId" placeholder="Client ID (e.g. client_team_1)" value="client_team_1" />
+          <input id="emailSender" placeholder="Sender (e.g. clb-ai@fit.hcmus.edu.vn)" />
+        </div>
+        <div class="form-grid">
+          <input id="emailSubject" placeholder="Email Subject (Event title / announcement)" />
+          <input id="emailMessageId" placeholder="Message-ID (optional, auto-hashed if blank)" />
+        </div>
+        <div style="margin-bottom:10px;">
+          <textarea id="emailContent" placeholder="Paste email content here..."></textarea>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+          <input id="emailMediaUrls" placeholder="Optional Poster/QR Image URL(s), comma-separated" style="flex:1;" />
+          <button onclick="submitInboxEmail()" id="submitEmailBtn">Send to Extractor &rarr;</button>
+        </div>
+        <div id="inboxSubmitMsg" style="font-size:13.5px; min-height:20px;"></div>
+
+        <hr style="border:none; border-top:1.5px solid var(--border); margin:16px 0 12px 0;" />
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>Recent Inbox Entries (<span id="inboxCount">0</span>)</strong>
+          <button class="ghost" onclick="loadInboxMessages()">↻ Refresh Inbox</button>
+        </div>
+        <div id="inboxListContainer" class="inbox-list"></div>
+      </div>
+    </div>
+
+    <!-- Client Users & Subscriptions Management -->
+    <div class="grid-2">
+      <div class="panel" style="margin-bottom:0;">
+        <div class="panel-head">
+          <h3 style="margin:0;">👥 Registered Client Users (<span id="userCount">0</span>)</h3>
+          <button class="ghost" onclick="loadUsers()">↻ Refresh</button>
+        </div>
+        <table>
+          <thead><tr><th>Username</th><th>User ID</th><th>Start Year</th><th>Subscriptions</th><th>Credits</th></tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+
+      <div class="panel" style="margin-bottom:0;">
+        <div class="panel-head">
+          <h3 style="margin:0;">📌 User Event Subscriptions (<span id="subCount">0</span>)</h3>
+          <button class="ghost" onclick="loadSubscriptions()">↻ Refresh</button>
+        </div>
+        <table>
+          <thead><tr><th>User</th><th>Event</th><th>Progress</th><th>Credit</th><th>Evidence</th></tr></thead>
+          <tbody id="subRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Live Scraped Posts -->
+    <h3>Latest Scraped Posts (<span id="postCount">0</span> posts)</h3>
+    <div id="postsContainer"></div>
+  </div>
+
+  <!-- JSON Preview Modal -->
+  <div id="jsonModal" onclick="if(event.target.id==='jsonModal') closeJsonModal()">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong id="jsonModalTitle" style="font-size:16px;">JSON Preview</strong>
+        <button class="ghost" onclick="closeJsonModal()">✕ Close</button>
+      </div>
+      <pre id="jsonModalBody" class="code-block" style="flex:1; overflow:auto; margin:0;"></pre>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let currentPosts = [];
+    let allEvents = [];
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const setNotice = (text, isErr, id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text;
+      el.style.color = isErr ? 'var(--rose-text)' : 'var(--mint-text)';
+    };
+
+    async function fetchJson(url, options = {}) {
+      const tok = sessionStorage.getItem('adminToken');
+      const headers = {
+        'ngrok-skip-browser-warning': 'true',
+        ...(tok ? { 'X-Admin-Token': tok } : {}),
+        ...(options.headers || {}),
+      };
+      const res = await fetch(url, { credentials: 'same-origin', ...options, headers });
+      if (res.status === 401) {
+        window.location.href = '/login?tab=admin';
+        throw new Error('Admin session expired.');
+      }
+      const rawText = await res.text();
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (e) {
+        throw new Error(`Invalid JSON response (HTTP ${res.status})`);
+      }
+      if (!res.ok) throw new Error(data.detail || data.message || res.statusText);
+      return data;
+    }
+
+    async function logoutAdmin() {
+      try { await fetchJson('/api/admin/logout', { method: 'POST' }); } catch (e) {}
+      sessionStorage.removeItem('adminToken');
+      window.location.href = '/login?tab=admin';
+    }
+
+    async function loadScheduleBadge() {
+      try {
+        const data = await fetchJson('/api/schedule');
+        const badge = document.getElementById('scheduleBadge');
+        if (data.mode === 'daily_cron') {
+          badge.textContent = 'Daily: ' + (data.scheduled_times_ict || []).join(', ') + ' ICT';
+        } else if (data.mode === 'interval') {
+          badge.textContent = 'Interval: ' + data.interval_seconds + 's';
+        } else {
+          badge.textContent = 'Schedule: External Push';
+        }
+      } catch (e) {}
+    }
+
+    async function loadFanpages() {
+      try {
+        const list = await fetchJson('/api/admin/fanpages');
+        document.getElementById('fanpageCount').textContent = list.length;
+        const sel = document.getElementById('refetchFanpage');
+        if (sel) {
+          const prev = sel.value || 'all';
+          sel.innerHTML = '<option value="all">All Tracked Fanpages</option>' + list.map(f =>
+            `<option value="${f.id}">${esc(f.name)} (${esc(f.slug)})</option>`
+          ).join('');
+          if (Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
+        }
+        document.getElementById('fanpageRows').innerHTML = list.length
+          ? list.map(f => `
+              <tr>
+                <td>
+                  <strong>${esc(f.name)}</strong><br>
+                  <a href="/feeds/fanpages/${encodeURIComponent(f.slug)}/events.json" target="_blank" style="font-size:12px;">events.json ↗</a> ·
+                  <a href="/feeds/${encodeURIComponent(f.slug)}.xml" target="_blank" style="font-size:12px;">rss.xml ↗</a>
+                </td>
+                <td><a href="${esc(f.url)}" target="_blank">${esc(f.url)}</a></td>
+                <td>${f.post_count ?? 0}</td>
+                <td><span class="badge mint">${f.event_count ?? 0}</span></td>
+                <td>${esc(f.last_checked_at ? new Date(f.last_checked_at).toLocaleString() : '-')}</td>
+                <td><button class="danger" data-id="${f.id}" data-name="${esc(f.name)}" onclick="removeFanpage(this)">Remove</button></td>
+              </tr>`).join('')
+          : '<tr><td colspan="6" style="color:var(--muted);">No Facebook fanpages tracked yet.</td></tr>';
+      } catch (e) {}
+    }
+
+    async function scrapeAll() {
+      try {
+        const r = await fetchJson('/api/admin/scrape', { method: 'POST' });
+        setNotice(r.message || 'Scrape & extraction triggered across all tracked fanpages.', false, 'actionMsg');
+      } catch (e) {
+        setNotice(e.message, true, 'actionMsg');
+      }
+    }
+
+    async function addFanpage() {
+      const url = document.getElementById('url').value.trim();
+      const name = document.getElementById('name').value.trim() || null;
+      const btn = document.getElementById('addExtractBtn');
+      if (!url) return;
+
+      const isPostUrl = /(\/posts\/|\/permalink\.php|\/story\.php|\/reel\/|\/videos\/|\/photos\/|\/photo(?:\.php|\?)|\/share\/)/i.test(url);
+      btn.disabled = true;
+      btn.textContent = isPostUrl ? 'Extracting...' : 'Adding...';
+      if (isPostUrl) setNotice('Fetching Facebook post & running Event Extractor...', false, 'actionMsg');
+
+      try {
+        const endpoint = isPostUrl ? '/api/admin/extract-post' : '/api/admin/fanpages';
+        const payload = isPostUrl ? { url } : { url, name };
+        const r = await fetchJson(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const bad = isPostUrl && r.is_event === false;
+        setNotice(r.message || (r.created ? 'Added.' : 'Fanpage already tracked.'), bad, 'actionMsg');
+        if (!isPostUrl || r.is_event) {
+          document.getElementById('url').value = '';
+          document.getElementById('name').value = '';
+        }
+        loadFanpages();
+        loadUnifiedEvents();
+        loadDirectoryTree();
+      } catch (e) {
+        setNotice(e.message, true, 'actionMsg');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '+ Add / Extract';
+      }
+    }
+
+    async function refetchAndExtract() {
+      const fanpage = document.getElementById('refetchFanpage').value || 'all';
+      const limit = Math.max(1, Math.min(50, parseInt(document.getElementById('refetchLimit').value || '5', 10) || 5));
+      const force_recheck = document.getElementById('refetchForceRecheck').checked;
+      const btn = document.getElementById('refetchBtn');
+      btn.disabled = true;
+      btn.textContent = 'Refetching...';
+      setNotice(`Refetching ${limit} latest post(s) & feeding Event Extractor...`, false, 'refetchMsg');
+      try {
+        const r = await fetchJson('/api/admin/refetch-extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fanpage, limit, force_recheck }),
+        });
+        setNotice(r.message || 'Refetch & extraction complete.', (r.errors || 0) > 0, 'refetchMsg');
+        loadFanpages();
+        loadUnifiedEvents();
+        loadDirectoryTree();
+      } catch (e) {
+        setNotice(e.message, true, 'refetchMsg');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '↻ Refetch & Extract';
+      }
+    }
+
+    async function removeFanpage(btn) {
+      if (!confirm('Remove "' + btn.dataset.name + '" and its posts, feed and events?')) return;
+      try {
+        await fetchJson('/api/admin/fanpages?identifier=' + encodeURIComponent(btn.dataset.id), { method: 'DELETE' });
+        setNotice('Removed.', false, 'actionMsg');
+        loadFanpages();
+        loadUnifiedEvents();
+        loadDirectoryTree();
+      } catch (e) {
+        setNotice(e.message, true, 'actionMsg');
+      }
+    }
+
+    async function runClassify() {
+      const btn = document.getElementById('classifyBtn');
+      btn.disabled = true;
+      btn.textContent = 'Classifying...';
+      setNotice('Running classification module...', false, 'classifyMsg');
+      try {
+        const r = await fetchJson('/api/admin/classify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        setNotice(`Scanned ${r.scanned} event(s), updated ${r.updated}.`, false, 'classifyMsg');
+        await loadUnifiedEvents();
+        await loadDirectoryTree();
+      } catch (e) {
+        setNotice(e.message, true, 'classifyMsg');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✦ Run Classification Module';
+      }
+    }
+
+    async function loadUnifiedEvents() {
+      try {
+        const data = await fetchJson('/api/events?limit=200');
+        allEvents = data.events || [];
+        document.getElementById('allEventsCount').textContent = allEvents.length;
+        populateEventFilterOptions();
+        renderEventsPanel();
+      } catch (e) {}
+    }
+
+    function populateEventFilterOptions() {
+      const cats = new Set();
+      const fmts = new Set();
+      allEvents.forEach(ev => {
+        (ev.category || []).forEach(c => cats.add(c));
+        (ev.format || []).forEach(f => fmts.add(f));
+      });
+      const catSel = document.getElementById('evCategory');
+      const fmtSel = document.getElementById('evFormat');
+      const prevCat = catSel.value;
+      const prevFmt = fmtSel.value;
+      catSel.innerHTML = '<option value="">All Categories</option>' + [...cats].sort().map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      fmtSel.innerHTML = '<option value="">All Formats</option>' + [...fmts].sort().map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+      if ([...cats].includes(prevCat)) catSel.value = prevCat;
+      if ([...fmts].includes(prevFmt)) fmtSel.value = prevFmt;
+    }
+
+    function renderEventsPanel() {
+      const grid = document.getElementById('eventsPanelGrid');
+      const q = (document.getElementById('evSearch').value || '').trim().toLowerCase();
+      const cat = document.getElementById('evCategory').value.toLowerCase();
+      const fmt = document.getElementById('evFormat').value.toLowerCase();
+      const onlineVal = document.getElementById('evOnline').value;
+      const srcVal = document.getElementById('evSource').value.toLowerCase();
+
+      const filtered = allEvents.filter(ev => {
+        if (cat && !(ev.category || []).some(c => String(c).toLowerCase() === cat)) return false;
+        if (fmt && !(ev.format || []).some(f => String(f).toLowerCase() === fmt)) return false;
+        if (onlineVal === 'true' && !ev.is_online) return false;
+        if (onlineVal === 'false' && ev.is_online) return false;
+        if (srcVal && !(ev.source_type || '').toLowerCase().startsWith(srcVal)) return false;
+        if (q) {
+          const hay = [ev.title, ev.description, ev.organizer, ev.location, ev.award].join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      if (!filtered.length) {
+        grid.innerHTML = '<div style="color:var(--muted); font-size:14px;">No events match your filters.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(ev => {
+        const cats = (ev.category || []).map(c => `<span class="badge">${esc(c)}</span>`).join(' ');
+        const fmts = (ev.format || []).map(f => `<span class="badge sky">${esc(f)}</span>`).join(' ');
+        return `
+          <div class="inbox-item" style="background:#fff; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div>
+              <div class="inbox-meta">
+                <span><strong>#${ev.event_id}</strong> · ${esc(ev.source_type || 'facebook')}</span>
+                <span class="badge ${ev.is_online ? 'sky' : 'mint'}">${ev.is_online ? 'Online' : 'Offline'}</span>
+              </div>
+              <div style="font-weight:700; font-size:15px; margin-bottom:4px;">${esc(ev.title)}</div>
+              <div style="font-size:12.5px; color:var(--muted); margin-bottom:6px;">
+                ${ev.organizer ? `🏢 ${esc(ev.organizer)}<br>` : ''}
+                ${ev.event_start_datetime ? `🗓 ${esc(new Date(ev.event_start_datetime).toLocaleString())}` : ''}
+                ${ev.location ? ` · 📍 ${esc(ev.location)}` : ''}
+                ${ev.reg_end_datetime ? `<br>⏳ Reg deadline: ${esc(new Date(ev.reg_end_datetime).toLocaleString())}` : ''}
+                ${ev.fee ? ` · 💸 ${esc(ev.fee)}` : ''}
+                ${ev.award ? `<br>🏆 ${esc(ev.award)}` : ''}
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px;">${cats} ${fmts}</div>
+            </div>
+            <div style="display:flex; gap:10px; font-size:12.5px; border-top:1px solid var(--border); padding-top:8px;">
+              ${ev.registration ? `<a href="${esc(ev.registration)}" target="_blank">Register ↗</a>` : ''}
+              ${ev.post_url ? `<a href="${esc(ev.post_url)}" target="_blank">Source ↗</a>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadDirectoryTree() {
+      const container = document.getElementById('directoryTreeContainer');
+      try {
+        const data = await fetchJson('/api/tree');
+        const foldersHtml = (data.folders || []).map((f, idx) => {
+          const files = f.files || [];
+          const filesHtml = files.length
+            ? `<ul class="tree-files">` + files.map(file => {
+                const icon = file.type === 'json' ? '📄' : '📰';
+                const countBadge = file.count !== null && file.count !== undefined
+                  ? `<span class="badge ${file.count > 0 ? '' : 'muted'}">${file.count} item(s)</span>`
+                  : '';
+                const kb = (file.size_bytes / 1024).toFixed(1) + ' KB';
+                return `
+                  <li class="tree-file">
+                    <div class="tree-file-left">
+                      <span>├─ ${icon}</span>
+                      <a href="${esc(file.path)}" target="_blank">${esc(file.relative_path)}</a>
+                      ${countBadge}
+                      <span style="color:var(--muted); font-size:12px;">(${kb})</span>
+                    </div>
+                    <div class="tree-file-actions">
+                      ${file.type === 'json' ? `<button class="ghost" onclick="previewJson('${esc(file.path)}')">Preview</button>` : ''}
+                      <button class="ghost" onclick="copyFetchUrl('${esc(file.path)}', this)">Copy URL</button>
+                    </div>
+                  </li>
+                `;
+              }).join('') + `</ul>`
+            : `<div style="padding:4px 0 8px 20px; color:var(--muted); font-size:12.5px;">(empty folder)</div>`;
+
+          return `
+            <details class="tree-folder" ${idx < 4 ? 'open' : ''}>
+              <summary>
+                <span>📂 ${esc(f.folder)}</span>
+                <span class="badge sky">${files.length} file(s)</span>
+              </summary>
+              <div class="tree-folder-desc">${esc(f.description || '')}</div>
+              ${filesHtml}
+            </details>
+          `;
+        }).join('');
+
+        container.innerHTML = `
+          <div style="font-weight:700; margin-bottom:6px; color:#2f2a44;">
+            🌐 /feeds/ <span style="font-weight:400; font-size:12px; color:var(--muted);">(Updated: ${new Date(data.updated_at).toLocaleTimeString()})</span>
+          </div>
+          ${foldersHtml}
+        `;
+      } catch (err) {
+        container.innerHTML = `<div style="color:var(--rose-text);">Failed to load directory tree: ${esc(err.message)}</div>`;
+      }
+    }
+
+    async function previewJson(path) {
+      const modal = document.getElementById('jsonModal');
+      const title = document.getElementById('jsonModalTitle');
+      const body = document.getElementById('jsonModalBody');
+      title.textContent = path;
+      body.textContent = 'Loading...';
+      modal.style.display = 'flex';
+      try {
+        const json = await fetchJson(path);
+        body.textContent = JSON.stringify(json, null, 2);
+      } catch (e) {
+        body.textContent = 'Error loading JSON: ' + e.message;
+      }
+    }
+
+    function closeJsonModal() {
+      document.getElementById('jsonModal').style.display = 'none';
+    }
+
+    function copyFetchUrl(path, btn) {
+      const fullUrl = window.location.origin + path;
+      navigator.clipboard.writeText(fullUrl);
+      const old = btn.textContent;
+      btn.textContent = '✓ Copied';
+      setTimeout(() => { btn.textContent = old; }, 1500);
+    }
+
+    function statusBadgeHtml(status) {
+      if (status === 'created') return `<span class="badge">✨ NEW EVENT</span>`;
+      if (status === 'updated') return `<span class="badge amber">🔄 UPDATED EVENT</span>`;
+      if (status === 'duplicate') return `<span class="badge sky">📌 DUPLICATE</span>`;
+      if (status === 'ignored') return `<span class="badge muted">⏭ NOT AN EVENT</span>`;
+      return `<span class="badge muted">${esc(status)}</span>`;
+    }
+
+    async function loadInboxMessages() {
+      const listEl = document.getElementById('inboxListContainer');
+      try {
+        const data = await fetchJson('/api/inbox?limit=30');
+        const msgs = data.messages || [];
+        document.getElementById('inboxCount').textContent = msgs.length;
+        if (!msgs.length) {
+          listEl.innerHTML = `<div style="color:var(--muted); font-size:13.5px; padding:8px 0;">No email entries received yet.</div>`;
+          return;
+        }
+        listEl.innerHTML = msgs.map(m => {
+          const changes = m.changes || {};
+          const changeKeys = Object.keys(changes);
+          const changesHtml = changeKeys.length
+            ? `<div class="changes-box"><strong>Updated Anchor Fields:</strong> ` +
+              changeKeys.map(k => `<code>${esc(k)}</code>: ${esc(changes[k].old || 'null')} &rarr; <strong>${esc(changes[k].new)}</strong>`).join(' · ') +
+              `</div>`
+            : '';
+          const ev = m.event;
+          const evSummaryHtml = ev
+            ? `<div style="margin-top:8px; font-size:13px; background:#f4f1ff; padding:8px 12px; border-radius:9px;">
+                 <div><strong>Event:</strong> ${esc(ev.title)}</div>
+                 <div style="color:var(--muted); margin-top:2px;">
+                   📅 Date: <strong>${esc(ev.date || ev.start_datetime || 'TBA')}</strong> ·
+                   📍 Location: <strong>${esc(ev.location || 'TBA')}</strong> ·
+                   🌐 Mode: <strong>${esc(ev.online_mode || (ev.is_online ? 'online' : 'offline'))}</strong>
+                 </div>
+               </div>`
+            : '';
+          return `
+            <div class="inbox-item">
+              <div class="inbox-meta">
+                <span><strong>${esc(m.client_id)}</strong> · ${esc(m.sender || 'no-sender')}</span>
+                ${statusBadgeHtml(m.status)}
+              </div>
+              <div style="font-weight:600; margin-bottom:4px;">${esc(m.subject || '(No Subject)')}</div>
+              <div style="font-size:13px; color:#4b4468; white-space:pre-wrap;">${esc((m.content || '').slice(0, 200))}${(m.content || '').length > 200 ? '...' : ''}</div>
+              ${changesHtml}
+              ${evSummaryHtml}
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        listEl.innerHTML = `<div style="color:var(--rose-text);">Error loading inbox: ${esc(err.message)}</div>`;
+      }
+    }
+
+    async function submitInboxEmail() {
+      const btn = document.getElementById('submitEmailBtn');
+      const msgEl = document.getElementById('inboxSubmitMsg');
+      const client_id = document.getElementById('emailClientId').value.trim() || 'anonymous';
+      const sender = document.getElementById('emailSender').value.trim() || null;
+      const subject = document.getElementById('emailSubject').value.trim();
+      const message_id = document.getElementById('emailMessageId').value.trim() || null;
+      const content = document.getElementById('emailContent').value.trim();
+      const rawMedia = document.getElementById('emailMediaUrls').value.trim();
+      const media_urls = rawMedia ? rawMedia.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+      if (!content) {
+        msgEl.style.color = '#b83b5e';
+        msgEl.textContent = 'Please enter email content to extract.';
+        return;
+      }
+
+      btn.disabled = true;
+      msgEl.style.color = '#7e7896';
+      msgEl.textContent = 'Running unified extractor...';
+
+      try {
+        const data = await fetchJson('/api/inbox', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id, message_id, subject, sender, content, media_urls }),
+        });
+
+        msgEl.style.color = '#1f7a58';
+        msgEl.innerHTML = `Result: ${statusBadgeHtml(data.status)} ${data.event ? '— <strong>' + esc(data.event.title) + '</strong>' : ''}`;
+        document.getElementById('emailMessageId').value = '';
+        await loadInboxMessages();
+        await loadDirectoryTree();
+        await loadUnifiedEvents();
+      } catch (err) {
+        msgEl.style.color = '#b83b5e';
+        msgEl.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const data = await fetchJson('/api/admin/users');
+        const users = data.users || [];
+        document.getElementById('userCount').textContent = users.length;
+        document.getElementById('userRows').innerHTML = users.length
+          ? users.map(u => `
+              <tr>
+                <td><strong>${esc(u.username)}</strong></td>
+                <td><code>${esc(u.user_id)}</code></td>
+                <td>${esc(u.start_year)}</td>
+                <td>${esc(u.subscribed_events_count)}</td>
+                <td><span class="badge mint">${esc(u.total_credit)}</span></td>
+              </tr>`).join('')
+          : '<tr><td colspan="5" style="color:var(--muted);">No registered client users yet.</td></tr>';
+      } catch (e) {}
+    }
+
+    async function loadSubscriptions() {
+      try {
+        const data = await fetchJson('/api/admin/subscriptions');
+        const subs = data.subscriptions || [];
+        document.getElementById('subCount').textContent = subs.length;
+        document.getElementById('subRows').innerHTML = subs.length
+          ? subs.map(s => {
+              const ev = s.event || {};
+              return `
+                <tr>
+                  <td><strong>${esc(s.username || s.user_id)}</strong></td>
+                  <td>${esc(ev.title || ('Event #' + s.event_id))}</td>
+                  <td><span class="badge sky">${esc(s.progress || 'interested')}</span></td>
+                  <td><span class="badge mint">${esc(s.credit ?? 0)}</span></td>
+                  <td>${s.evidence ? esc(s.evidence) : '-'}</td>
+                </tr>`;
+            }).join('')
+          : '<tr><td colspan="5" style="color:var(--muted);">No event subscriptions recorded yet.</td></tr>';
+      } catch (e) {}
+    }
+
+    function renderPosts() {
+      document.getElementById('postCount').textContent = currentPosts.length;
+      const el = document.getElementById('postsContainer');
+      el.innerHTML = currentPosts.map(p => `
+        <div class="post">
+          <div class="post-meta">
+            <strong>${esc(p.fanpage_name || 'Fanpage')}</strong>
+            <span>${p.published_at ? new Date(p.published_at).toLocaleString() : ''} · <a href="${esc(p.post_url)}" target="_blank">View on FB ↗</a></span>
+          </div>
+          <div class="post-content">${esc(p.content || '')}</div>
+          <div class="post-imgs">
+            ${(p.media_urls || []).map(u => `<img src="${esc(u)}" loading="lazy" />`).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function connectWS() {
+      if (ws) ws.close();
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+      ws.onopen = () => {
+        document.getElementById('wsBadge').textContent = 'Live Connected';
+        document.getElementById('status').textContent = 'Listening for real-time crawler & inbox events...';
+      };
+
+      ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        if (msg.event === 'init') {
+          currentPosts = msg.posts || [];
+          renderPosts();
+        } else if (msg.event === 'new_posts') {
+          document.getElementById('status').textContent = `New post(s) arrived from ${msg.fanpage.name}!`;
+          currentPosts = [...msg.posts, ...currentPosts];
+          renderPosts();
+          loadFanpages();
+          loadDirectoryTree();
+          loadUnifiedEvents();
+        } else if (msg.event === 'inbox_updated' || msg.event === 'event_updated') {
+          loadInboxMessages();
+          loadDirectoryTree();
+          loadUnifiedEvents();
+        } else if (msg.event === 'status' || msg.event === 'error') {
+          document.getElementById('status').textContent = msg.message;
+          if (msg.refresh_tree) {
+            loadDirectoryTree();
+            loadFanpages();
+            loadUnifiedEvents();
+          }
+        }
+      };
+
+      ws.onclose = () => {
+        document.getElementById('wsBadge').textContent = 'Reconnecting...';
+        setTimeout(connectWS, 5000);
+      };
+    }
+
+    loadScheduleBadge();
+    loadFanpages();
+    loadUnifiedEvents();
+    loadDirectoryTree();
+    loadInboxMessages();
+    loadUsers();
+    loadSubscriptions();
+    connectWS();
+  </script>
+</body>
+</html>
