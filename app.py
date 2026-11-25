@@ -44,12 +44,21 @@ from configs.model_config import (
 from module6 import AttributeExtractor, LedgerEntry, RubricCreditEngine, UserLedger
 from scripts.prepare_cls_dataset import build_hierarchical_dataset
 from scripts.prepare_test_fixtures import convert_events_file
+from src.classification.algorithms.algorithm_registry import build_default_registry
+from src.classification.data.loaders import load_all_assets
+from src.classification.data.validators import validate_loaded_assets
+from src.classification.decision.confidence_handler import ConfidenceAndDecisionHandler
+from src.classification.embeddings.event_text_builder import build_event_query_text
+from src.classification.pipeline.classification_pipeline import ClassificationPipeline
+from src.classification.retrieval.rubric_retriever import RubricRetriever
+from src.classification.retrieval.sample_retriever import SampleRetriever
 from src.classifier import TwoStageHierarchicalKNNClassifier
 from src.cls_index import HierarchicalClsIndex
 from src.contract_validator import parse_iso_datetime
 from src.embedder import create_embedder
 from src.event_cache import EventProfileCache
 from src.schemas import (
+    ClassificationResult,
     ClsSample,
     EventNormalized,
     ScoringWeights,
@@ -58,7 +67,10 @@ from src.schemas import (
 )
 from src.vector_ops import cosine_similarity, l2_norm, l2_normalize
 
+import numpy as np
+
 PROTOTYPE_DIR = PROJECT_ROOT / "prototype"
+CLASSIFICATION_CONFIG_PATH = PROJECT_ROOT / "configs" / "classification_config.yaml"
 DEFAULT_REFERENCE_NOW = "2026-10-15T09:00:00+07:00"
 
 INTEREST_CHIPS: List[Dict[str, str]] = [
@@ -160,12 +172,11 @@ class PrototypeService:
                 output_path=fixtures_path,
             )
 
-        # 3. Build real HierarchicalClsIndex + TwoStageHierarchicalKNNClassifier (P2)
+        # 3. Build HierarchicalClsIndex (for legacy feedback loop tests) + Dual-Branch 2-Stage kNN System
         self.cls_index = HierarchicalClsIndex.from_hierarchical_dataset(
             demo_dataset_path,
             self.embedder,
         )
-        # Explicit prototype-preview parameters (D-2 production params remain open until full dataset)
         self.preview_knn_config = HierarchicalKNNConfig(
             stage1_top_k=2,
             stage1_neighbors=5,
@@ -176,6 +187,36 @@ class PrototypeService:
             cls_index=self.cls_index,
             config=self.preview_knn_config,
         )
+
+        # 3b. Initialize real Dual-Branch Hierarchical 2-Stage kNN (src/classification)
+        self.dual_branch_config_path = CLASSIFICATION_CONFIG_PATH
+        self.dual_assets = load_all_assets(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+        validate_loaded_assets(self.dual_assets)
+        self.dual_sample_retriever = SampleRetriever(self.dual_assets.sample_branch)
+        self.dual_rubric_retriever = RubricRetriever(
+            self.dual_assets.rubric_branch,
+            self.dual_assets.rubric,
+        )
+        self.dual_registry = build_default_registry()
+        self.dual_algorithm_name = str((self.dual_assets.config.get("algorithm") or {}).get("name", "hierarchical_two_stage_knn"))
+        self.dual_default_params = dict((self.dual_assets.config.get("algorithm") or {}).get("params") or {})
+        self.dual_decision_cfg = dict(self.dual_assets.config.get("decision") or {})
+        self.dual_algorithm = self.dual_registry.create(
+            self.dual_algorithm_name,
+            sample_retriever=self.dual_sample_retriever,
+            rubric_retriever=self.dual_rubric_retriever,
+            rubric_data=self.dual_assets.rubric,
+            params=self.dual_default_params,
+        )
+        self.dual_decision_handler = ConfidenceAndDecisionHandler(
+            rubric_retriever=self.dual_rubric_retriever,
+            decision_config=self.dual_decision_cfg,
+            max_suggested_candidates=int(self.dual_default_params.get("max_suggested_candidates", 5)),
+        )
+        self.dual_batch_events: List[Dict[str, Any]] = []
+        self.dual_classification_by_post_id: Dict[str, Dict[str, Any]] = {}
+        self.dual_query_vectors_by_post_id: Dict[str, List[float]] = {}
+        self._load_dual_branch_batch_outputs()
 
         # 4. Isolated Module 6 Shared Library (replaceable)
         self.attribute_extractor = AttributeExtractor()
@@ -243,10 +284,190 @@ class PrototypeService:
         self.feedback_log: List[Dict[str, Any]] = []
         self._user_correction_seq = 0
 
+    def _load_dual_branch_batch_outputs(self) -> None:
+        """Load precomputed dual-branch classification_events.json and shared query vectors."""
+        paths_cfg = self.dual_assets.config.get("paths") or {}
+        out_json = PROJECT_ROOT / str(paths_cfg.get("output_classification_json", "outputs/classification_events.json"))
+        q_emb_path = PROJECT_ROOT / str(paths_cfg.get("query_embeddings", "data/generated/events_query_embeddings.npy"))
+        q_meta_path = PROJECT_ROOT / str(paths_cfg.get("query_metadata", "data/generated/events_query_metadata.json"))
+
+        if not out_json.is_file() or not q_emb_path.is_file() or not q_meta_path.is_file():
+            # Generate once if missing (uses cached model if e5 is active)
+            if self.embedder_status.is_e5_active:
+                pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+                pipeline.run()
+
+        self.dual_batch_events = []
+        self.dual_classification_by_post_id = {}
+        self.dual_query_vectors_by_post_id = {}
+
+        if out_json.is_file():
+            self.dual_batch_events = json.loads(out_json.read_text(encoding="utf-8"))
+            for rec in self.dual_batch_events:
+                pid = str(rec.get("post_id") or "").strip()
+                cls_obj = rec.get("classification")
+                if pid and isinstance(cls_obj, dict):
+                    self.dual_classification_by_post_id[pid] = cls_obj
+
+        if q_emb_path.is_file() and q_meta_path.is_file():
+            q_vecs = np.load(q_emb_path, mmap_mode="r")
+            q_meta = json.loads(q_meta_path.read_text(encoding="utf-8"))
+            for row_meta in q_meta.get("records") or []:
+                pid = str(row_meta.get("post_id") or "").strip()
+                r_idx = int(row_meta["embedding_row"])
+                if pid and 0 <= r_idx < q_vecs.shape[0]:
+                    self.dual_query_vectors_by_post_id[pid] = [float(v) for v in q_vecs[r_idx].tolist()]
+
+    def _dual_branch_summary(self) -> Dict[str, Any]:
+        status_counts: Dict[str, int] = {
+            "PREDICTED": 0,
+            "NEEDS_REVIEW": 0,
+            "NO_MATCH": 0,
+            "SKIPPED_NOT_EVENT": 0,
+        }
+        for rec in self.dual_batch_events:
+            st = str((rec.get("classification") or {}).get("status") or "")
+            if st in status_counts:
+                status_counts[st] += 1
+        return {
+            "enabled": True,
+            "algorithm": self.dual_algorithm_name,
+            "registered_algorithms": self.dual_registry.list_algorithms(),
+            "parameter_status": "provisional_not_evaluated",
+            "sample_reference_count": self.dual_sample_retriever.eligible_count,
+            "rubric_stage1_count": len(self.dual_rubric_retriever.eligible_stage1_groups),
+            "rubric_total_prototypes": int(len(self.dual_assets.rubric_branch.metadata)),
+            "batch_events_count": len(self.dual_batch_events),
+            "status_counts": status_counts,
+            "default_params": {
+                "stage1_top_k": int(self.dual_default_params.get("candidate_group_count", 2)),
+                "k1": int(self.dual_default_params.get("k1", 10)),
+                "k2": int(self.dual_default_params.get("k2", 10)),
+                "beta": float(self.dual_default_params.get("stage1_fusion_beta", 0.5)),
+                "alpha": float(self.dual_default_params.get("stage2_fusion_alpha", 0.5)),
+            },
+        }
+
+    def get_dual_branch_events(self) -> Dict[str, Any]:
+        """Return all 108 batch-classified events from the dual-branch pipeline for UI inspection."""
+        items = []
+        for rec in self.dual_batch_events:
+            cls = rec.get("classification") or {}
+            top_sugg = (cls.get("suggested_candidates") or [None])[0]
+            items.append(
+                {
+                    "post_id": rec.get("post_id"),
+                    "title": rec.get("title") or "",
+                    "description": rec.get("description") or "",
+                    "organizer": rec.get("organizer") or "",
+                    "date": rec.get("date"),
+                    "status": cls.get("status"),
+                    "predicted_group_id": cls.get("predicted_group_id"),
+                    "predicted_criterion_ref": cls.get("predicted_criterion_ref"),
+                    "predicted_criterion_name": cls.get("predicted_criterion_name"),
+                    "top_suggested_ref": top_sugg.get("criterion_ref") if top_sugg else None,
+                    "top_suggested_group": top_sugg.get("group_id") if top_sugg else None,
+                    "top_suggested_score": top_sugg.get("fused_score") if top_sugg else None,
+                    "branch_agreement": (cls.get("confidence") or {}).get("branch_agreement"),
+                    "review_reasons": cls.get("review_reasons") or [],
+                    "classification": cls,
+                }
+            )
+        return {
+            "summary": self._dual_branch_summary(),
+            "events": items,
+        }
+
+    def run_dual_branch_pipeline(self) -> Dict[str, Any]:
+        """Re-run ClassificationPipeline (reusing verified shared query cache) and refresh UI state."""
+        pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+        run_summary = pipeline.run()
+        self._load_dual_branch_batch_outputs()
+        self._rebuild_event_cache()
+        return {
+            "status": "ok",
+            "algorithm": run_summary.algorithm_name,
+            "query_embeddings_reused": run_summary.query_embeddings_reused,
+            "total_input_events": run_summary.total_input_events,
+            "embedded_events_count": run_summary.embedded_events_count,
+            "status_counts": run_summary.status_counts,
+            "all_checks_passed": (
+                run_summary.asset_validation.all_passed
+                and run_summary.query_validation.all_passed
+                and run_summary.output_validation.all_passed
+            ),
+            "dual_branch_events": self.get_dual_branch_events(),
+            "recommendations_bundle": self.get_recommendations(),
+            "schedule_plan": self.generate_schedule_plan(),
+        }
+
+    def _dual_to_legacy_classification_result(
+        self,
+        event_id: str,
+        dual_cls: Dict[str, Any],
+    ) -> ClassificationResult:
+        """Adapt a dual-branch classification payload into ClassificationResult for EventProfileCache."""
+        scores = dual_cls.get("scores") or {}
+        s1_fused = (scores.get("stage1") or {}).get("fused") or []
+        s2_fused = (scores.get("stage2") or {}).get("fused") or []
+        selected_groups = [g["group_id"] for g in s1_fused if g.get("selected_for_stage2")]
+        stage1_scores = {g["group_id"]: float(g["fused_score"]) for g in s1_fused}
+        stage2_scores = {c["criterion_ref"]: float(c["fused_score"]) for c in s2_fused}
+
+        status_raw = str(dual_cls.get("status") or "NEEDS_REVIEW")
+        # For EventProfileCache / Module 6 preview: use predicted ref if PREDICTED,
+        # otherwise fall back to rank-1 suggested candidate while keeping status='pending_review'.
+        top_ref = dual_cls.get("predicted_criterion_ref")
+        top_grp = dual_cls.get("predicted_group_id")
+        if top_ref is None and s2_fused:
+            top_ref = s2_fused[0].get("criterion_ref")
+            top_grp = s2_fused[0].get("group_id")
+
+        status_map = {
+            "PREDICTED": "uncalibrated",
+            "NEEDS_REVIEW": "pending_review",
+            "NO_MATCH": "rejected",
+            "SKIPPED_NOT_EVENT": "rejected",
+        }
+        mapped_status = status_map.get(status_raw, "uncalibrated")
+
+        top_k_items = [
+            {
+                "rubric_item_id": c["criterion_ref"],
+                "parent_group_id": c["group_id"],
+                "stage2_score": float(c["fused_score"]),
+                "stage1_parent_score": float(stage1_scores.get(c["group_id"], 0.0)),
+                "ranking_score": float(c["fused_score"]),
+            }
+            for c in s2_fused[:6]
+        ]
+
+        return ClassificationResult(
+            event_id=event_id,
+            rubric_item_id=top_ref,
+            parent_group_id=top_grp,
+            selected_candidate_groups=selected_groups,
+            stage1_scores=stage1_scores,
+            stage2_scores=stage2_scores,
+            aggregated_scores=stage2_scores,
+            calibrated_confidence=None,
+            is_calibrated=False,
+            status=mapped_status,
+            top_k_items=top_k_items,
+            model_version=f"{self.embedder.model_version} ({self.dual_algorithm_name})",
+        )
+
     def _rebuild_event_cache(self) -> None:
-        """Run P2 classification + Module 6 baseline estimate on all 108 HCMUS events."""
+        """Populate EventProfileCache from Dual-Branch 2-Stage kNN + Module 6 baseline estimate."""
         for ev in self.events:
-            cls_res, vec = self.classifier.classify_event(ev)
+            dual_cls = self.dual_classification_by_post_id.get(ev.event_id)
+            shared_vec = self.dual_query_vectors_by_post_id.get(ev.event_id)
+            if dual_cls is not None and shared_vec is not None and self.embedder_status.is_e5_active:
+                cls_res = self._dual_to_legacy_classification_result(ev.event_id, dual_cls)
+                vec = shared_vec
+            else:
+                cls_res, vec = self.classifier.classify_event(ev)
+
             credit = self.credit_engine.estimate_event_credit(
                 event=ev,
                 rubric_item_id=cls_res.rubric_item_id,
@@ -578,6 +799,11 @@ class PrototypeService:
                     f"Slot khám phá (P7): mở rộng trải nghiệm sang nhóm {grp} ngoài vùng sở thích quen thuộc."
                 )
 
+            dual_cls = self.dual_classification_by_post_id.get(ev.event_id)
+            dual_status = dual_cls.get("status") if dual_cls else None
+            dual_conf = (dual_cls.get("confidence") or {}) if dual_cls else {}
+            dual_reasons = (dual_cls.get("review_reasons") or []) if dual_cls else []
+
             cards.append(
                 {
                     "event_id": ev.event_id,
@@ -597,6 +823,10 @@ class PrototypeService:
                     "parent_group_id": grp,
                     "is_label_overridden": ev.event_id in self.student_profile["label_overrides"],
                     "classification_status": cls_res.status,
+                    "dual_branch_status": dual_status,
+                    "dual_branch_agreement": dual_conf.get("branch_agreement"),
+                    "dual_branch_verification": dual_conf.get("evidence_verification_status"),
+                    "dual_branch_review_reasons": dual_reasons,
                     "selected_candidate_groups": cls_res.selected_candidate_groups,
                     "expected_points": credit.expected_points,
                     "effective_points": credit.effective_points,
@@ -728,50 +958,71 @@ class PrototypeService:
         }
 
     def inspect_classify(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Live P2.1 -> P2.2 -> P2.3 Union -> Module 6 trace for any user-provided event text."""
+        """Live Dual-Branch Hierarchical 2-Stage kNN + Stage-wise Fusion + Module 6 trace."""
         title = str(payload.get("title") or "").strip()
         description = str(payload.get("description") or "").strip()
         organizer = str(payload.get("organizer") or "").strip()
         role = str(payload.get("role") or "participant").strip()
-        role_vi_map = {
-            "participant": "Tham gia",
-            "organizer": "Ban tổ chức",
-            "collaborator": "Cộng tác viên",
+        post_id = str(payload.get("post_id") or "").strip()
+
+        stage1_top_k = max(1, min(4, int(payload.get("stage1_top_k") or self.dual_default_params.get("candidate_group_count", 2))))
+        k1 = max(1, min(30, int(payload.get("k1") or payload.get("stage1_neighbors") or self.dual_default_params.get("k1", 10))))
+        k2 = max(1, min(30, int(payload.get("k2") or payload.get("stage2_neighbors") or self.dual_default_params.get("k2", 10))))
+        beta = max(0.0, min(1.0, float(payload.get("beta") if payload.get("beta") not in (None, "") else self.dual_default_params.get("stage1_fusion_beta", 0.5))))
+        alpha = max(0.0, min(1.0, float(payload.get("alpha") if payload.get("alpha") not in (None, "") else self.dual_default_params.get("stage2_fusion_alpha", 0.5))))
+
+        raw_event = {
+            "is_event": True,
+            "post_id": post_id or "live_inspect",
+            "title": title or "Sự kiện thử nghiệm",
+            "description": description,
+            "organizer": organizer,
         }
-
-        stage1_top_k = max(1, min(5, int(payload.get("stage1_top_k") or 2)))
-        stage1_neighbors = max(1, min(25, int(payload.get("stage1_neighbors") or 5)))
-        stage2_neighbors = max(1, min(25, int(payload.get("stage2_neighbors") or 3)))
-        min_thresh_raw = payload.get("stage1_min_score_threshold")
-        min_thresh = float(min_thresh_raw) if min_thresh_raw not in (None, "") else None
-
-        ev = EventNormalized(
-            event_id="live_inspect",
-            title=title or "Sự kiện thử nghiệm",
-            description=description,
-            organizer=organizer,
-        )
-
-        cfg = HierarchicalKNNConfig(
-            stage1_top_k=stage1_top_k,
-            stage1_min_score_threshold=min_thresh,
-            stage1_neighbors=stage1_neighbors,
-            stage2_neighbors=stage2_neighbors,
-        )
-        clf = TwoStageHierarchicalKNNClassifier(
-            embedder=self.embedder,
-            cls_index=self.cls_index,
-            config=cfg,
-        )
+        query_text = build_event_query_text(raw_event, query_prefix="query: ")
+        query_body = query_text[len("query: "):] if query_text.startswith("query: ") else query_text
 
         t0 = time.perf_counter()
-        role_text = role_vi_map.get(role, role)
-        formatted_text = ev.to_classification_text(role=role_text)
-        cls_result, vec = clf.classify_event(ev, role=role_text, top_n_items=6)
+        # Reuse precomputed shared query vector if user clicked one of the 108 events and didn't edit text
+        reused_query_vec = False
+        if (
+            post_id
+            and post_id in self.dual_query_vectors_by_post_id
+            and self.embedder_status.is_e5_active
+            and payload.get("use_cached_query") is True
+        ):
+            vec = self.dual_query_vectors_by_post_id[post_id]
+            reused_query_vec = True
+        else:
+            vec = l2_normalize(self.embedder.encode_query(query_body))
+
+        # Run real dual-branch HierarchicalTwoStageKNN resolved from AlgorithmRegistry
+        runtime_params = dict(self.dual_default_params)
+        runtime_params["candidate_group_count"] = stage1_top_k
+        runtime_params["k1"] = k1
+        runtime_params["k2"] = k2
+        runtime_params["stage1_fusion_beta"] = beta
+        runtime_params["stage2_fusion_alpha"] = alpha
+
+        algorithm = self.dual_registry.create(
+            self.dual_algorithm_name,
+            sample_retriever=self.dual_sample_retriever,
+            rubric_retriever=self.dual_rubric_retriever,
+            rubric_data=self.dual_assets.rubric,
+            params=runtime_params,
+        )
+        shared_q_np = np.asarray(vec, dtype=np.float32)
+        prediction = algorithm.classify(shared_q_np, event_context=raw_event)
+        dual_cls = self.dual_decision_handler.decide(prediction=prediction, event=raw_event)
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
-        union_pool_size = len(
-            self.cls_index.get_stage2_union_entries(cls_result.selected_candidate_groups)
+        # Adapt to legacy classification block so existing callers & tests remain 100% compatible
+        cls_result = self._dual_to_legacy_classification_result(raw_event["post_id"], dual_cls)
+
+        ev = EventNormalized(
+            event_id=raw_event["post_id"],
+            title=raw_event["title"],
+            description=description,
+            organizer=organizer,
         )
         credit_est = self.credit_engine.estimate_event_credit(
             event=ev,
@@ -780,21 +1031,44 @@ class PrototypeService:
             role=role,
         )
 
+        # Count filtered vectors in Stage 2 for both branches
+        selected_groups = cls_result.selected_candidate_groups
+        sample_stage2_pool = int(
+            self.dual_assets.sample_branch.metadata["group_id"].isin(selected_groups).sum()
+        )
+        rm = self.dual_assets.rubric_branch.metadata
+        rubric_stage2_pool = int(
+            ((rm["stage"] == "criterion") & (rm["group_id"].isin(selected_groups)) & (rm["event_matchable"])).sum()
+        )
+
         return {
             "embedder_status": asdict(self.embedder_status),
-            "formatted_query_text": f"query: {formatted_text}",
+            "formatted_query_text": query_text,
+            "reused_cached_query": reused_query_vec,
             "vector_dimension": len(vec),
             "vector_l2_norm": round(l2_norm(vec), 6),
             "elapsed_ms": round(elapsed_ms, 2),
             "knn_params_used": {
+                "algorithm": self.dual_algorithm_name,
+                "parameter_status": "provisional_not_evaluated",
                 "stage1_top_k": stage1_top_k,
-                "stage1_min_score_threshold": min_thresh,
-                "stage1_neighbors": stage1_neighbors,
-                "stage2_neighbors": stage2_neighbors,
-                "note": "Tham số thử nghiệm mở (D-2); sẽ khóa sau validation trên dataset bản đầy đủ.",
+                "k1": k1,
+                "k2": k2,
+                "stage1_neighbors": k1,
+                "stage2_neighbors": k2,
+                "beta": beta,
+                "alpha": alpha,
+                "note": "Tham số tạm thời (provisional_not_evaluated); chưa đánh giá hay tinh chỉnh.",
             },
             "cls_index_summary": self.cls_index.summary(),
-            "stage2_union_pool_size": union_pool_size,
+            "reference_pool_sizes": {
+                "sample_stage1_total": self.dual_sample_retriever.eligible_count,
+                "sample_stage2_filtered": sample_stage2_pool,
+                "rubric_stage1_total": len(self.dual_rubric_retriever.eligible_stage1_groups),
+                "rubric_stage2_filtered": rubric_stage2_pool,
+            },
+            "stage2_union_pool_size": sample_stage2_pool + rubric_stage2_pool,
+            "dual_branch": dual_cls,
             "classification": {
                 **cls_result.to_dict(),
                 "rubric_item_name": self.rubric_name_by_id.get(
@@ -944,6 +1218,8 @@ class PrototypeService:
         return {
             "embedder_status": asdict(self.embedder_status),
             "cls_index_summary": self.cls_index.summary(),
+            "dual_branch_summary": self._dual_branch_summary(),
+            "dual_branch_events": self.get_dual_branch_events(),
             "interest_chips": INTEREST_CHIPS,
             "weight_presets": WEIGHT_PRESETS,
             "weekly_timetable": MOCK_WEEKLY_TIMETABLE,
@@ -1003,6 +1279,8 @@ def make_handler(service: PrototypeService):
                 self._send_json(service.get_recommendations())
             elif path == "/api/plan":
                 self._send_json(service.generate_schedule_plan())
+            elif path == "/api/dual-branch/events":
+                self._send_json(service.get_dual_branch_events())
             else:
                 self.send_error(HTTPStatus.NOT_FOUND, f"Unknown route: {path}")
 
@@ -1013,6 +1291,8 @@ def make_handler(service: PrototypeService):
                 body = self._read_json_body()
                 if path == "/api/classify":
                     self._send_json(service.inspect_classify(body))
+                elif path == "/api/dual-branch/run":
+                    self._send_json(service.run_dual_branch_pipeline())
                 elif path == "/api/profile":
                     self._send_json(service.update_profile(body))
                 elif path == "/api/plan":
@@ -1052,10 +1332,16 @@ def main() -> None:
         allow_fallback=not args.require_e5,
     )
     st = service.embedder_status
+    db = service._dual_branch_summary()
     print(f"  • P2.1 Embedder : {st.active_model} (e5_active={st.is_e5_active}, dim={st.dimension})")
     if st.fallback_reason:
         print(f"  • Ghi chú       : {st.fallback_reason}")
-    print(f"  • ClsIndex      : {service.cls_index.size} mẫu phân tầng ({', '.join(service.cls_index.parent_groups)})")
+    print(
+        f"  • Dual-Branch   : {db['algorithm']} "
+        f"(Sample={db['sample_reference_count']} mẫu, Rubric={db['rubric_total_prototypes']} prototypes, "
+        f"β={db['default_params']['beta']}, α={db['default_params']['alpha']}, provisional)"
+    )
+    print(f"  • Batch Events  : {db['batch_events_count']} sự kiện -> {db['status_counts']}")
     print(f"  • Event Cache   : {len(service.cache)} sự kiện HCMUS đã nạp")
     print(f"  • URL           : http://{args.host}:{args.port}")
 

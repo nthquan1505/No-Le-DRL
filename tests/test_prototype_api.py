@@ -65,6 +65,23 @@ class TestPrototypeService(unittest.TestCase):
         self.assertIsNone(res["classification"]["calibrated_confidence"])
         self.assertIn("module6_credit_estimate", res)
 
+        # Verify real dual-branch payload is connected to /api/classify
+        db = res["dual_branch"]
+        self.assertEqual(db["algorithm"], "hierarchical_two_stage_knn")
+        self.assertIn(db["status"], {"PREDICTED", "NEEDS_REVIEW", "NO_MATCH"})
+        self.assertFalse(db["confidence"]["calibrated"])
+        self.assertEqual(len(db["scores"]["stage1"]["fused"]), 4)
+        self.assertGreater(len(db["scores"]["stage2"]["fused"]), 0)
+        self.assertIn("sample_neighbors", db["evidence"])
+        self.assertIn("rubric_prototypes", db["evidence"])
+
+    def test_dual_branch_batch_events_endpoint_returns_108_events(self) -> None:
+        batch = self.service.get_dual_branch_events()
+        self.assertEqual(batch["summary"]["algorithm"], "hierarchical_two_stage_knn")
+        self.assertEqual(batch["summary"]["sample_reference_count"], 127)
+        self.assertEqual(batch["summary"]["rubric_total_prototypes"], 170)
+        self.assertEqual(len(batch["events"]), 108)
+
     def test_schedule_planner_is_conflict_free_and_respects_group_caps(self) -> None:
         plan = self.service.generate_schedule_plan(target_total=85)
         self.assertGreaterEqual(plan["projected_total"], plan["current_total"])

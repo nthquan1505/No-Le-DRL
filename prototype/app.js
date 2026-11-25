@@ -15,12 +15,6 @@ const QUICK_SAMPLES = {
     organizer: "Khoa CNTT",
     role: "participant",
   },
-  ctf_btc: {
-    title: "Cuộc thi Coding Challenge 2026",
-    description: "Tuyển Ban tổ chức hỗ trợ điều phối và chấm bài cho cuộc thi học thuật cấp Khoa.",
-    organizer: "ĐK CNTT",
-    role: "organizer",
-  },
   seminar: {
     title: "Seminar Học thuật về Nghiên cứu AI và Machine Learning",
     description: "Buổi chia sẻ chuyên đề nghiên cứu khoa học sinh viên và định hướng khóa luận tốt nghiệp.",
@@ -33,6 +27,24 @@ const QUICK_SAMPLES = {
     organizer: "Đoàn Thanh niên - Hội Sinh viên HCMUS",
     role: "participant",
   },
+  blood: {
+    title: "Ngày hội Hiến máu tình nguyện Giọt hồng HCMUS",
+    description: "Chương trình hiến máu nhân đạo vì cộng đồng do Hội Sinh viên Trường tổ chức.",
+    organizer: "HSV",
+    role: "participant",
+  },
+  mobilize: {
+    title: "Huy động lực lượng cổ vũ Giải Bóng đá Futsal sinh viên ĐHQG-HCM",
+    description: "Thông báo huy động sinh viên tham gia cổ vũ trận đấu cấp Trường.",
+    organizer: "CTSV",
+    role: "participant",
+  },
+  quiz31_35: {
+    title: "Cuộc thi trắc nghiệm trực tuyến Tìm hiểu pháp luật và an toàn không gian mạng",
+    description: "Cuộc thi trực tuyến tìm hiểu quy định pháp luật và phòng chống lừa đảo trực tuyến.",
+    organizer: "ĐK CNTT",
+    role: "participant",
+  },
 };
 
 const state = {
@@ -43,6 +55,11 @@ const state = {
   rubricCatalog: [],
   feedbackLog: [],
   clsIndexSummary: null,
+  dualBranchSummary: null,
+  dualBranchEvents: [],
+  batchStatusFilter: "ALL",
+  batchSearchQuery: "",
+  selectedBatchPostId: null,
   modalEventId: null,
   searchQuery: "",
 };
@@ -109,30 +126,35 @@ async function apiPost(path, payload) {
 
 function renderHeaderStatus() {
   const st = state.bootstrap.embedder_status;
+  const db = state.dualBranchSummary;
   const prof = state.profile;
   $("#studentChip").textContent = `${prof.name} · ${prof.cohort} · ${prof.class_id}`;
 
   const banner = $("#embedderBanner");
   const clsBadge = $("#clsModelBadge");
+  const dbInfo = db
+    ? ` · Dual-Branch <strong class="mono">${escapeHtml(db.algorithm)}</strong> (Sample: ${db.sample_reference_count} · Rubric: ${db.rubric_total_prototypes} · β=${db.default_params.beta}, α=${db.default_params.alpha})`
+    : "";
+
   if (st.is_e5_active) {
     banner.className = "status-ribbon";
     banner.innerHTML = `
-      <span class="badge badge-teal mono">P2.1 ACTIVE</span>
-      <span>Model Embedding: <strong class="mono">${escapeHtml(st.active_model)}</strong> (${st.dimension}d · L2 · device=${escapeHtml(st.device)})</span>
+      <span class="badge badge-teal mono">P2 DUAL-BRANCH ACTIVE</span>
+      <span>Embedding: <strong class="mono">${escapeHtml(st.active_model)}</strong> (${st.dimension}d · L2)${dbInfo}</span>
     `;
     if (clsBadge) {
       clsBadge.className = "badge badge-teal mono";
-      clsBadge.textContent = `e5-small · ${st.dimension}d`;
+      clsBadge.textContent = `e5-small · 2-branch · ${st.dimension}d`;
     }
   } else {
     banner.className = "status-ribbon fallback";
     banner.innerHTML = `
       <span class="badge badge-orange mono">P2.1 E5-SMALL STANDBY</span>
-      <span>Mục tiêu: <strong class="mono">${escapeHtml(st.requested_model)}</strong> (384d) · Hiện đang chạy fallback <code class="mono">${escapeHtml(st.active_model)}</code> vì môi trường chưa cài <code class="mono">sentence-transformers</code>. Chạy <code class="mono">pip install sentence-transformers torch</code> để kích hoạt e5-small thật.</span>
+      <span>Mục tiêu: <strong class="mono">${escapeHtml(st.requested_model)}</strong> (384d) · Hiện chạy fallback <code class="mono">${escapeHtml(st.active_model)}</code>${dbInfo}</span>
     `;
     if (clsBadge) {
       clsBadge.className = "badge badge-orange mono";
-      clsBadge.textContent = `e5-small (standby) · ${st.dimension}d`;
+      clsBadge.textContent = `fallback · 2-branch · ${st.dimension}d`;
     }
   }
 }
@@ -140,12 +162,15 @@ function renderHeaderStatus() {
 function renderProgressStrip() {
   const bundle = state.recommendationsBundle;
   const led = bundle.ledger_summary;
+  const db = state.dualBranchSummary;
   $("#totalScoreVal").textContent = `${led.total_score}đ`;
   $("#targetScoreVal").textContent = `${led.target_total}`;
   $("#kpiTotalEvents").textContent = bundle.stats.total_cached_events;
   $("#kpiEligible").textContent = bundle.stats.eligible_count;
   $("#kpiDropped").textContent = bundle.stats.dropped_count;
-  $("#kpiClsSize").textContent = `${state.clsIndexSummary.total_samples}`;
+  $("#kpiClsSize").textContent = db
+    ? `${db.sample_reference_count}S / ${db.rubric_total_prototypes}R`
+    : `${state.clsIndexSummary.total_samples}`;
   $("#refNowLabel").textContent = formatDateVi(bundle.reference_now);
 
   const capsHtml = ["C1", "C2", "C3", "C4", "C5"]
@@ -251,6 +276,13 @@ function renderRecommendations() {
               <div class="rec-badges">
                 <span class="badge badge-teal mono">${escapeHtml(c.rubric_item_id)} · ${escapeHtml(c.parent_group_id)}</span>
                 <span class="badge badge-teal">+${c.effective_points}đ dự kiến</span>
+                ${
+                  c.dual_branch_status === "PREDICTED"
+                    ? `<span class="badge badge-teal mono" title="Hai nhánh đồng thuận & đạt ngưỡng tạm thời">PREDICTED</span>`
+                    : c.dual_branch_status === "NEEDS_REVIEW"
+                      ? `<span class="badge badge-orange mono" title="${escapeHtml((c.dual_branch_review_reasons || []).join("; "))}">NEEDS_REVIEW</span>`
+                      : ""
+                }
                 ${c.is_exploration_slot ? `<span class="badge badge-orange">Slot khám phá (P7)</span>` : ""}
                 ${c.deadline_alert ? `<span class="badge badge-danger">${escapeHtml(c.deadline_alert)}</span>` : ""}
                 ${c.is_label_overridden ? `<span class="badge badge-muted">User đã sửa nhãn</span>` : ""}
@@ -300,6 +332,9 @@ function renderRecommendations() {
               </button>
               <button class="btn btn-primary" data-action="joined" data-id="${escapeHtml(c.event_id)}">
                 Đã tham gia (+${c.effective_points}đ)
+              </button>
+              <button class="btn btn-ghost" data-action="inspect_dual" data-id="${escapeHtml(c.event_id)}">
+                Xem 2 nhánh
               </button>
               <button class="btn btn-ghost" data-action="edit_label" data-id="${escapeHtml(c.event_id)}" data-current="${escapeHtml(c.rubric_item_id)}">
                 Sửa nhãn
@@ -398,73 +433,306 @@ function renderPlanner() {
     .join("");
 }
 
+function statusBadgeClass(status) {
+  if (status === "PREDICTED") return "badge-teal";
+  if (status === "NEEDS_REVIEW") return "badge-orange";
+  if (status === "NO_MATCH") return "badge-danger";
+  return "badge-muted";
+}
+
+function fmtOptNum(val, digits = 4) {
+  return typeof val === "number" && Number.isFinite(val) ? val.toFixed(digits) : "—";
+}
+
+function renderDualBatchBrowser() {
+  const pillsEl = $("#batchStatusPills");
+  const listEl = $("#batchEventsList");
+  if (!pillsEl || !listEl) return;
+
+  const counts = (state.dualBranchSummary && state.dualBranchSummary.status_counts) || {};
+  const total = state.dualBranchEvents.length;
+  const filters = [
+    { key: "ALL", label: `Tất cả (${total})` },
+    { key: "PREDICTED", label: `PREDICTED (${counts.PREDICTED || 0})` },
+    { key: "NEEDS_REVIEW", label: `NEEDS_REVIEW (${counts.NEEDS_REVIEW || 0})` },
+    { key: "NO_MATCH", label: `NO_MATCH (${counts.NO_MATCH || 0})` },
+  ];
+
+  pillsEl.innerHTML = filters
+    .map(
+      (f) => `
+        <button type="button" class="chip-btn ${state.batchStatusFilter === f.key ? "selected" : ""}" data-batch-filter="${f.key}">
+          ${escapeHtml(f.label)}
+        </button>
+      `
+    )
+    .join("");
+
+  const q = state.batchSearchQuery.trim().toLowerCase();
+  const filtered = state.dualBranchEvents.filter((ev) => {
+    if (state.batchStatusFilter !== "ALL" && ev.status !== state.batchStatusFilter) return false;
+    if (!q) return true;
+    return (
+      String(ev.post_id || "").toLowerCase().includes(q) ||
+      String(ev.title || "").toLowerCase().includes(q) ||
+      String(ev.predicted_criterion_ref || "").toLowerCase().includes(q) ||
+      String(ev.top_suggested_ref || "").toLowerCase().includes(q)
+    );
+  });
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<p class="helper-text">Không có sự kiện khớp bộ lọc.</p>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered
+    .map((ev) => {
+      const refLabel = ev.predicted_criterion_ref
+        ? `${ev.predicted_criterion_ref} (${ev.predicted_group_id})`
+        : ev.top_suggested_ref
+          ? `Gợi ý: ${ev.top_suggested_ref} (${ev.top_suggested_group})`
+          : "—";
+      const isActive = state.selectedBatchPostId === ev.post_id;
+      return `
+        <button type="button" class="batch-event-item ${isActive ? "active" : ""}" data-batch-post-id="${escapeHtml(ev.post_id)}">
+          <div class="batch-event-head">
+            <span class="mono" style="font-size:11.5px;font-weight:700">${escapeHtml(ev.post_id)} · ${escapeHtml(refLabel)}</span>
+            <span class="badge ${statusBadgeClass(ev.status)} mono">${escapeHtml(ev.status)}</span>
+          </div>
+          <div class="batch-event-title">${escapeHtml(ev.title)}</div>
+        </button>
+      `;
+    })
+    .join("");
+}
+
 function renderClassifyTrace(res) {
-  const cls = res.classification;
+  const db = res.dual_branch;
   const m6 = res.module6_credit_estimate;
-  const s1Entries = Object.entries(cls.stage1_scores || {}).sort((a, b) => b[1] - a[1]);
-  const s2Entries = cls.top_k_items_named || [];
+  const params = res.knn_params_used || {};
+  const pools = res.reference_pool_sizes || {};
+  const conf = (db && db.confidence) || {};
+  const scores = (db && db.scores) || {};
+  const s1Fused = (scores.stage1 && scores.stage1.fused) || [];
+  const s2Fused = (scores.stage2 && scores.stage2.fused) || [];
+  const evi = (db && db.evidence) || {};
+  const sampleNbs = evi.sample_neighbors || [];
+  const rubricProtos = evi.rubric_prototypes || [];
+  const rubricCtx = evi.rubric_context;
+  const reasons = (db && db.review_reasons) || [];
+
+  const status = (db && db.status) || "NEEDS_REVIEW";
+  const selectedGroups = s1Fused.filter((g) => g.selected_for_stage2).map((g) => g.group_id);
+  const topCandidate = s2Fused[0] || null;
+
+  const decisionHeadline =
+    status === "PREDICTED"
+      ? `<strong class="mono text-teal">${escapeHtml(db.predicted_criterion_ref)} (${escapeHtml(db.predicted_group_id)})</strong> — ${escapeHtml(db.predicted_criterion_name || "")}`
+      : status === "NEEDS_REVIEW"
+        ? `Chưa tự động chốt nhãn (<code class="mono">predicted_criterion_ref = null</code>). Ứng viên #1: <strong class="mono">${escapeHtml(topCandidate ? `${topCandidate.criterion_ref} (${topCandidate.group_id})` : "—")}</strong>`
+        : status === "NO_MATCH"
+          ? `Không tìm thấy tiêu chí đủ hỗ trợ (<code class="mono">NO_MATCH</code>; không tự gán <code class="mono">NONE</code>).`
+          : `Bỏ qua (không phải sự kiện hợp lệ).`;
+
+  const agreementBadge =
+    conf.branch_agreement === true
+      ? `<span class="badge badge-teal">2 nhánh đồng thuận</span>`
+      : conf.branch_agreement === false
+        ? `<span class="badge badge-orange">2 nhánh bất đồng</span>`
+        : `<span class="badge badge-muted">Thiếu 1 nhánh tham chiếu</span>`;
 
   $("#classifyResultPane").innerHTML = `
+    <div class="decision-banner status-${escapeHtml(status)}">
+      <div class="card-title-row">
+        <div class="rec-badges">
+          <span class="badge ${statusBadgeClass(status)} mono" style="font-size:12.5px">${escapeHtml(status)}</span>
+          <span class="badge badge-muted mono">${escapeHtml((db && db.algorithm) || "hierarchical_two_stage_knn")}</span>
+          ${agreementBadge}
+          <span class="badge badge-muted mono">calibrated: false</span>
+        </div>
+        <span class="mono tag-soft">margin G=${fmtOptNum(conf.group_margin, 3)} · C=${fmtOptNum(conf.criterion_margin, 3)}</span>
+      </div>
+      <div style="font-size:14px;margin-top:4px">${decisionHeadline}</div>
+      ${
+        reasons.length
+          ? `<ul class="review-reasons-list">${reasons.map((r) => `<li><code class="mono">${escapeHtml(r)}</code></li>`).join("")}</ul>`
+          : ""
+      }
+    </div>
+
     <div class="trace-step">
       <div class="card-title-row">
-        <h2 class="card-title">Bước 1 · P2.1 Embedding (${escapeHtml(res.embedder_status.active_model)})</h2>
-        <span class="mono tag-soft">${res.vector_dimension}d · ||v||₂ = ${res.vector_l2_norm} · ${res.elapsed_ms}ms</span>
+        <h2 class="card-title">Bước 1 · Shared Query Embedding (${escapeHtml(res.embedder_status.active_model)})</h2>
+        <span class="mono tag-soft">${res.vector_dimension}d · ||v||₂ = ${res.vector_l2_norm} · ${res.elapsed_ms}ms${res.reused_cached_query ? " · cached" : ""}</span>
       </div>
+      <p class="helper-text">Đúng 1 vector truy vấn duy nhất (chỉ dùng tiêu đề + mô tả, không rò rỉ nhãn) được chia sẻ cho cả 2 nhánh Sample &amp; Rubric ở cả 2 tầng.</p>
       <div class="query-preview mono">${escapeHtml(res.formatted_query_text)}</div>
     </div>
 
     <div class="trace-step">
       <div class="card-title-row">
-        <h2 class="card-title">Bước 2 · P2.2 Stage 1 — Coarse Parent Groups (C1–C5)</h2>
-        <span class="badge badge-teal">Đã chọn Top-${res.knn_params_used.stage1_top_k}: ${escapeHtml(cls.selected_candidate_groups.join(", "))}</span>
+        <h2 class="card-title">Bước 2 · Stage 1 — Dual-Branch Major Groups + Fusion (β = ${params.beta ?? 0.5})</h2>
+        <span class="badge badge-teal mono">Shared Top-${params.stage1_top_k ?? 2}: ${escapeHtml(selectedGroups.join(", "))}</span>
       </div>
-      <p class="helper-text">Stage 1 chỉ chọn nhóm cha ứng viên — chưa kết luận mục nhỏ (D-2). Điểm dưới đây là raw KNN score, không phải xác suất đã calibrate.</p>
-      ${s1Entries
-        .map(([grp, sc]) => {
-          const isSel = cls.selected_candidate_groups.includes(grp);
-          const pct = Math.round(Math.max(0, Math.min(1, sc)) * 100);
-          return `
-            <div class="score-bar-row">
-              <span><strong class="mono">${grp}</strong> ${isSel ? '<span class="badge badge-teal">Top-k</span>' : ""}</span>
-              <div class="bar-track"><div class="bar-fill ${isSel ? "" : "full"}" style="width:${pct}%;${isSel ? "" : "background:#94A3B8"}"></div></div>
-              <span class="mono" style="text-align:right">${sc.toFixed(4)}</span>
-            </div>
-          `;
-        })
-        .join("")}
+      <p class="helper-text">
+        Sample Branch (Top-K1=${params.k1 ?? 10} trên ${pools.sample_stage1_total ?? 127} mẫu) và Rubric Branch (${pools.rubric_stage1_total ?? 4} prototype nhóm <code class="mono">stage=group</code>) chạy độc lập, chuẩn hóa rồi hợp nhất: <code class="mono">S1(g) = β·S_sample + (1−β)·S_rubric</code>.
+      </p>
+      <table class="dual-table">
+        <thead>
+          <tr>
+            <th>Nhóm</th>
+            <th>Sample raw / norm</th>
+            <th>Rubric raw / norm</th>
+            <th>Fused S1(g)</th>
+            <th>Stage 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${s1Fused
+            .map(
+              (g) => `
+                <tr class="${g.selected_for_stage2 ? "selected-row" : ""}">
+                  <td><strong class="mono">${escapeHtml(g.group_id)}</strong> · ${escapeHtml(GROUP_NAMES[g.group_id] || "")}</td>
+                  <td class="mono">${fmtOptNum(g.sample_raw_score, 3)} / ${fmtOptNum(g.sample_norm_score, 3)}</td>
+                  <td class="mono">${fmtOptNum(g.rubric_raw_score, 3)} / ${fmtOptNum(g.rubric_norm_score, 3)}</td>
+                  <td class="mono"><strong>${fmtOptNum(g.fused_score, 4)}</strong></td>
+                  <td>${g.selected_for_stage2 ? '<span class="badge badge-teal">Top-2 chung</span>' : '<span class="text-muted">—</span>'}</td>
+                </tr>
+              `
+            )
+            .join("")}
+        </tbody>
+      </table>
     </div>
 
     <div class="trace-step highlight">
       <div class="card-title-row">
-        <h2 class="card-title">Bước 3 · P2.3 Stage 2 — Multi-Group Union KNN</h2>
-        <span class="badge badge-orange mono">status: ${escapeHtml(cls.status)}</span>
+        <h2 class="card-title">Bước 3 · Stage 2 — Dual-Branch Criteria trong {${escapeHtml(selectedGroups.join(", "))}} + Fusion (α = ${params.alpha ?? 0.5})</h2>
+        <span class="mono tag-soft">Sample pool: ${pools.sample_stage2_filtered ?? "?"} · Rubric pool: ${pools.rubric_stage2_filtered ?? "?"}</span>
       </div>
       <p class="helper-text">
-        Đã hợp nhất <strong>${res.stage2_union_pool_size} mẫu</strong> thuộc các nhóm <strong class="mono">{${escapeHtml(cls.selected_candidate_groups.join(", "))}}</strong>.
-        Kết quả dự đoán: <strong class="mono text-teal">${escapeHtml(cls.rubric_item_id || "None")} (${escapeHtml(cls.parent_group_id || "-")})</strong> — ${escapeHtml(cls.rubric_item_name || "")}.
+        Cả 2 nhánh đều lọc đúng trên <strong>Top-2 nhóm chung</strong>. Căn khớp ứng viên theo <code class="mono">criterion_ref</code>; tiêu chí chưa có mẫu trong <code class="mono">events_full.csv</code> được đánh dấu <code class="mono">no_reference_samples</code> (không coi là vô nghĩa).
       </p>
-      ${s2Entries
-        .map((row, idx) => {
-          const pct = Math.round(Math.max(0, Math.min(1, row.stage2_score)) * 100);
-          return `
-            <div class="score-bar-row">
-              <span><strong class="mono">${escapeHtml(row.rubric_item_id)}</strong> <span class="text-muted">(${escapeHtml(row.parent_group_id)})</span> ${idx === 0 ? '<span class="badge badge-teal">#1</span>' : ""}</span>
-              <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-              <span class="mono" style="text-align:right">${row.stage2_score.toFixed(4)}</span>
-            </div>
-          `;
-        })
-        .join("")}
+      <table class="dual-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tiêu chí</th>
+            <th>Sample (K2=${params.k2 ?? 10})</th>
+            <th>Rubric</th>
+            <th>Fused S2(c)</th>
+            <th>Bằng chứng</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${s2Fused
+            .slice(0, 8)
+            .map((c) => {
+              const sampleCell =
+                c.sample_evidence_status === "no_reference_samples"
+                  ? `<span class="badge badge-muted mono">no_samples</span>`
+                  : c.sample_evidence_status === "not_in_top_k"
+                    ? `<span class="text-muted mono">not_in_topK</span>`
+                    : `<span class="mono">${fmtOptNum(c.sample_raw_score, 3)}</span>`;
+              const verBadge =
+                c.evidence_verification_status === "verified_from_school_list"
+                  ? `<span class="badge badge-teal mono">verified</span>`
+                  : c.evidence_verification_status === "verified_partial"
+                    ? `<span class="badge badge-orange mono">partial</span>`
+                    : `<span class="badge badge-orange mono">draft_only</span>`;
+              return `
+                <tr class="${c.rank === 1 ? "selected-row" : ""}">
+                  <td class="mono">#${c.rank}</td>
+                  <td>
+                    <strong class="mono">${escapeHtml(c.criterion_ref)}</strong>
+                    <span class="text-muted mono">(${escapeHtml(c.group_id)})</span>
+                    <div style="font-size:11.5px;color:#475569">${escapeHtml((c.criterion_name || "").slice(0, 72))}</div>
+                  </td>
+                  <td>${sampleCell}</td>
+                  <td class="mono">${fmtOptNum(c.rubric_raw_score, 3)}</td>
+                  <td class="mono"><strong>${fmtOptNum(c.fused_score, 4)}</strong></td>
+                  <td>${verBadge}</td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
     </div>
 
     <div class="trace-step">
       <div class="card-title-row">
-        <h2 class="card-title">Bước 4 · MODULE 6 — Credit Calc &amp; Evaluation (Tách biệt theo D-3)</h2>
+        <h2 class="card-title">Bước 4 · Bằng chứng Truy xuất Độc lập (Sample &amp; Rubric Evidence)</h2>
+        <span class="mono tag-soft">Cosine dot product</span>
+      </div>
+      <div class="evidence-grid">
+        <div class="evidence-col">
+          <div class="card-subtitle">Top Sample Neighbors (${sampleNbs.length})</div>
+          ${
+            sampleNbs.length
+              ? sampleNbs
+                  .map(
+                    (nb) => `
+                      <div class="evidence-item">
+                        <div class="card-title-row" style="margin-bottom:2px">
+                          <span class="mono"><strong>${escapeHtml(nb.criterion_ref)}</strong> · ${escapeHtml(nb.sample_id)}</span>
+                          <span class="mono text-teal"><strong>${fmtOptNum(nb.similarity, 4)}</strong></span>
+                        </div>
+                        <div>${escapeHtml(nb.event_title)}</div>
+                      </div>
+                    `
+                  )
+                  .join("")
+              : `<p class="helper-text" style="margin:0">Không có mẫu tương đồng trong Top-2 nhóm.</p>`
+          }
+        </div>
+        <div class="evidence-col">
+          <div class="card-subtitle">Top Rubric Prototypes (${rubricProtos.length})</div>
+          ${
+            rubricProtos
+              .length
+              ? rubricProtos
+                  .map(
+                    (p) => `
+                      <div class="evidence-item">
+                        <div class="card-title-row" style="margin-bottom:2px">
+                          <span class="mono"><strong>${escapeHtml(p.criterion_ref)}</strong> · ${escapeHtml(p.prototype_type)}</span>
+                          <span class="mono text-teal"><strong>${fmtOptNum(p.similarity, 4)}</strong></span>
+                        </div>
+                        <div class="text-muted mono" style="font-size:11px">${escapeHtml(p.prototype_id)} · status=${escapeHtml(p.anchor_status || "-")}</div>
+                      </div>
+                    `
+                  )
+                  .join("")
+              : `<p class="helper-text" style="margin:0">Không có prototype phù hợp.</p>`
+          }
+        </div>
+      </div>
+      ${
+        rubricCtx
+          ? `
+            <div class="rubric-context-box">
+              <div><strong>Ngữ cảnh Rubric (${escapeHtml(rubricCtx.criterion_ref)} · ${escapeHtml(rubricCtx.criterion_key)}):</strong> <span class="badge badge-muted mono">anchors_status: ${escapeHtml(rubricCtx.anchors_status || "-")}</span></div>
+              ${rubricCtx.scope_note ? `<div style="margin-top:4px">${escapeHtml(rubricCtx.scope_note)}</div>` : ""}
+              ${
+                rubricCtx.open_questions && rubricCtx.open_questions.length
+                  ? `<div style="margin-top:6px;font-size:12px;color:#9A3412"><strong>Open questions:</strong> ${rubricCtx.open_questions.map((q) => `${escapeHtml(q.id)} (${escapeHtml(q.topic)})`).join(" · ")}</div>`
+                  : ""
+              }
+            </div>
+          `
+          : ""
+      }
+    </div>
+
+    <div class="trace-step">
+      <div class="card-title-row">
+        <h2 class="card-title">Bước 5 · MODULE 6 — Ước tính điểm quy chế (Tách biệt theo D-3)</h2>
         <span class="badge ${m6.is_credit_eligible ? "badge-teal" : "badge-muted"}">${m6.is_credit_eligible ? "Đủ điều kiện cộng điểm" : "Không cộng điểm / Đã chạm trần"}</span>
       </div>
       <div class="kpi-strip">
         <div class="kpi-box">
-          <div class="kpi-label">Mã mục áp dụng</div>
+          <div class="kpi-label">Mã mục tham chiếu</div>
           <div class="kpi-val mono">${escapeHtml(m6.rubric_item_id || "-")} (${escapeHtml(m6.group_id || "-")})</div>
         </div>
         <div class="kpi-box">
@@ -534,7 +802,32 @@ function renderAll() {
   renderReminders();
   renderRecommendations();
   renderPlanner();
+  renderDualBatchBrowser();
   renderProfileAndFeedback();
+}
+
+function switchTab(target) {
+  document.querySelectorAll(".nav-tab").forEach((b) => {
+    const active = b.dataset.tab === target;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".tab-panel").forEach((p) => {
+    p.classList.toggle("active", p.id === `tab-${target}`);
+  });
+}
+
+async function inspectEventByPostId(postId) {
+  const ev = state.dualBranchEvents.find((item) => item.post_id === postId);
+  if (!ev) return;
+  state.selectedBatchPostId = postId;
+  $("#clsPostId").value = ev.post_id || "";
+  $("#clsTitle").value = ev.title || "";
+  $("#clsDesc").value = ev.description || "";
+  $("#clsOrg").value = ev.organizer || "";
+  $("#clsRole").value = "participant";
+  renderDualBatchBrowser();
+  await runLiveClassify({ useCachedQuery: true });
 }
 
 /* =========================================================================
@@ -564,15 +857,19 @@ function closeLabelModal() {
   state.modalEventId = null;
 }
 
-async function runLiveClassify() {
+async function runLiveClassify(options = {}) {
   const payload = {
+    post_id: $("#clsPostId") ? $("#clsPostId").value : "",
+    use_cached_query: Boolean(options.useCachedQuery),
     title: $("#clsTitle").value,
     description: $("#clsDesc").value,
     organizer: $("#clsOrg").value,
     role: $("#clsRole").value,
     stage1_top_k: Number($("#paramTopK").value || 2),
-    stage1_neighbors: Number($("#paramK1").value || 5),
-    stage2_neighbors: Number($("#paramK2").value || 3),
+    k1: Number($("#paramK1").value || 10),
+    k2: Number($("#paramK2").value || 10),
+    beta: Number($("#paramBeta") ? $("#paramBeta").value : 0.5),
+    alpha: Number($("#paramAlpha") ? $("#paramAlpha").value : 0.5),
   };
   const res = await apiPost("/api/classify", payload);
   renderClassifyTrace(res);
@@ -582,15 +879,7 @@ function setupListeners() {
   // Navigation tabs
   document.querySelectorAll(".nav-tab").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const target = btn.dataset.tab;
-      document.querySelectorAll(".nav-tab").forEach((b) => {
-        const active = b.dataset.tab === target;
-        b.classList.toggle("active", active);
-        b.setAttribute("aria-selected", String(active));
-      });
-      document.querySelectorAll(".tab-panel").forEach((p) => {
-        p.classList.toggle("active", p.id === `tab-${target}`);
-      });
+      switchTab(btn.dataset.tab);
     });
   });
 
@@ -653,6 +942,11 @@ function setupListeners() {
     if (!btn) return;
     const action = btn.dataset.action;
     const eventId = btn.dataset.id;
+    if (action === "inspect_dual") {
+      switchTab("classifier");
+      await inspectEventByPostId(eventId);
+      return;
+    }
     if (action === "edit_label") {
       openLabelModal(eventId, btn.dataset.current);
       return;
@@ -697,22 +991,71 @@ function setupListeners() {
     showToast(`Đã lập lịch không trùng giờ hướng tới ${goal}đ ĐRL`);
   });
 
-  // Live Classifier form + quick samples
+  // Live Classifier form + quick samples + 108-event batch browser
   $("#classifyForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    await runLiveClassify();
+    if ($("#clsPostId")) $("#clsPostId").value = "";
+    state.selectedBatchPostId = null;
+    renderDualBatchBrowser();
+    await runLiveClassify({ useCachedQuery: false });
   });
   document.querySelectorAll(".quick-samples .chip-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const sample = QUICK_SAMPLES[btn.dataset.sample];
       if (!sample) return;
+      if ($("#clsPostId")) $("#clsPostId").value = "";
+      state.selectedBatchPostId = null;
       $("#clsTitle").value = sample.title;
       $("#clsDesc").value = sample.description;
       $("#clsOrg").value = sample.organizer;
       $("#clsRole").value = sample.role;
-      await runLiveClassify();
+      renderDualBatchBrowser();
+      await runLiveClassify({ useCachedQuery: false });
     });
   });
+
+  if ($("#batchStatusPills")) {
+    $("#batchStatusPills").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-batch-filter]");
+      if (!btn) return;
+      state.batchStatusFilter = btn.dataset.batchFilter;
+      renderDualBatchBrowser();
+    });
+  }
+  if ($("#batchSearchInput")) {
+    $("#batchSearchInput").addEventListener("input", (e) => {
+      state.batchSearchQuery = e.target.value;
+      renderDualBatchBrowser();
+    });
+  }
+  if ($("#batchEventsList")) {
+    $("#batchEventsList").addEventListener("click", async (e) => {
+      const item = e.target.closest("button[data-batch-post-id]");
+      if (!item) return;
+      await inspectEventByPostId(item.dataset.batchPostId);
+    });
+  }
+  if ($("#btnRerunPipeline")) {
+    $("#btnRerunPipeline").addEventListener("click", async () => {
+      const btn = $("#btnRerunPipeline");
+      btn.disabled = true;
+      btn.textContent = "Đang chạy...";
+      try {
+        const res = await apiPost("/api/dual-branch/run", {});
+        state.dualBranchSummary = res.dual_branch_events.summary;
+        state.dualBranchEvents = res.dual_branch_events.events;
+        state.recommendationsBundle = res.recommendations_bundle;
+        state.schedulePlan = res.schedule_plan;
+        renderAll();
+        showToast(
+          `Đã chạy lại pipeline (${res.algorithm}): ${res.status_counts.PREDICTED} PREDICTED, ${res.status_counts.NEEDS_REVIEW} NEEDS_REVIEW`
+        );
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Chạy lại Pipeline";
+      }
+    });
+  }
 
   // Profile chips & save/reset
   $("#interestChipsGrid").addEventListener("click", (e) => {
@@ -757,11 +1100,28 @@ async function init() {
   state.profile = data.profile;
   state.rubricCatalog = data.rubric_catalog;
   state.clsIndexSummary = data.cls_index_summary;
+  state.dualBranchSummary = data.dual_branch_summary || null;
+  state.dualBranchEvents = (data.dual_branch_events && data.dual_branch_events.events) || [];
   state.feedbackLog = data.feedback_log;
   state.recommendationsBundle = data.recommendations_bundle;
   state.schedulePlan = data.schedule_plan;
+
+  // Sync default provisional params from classification_config.yaml
+  if (state.dualBranchSummary && state.dualBranchSummary.default_params) {
+    const dp = state.dualBranchSummary.default_params;
+    if ($("#paramTopK")) $("#paramTopK").value = dp.stage1_top_k;
+    if ($("#paramK1")) $("#paramK1").value = dp.k1;
+    if ($("#paramK2")) $("#paramK2").value = dp.k2;
+    if ($("#paramBeta")) $("#paramBeta").value = dp.beta;
+    if ($("#paramAlpha")) $("#paramAlpha").value = dp.alpha;
+  }
+
   renderAll();
-  await runLiveClassify();
+  if (state.dualBranchEvents.length) {
+    await inspectEventByPostId(state.dualBranchEvents[0].post_id);
+  } else {
+    await runLiveClassify();
+  }
 }
 
 init().catch((err) => {

@@ -55,7 +55,7 @@
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <span>Thử phân loại (P2)</span>
+            <span>Phân loại 2 nhánh (P2)</span>
           </button>
           <button class="nav-tab" role="tab" aria-selected="false" data-tab="profile">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -280,84 +280,119 @@
       </section>
 
       <!-- ================================================================
-           TAB 3: LIVE P2 HIERARCHICAL KNN INSPECTOR (e5-small + D-2)
+           TAB 3: LIVE DUAL-BRANCH HIERARCHICAL 2-STAGE KNN INSPECTOR
       ================================================================= -->
       <section id="tab-classifier" class="tab-panel" role="tabpanel">
         <div class="classifier-grid">
-          <div class="card">
-            <div class="card-title-row">
-              <h1 class="card-title">Kiểm thử luồng P2 Live (D-2)</h1>
-              <span id="clsModelBadge" class="badge badge-teal mono">e5-small · 384d</span>
-            </div>
-            <p class="helper-text">
-              Nhập sự kiện bất kỳ để quan sát trực tiếp 3 bước: <strong>P2.1 Embedding</strong> → <strong>P2.2 Stage 1 (Top-k nhóm C1–C5)</strong> → <strong>P2.3 Stage 2 (Union KNN mục nhỏ &lt;mục_lớn&gt;.&lt;mục_nhỏ&gt;)</strong> → <strong>Module 6</strong>.
-            </p>
-
-            <div class="quick-samples">
-              <span class="helper-text">Mẫu thử nhanh:</span>
-              <button class="chip-btn" data-sample="ctf">Cuộc thi CTF (1.6)</button>
-              <button class="chip-btn" data-sample="ctf_btc">CTF · Vai trò BTC (1.7)</button>
-              <button class="chip-btn" data-sample="seminar">Seminar AI (1.9)</button>
-              <button class="chip-btn" data-sample="volunteer">Tình nguyện 3 ngày (4.3)</button>
-            </div>
-
-            <form id="classifyForm" class="form-stack">
-              <div class="form-field">
-                <label for="clsTitle">Tên hoạt động</label>
-                <input
-                  id="clsTitle"
-                  type="text"
-                  class="input-text"
-                  value="Cuộc thi An toàn thông tin HCMUS CTF 2026"
-                  required
-                />
+          <div class="classifier-left-col">
+            <div class="card">
+              <div class="card-title-row">
+                <h1 class="card-title">Kiểm thử Phân loại 2 nhánh (P2)</h1>
+                <span id="clsModelBadge" class="badge badge-teal mono">e5-small · 384d</span>
               </div>
-              <div class="form-field">
-                <label for="clsDesc">Mô tả ngắn</label>
-                <textarea id="clsDesc" rows="3" class="input-text">Cuộc thi học thuật cấp Khoa dành cho sinh viên yêu thích bảo mật và lập trình.</textarea>
+              <p class="helper-text">
+                <strong>1 Query Embedding dùng chung</strong> → Truy xuất độc lập nhánh <strong>Sample (127 mẫu)</strong> &amp; <strong>Rubric (170 prototypes)</strong> → <strong>Stage 1 Fusion (β)</strong> chọn chung Top-2 nhóm → <strong>Stage 2 Fusion (α)</strong> → <strong>Decision &amp; Module 6</strong>.
+              </p>
+
+              <div class="quick-samples">
+                <span class="helper-text">Mẫu thử nhanh:</span>
+                <button class="chip-btn" data-sample="ctf">Cuộc thi CTF (1.6)</button>
+                <button class="chip-btn" data-sample="seminar">Seminar AI (1.9)</button>
+                <button class="chip-btn" data-sample="volunteer">Tình nguyện (4.3)</button>
+                <button class="chip-btn" data-sample="blood">Hiến máu (4.2 · draft)</button>
+                <button class="chip-btn" data-sample="mobilize">Huy động lực lượng (3.3)</button>
+                <button class="chip-btn" data-sample="quiz31_35">Cuộc thi pháp luật (3.1/3.5)</button>
               </div>
-              <div class="form-row-2">
+
+              <form id="classifyForm" class="form-stack">
+                <input id="clsPostId" type="hidden" value="" />
                 <div class="form-field">
-                  <label for="clsOrg">Đơn vị tổ chức</label>
-                  <input id="clsOrg" type="text" class="input-text" value="Khoa CNTT" />
+                  <label for="clsTitle">Tên hoạt động</label>
+                  <input
+                    id="clsTitle"
+                    type="text"
+                    class="input-text"
+                    value="Cuộc thi An toàn thông tin HCMUS CTF 2026"
+                    required
+                  />
                 </div>
                 <div class="form-field">
-                  <label for="clsRole">Vai trò sinh viên</label>
-                  <select id="clsRole" class="input-text">
-                    <option value="participant">Tham gia (participant)</option>
-                    <option value="organizer">Ban tổ chức (organizer)</option>
-                    <option value="collaborator">Cộng tác viên (collaborator)</option>
-                  </select>
+                  <label for="clsDesc">Mô tả ngắn (đưa vào query cùng tiêu đề)</label>
+                  <textarea id="clsDesc" rows="3" class="input-text">Cuộc thi học thuật cấp Khoa dành cho sinh viên yêu thích bảo mật và lập trình.</textarea>
                 </div>
-              </div>
+                <div class="form-row-2">
+                  <div class="form-field">
+                    <label for="clsOrg">Đơn vị tổ chức (chỉ dùng cho M6)</label>
+                    <input id="clsOrg" type="text" class="input-text" value="Khoa CNTT" />
+                  </div>
+                  <div class="form-field">
+                    <label for="clsRole">Vai trò (chỉ dùng cho M6)</label>
+                    <select id="clsRole" class="input-text">
+                      <option value="participant">Tham gia (participant)</option>
+                      <option value="organizer">Ban tổ chức (organizer)</option>
+                      <option value="collaborator">Cộng tác viên (collaborator)</option>
+                    </select>
+                  </div>
+                </div>
 
-              <div class="open-params-box">
-                <div class="card-title-row">
-                  <span class="card-subtitle">Tham số thử nghiệm mở (D-2)</span>
-                  <span class="badge badge-orange">Chưa khóa production</span>
+                <div class="open-params-box">
+                  <div class="card-title-row">
+                    <span class="card-subtitle">Tham số Stage-wise Fusion (Tạm thời)</span>
+                    <span class="badge badge-orange mono">provisional_not_evaluated</span>
+                  </div>
+                  <div class="form-row-3">
+                    <div class="form-field">
+                      <label for="paramTopK">Top-k nhóm</label>
+                      <input id="paramTopK" type="number" min="1" max="4" value="2" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="paramK1">K1 (Stage 1)</label>
+                      <input id="paramK1" type="number" min="1" max="30" value="10" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="paramK2">K2 (Stage 2)</label>
+                      <input id="paramK2" type="number" min="1" max="30" value="10" class="input-text mono" />
+                    </div>
+                  </div>
+                  <div class="form-row-2" style="margin-top:8px">
+                    <div class="form-field">
+                      <label for="paramBeta">β Stage 1 (Sample weight)</label>
+                      <input id="paramBeta" type="number" min="0" max="1" step="0.05" value="0.5" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="paramAlpha">α Stage 2 (Sample weight)</label>
+                      <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.5" class="input-text mono" />
+                    </div>
+                  </div>
                 </div>
-                <div class="form-row-3">
-                  <div class="form-field">
-                    <label for="paramTopK">Stage 1 Top-k</label>
-                    <input id="paramTopK" type="number" min="1" max="5" value="2" class="input-text mono" />
-                  </div>
-                  <div class="form-field">
-                    <label for="paramK1">Stage 1 k-NN</label>
-                    <input id="paramK1" type="number" min="1" max="20" value="5" class="input-text mono" />
-                  </div>
-                  <div class="form-field">
-                    <label for="paramK2">Stage 2 k-NN</label>
-                    <input id="paramK2" type="number" min="1" max="20" value="3" class="input-text mono" />
-                  </div>
-                </div>
-              </div>
 
-              <button type="submit" class="btn btn-primary btn-full">Chạy phân loại P2.1 → P2.3 + Module 6</button>
-            </form>
+                <button type="submit" class="btn btn-primary btn-full">Chạy phân loại 2 nhánh (Sample + Rubric)</button>
+              </form>
+            </div>
+
+            <!-- Batch Browser for 108 events in data/events.json -->
+            <div class="card">
+              <div class="card-title-row">
+                <h2 class="card-title">Danh sách 108 sự kiện (`events.json`)</h2>
+                <button id="btnRerunPipeline" type="button" class="btn btn-ghost">Chạy lại Pipeline</button>
+              </div>
+              <p class="helper-text">
+                Bấm vào bất kỳ sự kiện nào để xem phân tích đầy đủ 2 nhánh (Sample + Rubric) từ <code class="mono">outputs/classification_events.json</code>.
+              </p>
+              <div id="batchStatusPills" class="batch-filter-pills"></div>
+              <input
+                id="batchSearchInput"
+                type="search"
+                class="input-text"
+                placeholder="Lọc theo post_id, tên sự kiện, mã mục..."
+                style="margin-bottom:10px"
+              />
+              <div id="batchEventsList" class="batch-events-list"></div>
+            </div>
           </div>
 
           <div id="classifyResultPane" class="trace-col">
-            <!-- Populated live via /api/classify -->
+            <!-- Populated live via /api/classify or batch selection -->
           </div>
         </div>
       </section>

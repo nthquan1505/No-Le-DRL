@@ -1,0 +1,83 @@
+# =============================================================================
+# HCMUS DRL Event Classification Configuration
+# =============================================================================
+# IMPORTANT: All numerical weights, neighbor counts (K1, K2), and decision
+# thresholds below are PROVISIONAL and HAVE NOT BEEN EVALUATED OR TUNED.
+# See FUTURE_WORK.md for the planned validation and calibration roadmap.
+
+config_status: provisional_not_evaluated
+
+paths:
+  events_json: data/events.json
+  rubric_yaml: data/raw/rubric.yaml
+  sample_embeddings: data/processed/cls_index/sample_embeddings.npy
+  sample_metadata: data/processed/cls_index/sample_metadata.parquet
+  rubric_embeddings: data/processed/cls_index/rubric_embeddings.npy
+  rubric_metadata: data/processed/cls_index/rubric_metadata.parquet
+  embedding_config: data/processed/cls_index/embedding_config.json
+  query_embeddings: data/generated/events_query_embeddings.npy
+  query_metadata: data/generated/events_query_metadata.json
+  output_classification_json: outputs/classification_events.json
+  output_run_report_md: outputs/classification_run_report.md
+
+embedding:
+  reuse_existing_query_embeddings: true
+  batch_size: 32
+  device: cpu
+  l2_tolerance: 1.0e-4
+
+algorithm:
+  name: hierarchical_two_stage_knn
+  parameter_status: provisional_not_evaluated
+  params:
+    # Stage 1 (Major-group classification)
+    k1: 10
+    candidate_group_count: 2
+    stage1_fusion_beta: 0.5            # provisional_not_evaluated (Sample branch weight)
+    stage1_similarity_weighting: positive_clip   # positive_clip | shifted | exp_scaled | power
+    stage1_weight_temperature: 0.1
+    stage1_weight_power: 2.0
+    stage1_score_normalization: min_max          # min_max | sum_normalize | identity
+
+    # Stage 2 (Criterion classification within shared Top-2 groups)
+    k2: 10
+    stage2_fusion_alpha: 0.5           # provisional_not_evaluated (Sample branch weight)
+    stage2_similarity_weighting: positive_clip   # positive_clip | shifted | exp_scaled | power
+    stage2_weight_temperature: 0.1
+    stage2_weight_power: 2.0
+    stage2_score_normalization: min_max          # min_max | sum_normalize | identity
+
+    # Rubric Stage 2 type-stratified aggregation (prevents anchor-count bias)
+    rubric_prototype_type_weights:
+      criterion_definition: 1.00
+      verified_anchor: 1.00
+      partial_anchor: 0.85
+      keyword_context: 0.75
+      draft_anchor: 0.70
+
+    # Handling criteria with zero reference coverage in one branch (e.g., 10 criteria absent from events_full.csv)
+    # reweight_available_branch: do NOT treat missing reference coverage as 0.0 proof of irrelevance
+    missing_branch_reference_policy: reweight_available_branch   # reweight_available_branch | zero_fill
+
+    # Evidence retained in output JSON
+    top_sample_neighbors_in_output: 5
+    top_rubric_prototypes_in_output: 5
+    max_suggested_candidates: 5
+
+decision:
+  threshold_status: provisional_not_evaluated
+  calibrated: false
+
+  # Provisional abstention / review thresholds (NOT evaluated or calibrated)
+  no_match_max_raw_similarity: 0.70        # If best raw cosine across both branches < this -> NO_MATCH
+  min_top_raw_similarity_for_predict: 0.78 # Below this -> NEEDS_REVIEW (insufficient semantic support)
+  min_group_margin: 0.05                   # Stage 1 fused margin (top1 - top2)
+  min_criterion_margin: 0.08               # Stage 2 fused margin (top1 - top2)
+  require_branch_agreement_when_both_available: true
+  route_draft_only_to_review: true         # Do not present draft-only evidence as verified certainty
+
+  # Rubric-specific boundary guards (from rubric.yaml open_questions & scope_note)
+  boundary_3_1_vs_3_5_margin: 0.18         # Q10: require stronger separation between 3.1 and 3.5
+  guard_3_3_requires_mobilization_cue: true
+  guard_1_9_catch_all_margin: 0.12         # Q23: prevent 1.9 catch-all when competing closely with 3.5/others
+  enable_none_negative_classifier: false   # NONE is NOT predicted without an explicit validated negative mechanism
