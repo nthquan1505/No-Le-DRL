@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VA ĐRL — Trợ lý Tính Điểm Rèn Luyện HCMUS</title>
+  <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .chat-scroll { height: 290px; overflow-y: auto; scroll-behavior: smooth; }
+    .msg-bot {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+      border-radius: 12px 12px 12px 4px;
+      padding: 8px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 92%;
+    }
+    .msg-user {
+      background: #2563eb;
+      color: #ffffff;
+      border-radius: 12px 12px 4px 12px;
+      padding: 8px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 85%;
+      margin-left: auto;
+    }
+    .chip {
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      cursor: pointer;
+    }
+    .chip:hover { background: #eff6ff; border-color: #60a5fa; color: #1d4ed8; }
+    .chip-penalty:hover { background: #fef2f2; border-color: #f87171; color: #dc2626; }
+    .progress-bar { width: 100%; height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 9999px; transition: width 0.2s ease; }
+    .console-pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      overflow-x: auto;
+      white-space: pre;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <img src="/logo.jpg" alt="VA ĐRL Logo" class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm" />
+        <div>
+          <h1 class="text-base font-bold text-slate-900 m-0">Trợ lý Tính Điểm Rèn Luyện (VA ĐRL)</h1>
+          <p class="text-[11px] text-slate-500 m-0">ĐH Khoa học Tự nhiên • Quy chế 1028/QĐ-KHTN-CTSV</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="resetToDefault()" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer">
+          Xem ví dụ mẫu
+        </button>
+        <button onclick="clearAllEvents()" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer">
+          Làm lại từ đầu
+        </button>
+        <a href="/drl2025.pdf" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-900 text-white no-underline">
+          Xem Quy chế (PDF)
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 flex-1 space-y-4">
+    <!-- 3-step visual guide -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+      <div class="bg-white border border-slate-200 rounded-xl px-3.5 py-2 flex items-center gap-2.5">
+        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">1</span>
+        <span class="text-slate-700"><strong>Chọn hoạt động</strong> bạn đã tham gia (hoặc nhắn cho trợ lý)</span>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl px-3.5 py-2 flex items-center gap-2.5">
+        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">2</span>
+        <span class="text-slate-700">Hệ thống tự cộng điểm &amp; <strong>chặn điểm tối đa</strong> từng mục</span>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl px-3.5 py-2 flex items-center gap-2.5">
+        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">3</span>
+        <span class="text-slate-700">Xem ngay <strong>Tổng điểm / 100</strong> và <strong>Xếp loại</strong> học kỳ</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+      <!-- LEFT: CHAT & KHO SỰ KIỆN -->
+      <section class="lg:col-span-5 space-y-4">
+        <div class="card p-4 flex flex-col">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100">
+            <span class="text-sm font-bold text-slate-800">💬 Hỏi đáp &amp; Nhập nhanh với Trợ lý</span>
+          </div>
+
+          <div id="chatBox" class="chat-scroll space-y-2.5 pr-1"></div>
+
+          <div class="mt-3 pt-2.5 border-t border-slate-100">
+            <div class="text-[11px] font-semibold text-slate-500 mb-1.5">Bấm nhanh để cộng/trừ thử:</div>
+            <div id="quickChipsContainer" class="flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <form onsubmit="onSubmitChat(event)" class="mt-2.5 pt-2.5 border-t border-slate-100 flex gap-2">
+            <input
+              id="chatInput"
+              type="text"
+              placeholder='VD: "Mình vừa đi hiến máu" hoặc "Tìm TOEIC"...'
+              class="flex-1 text-sm px-3 py-1.5 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-600"
+            />
+            <button type="submit" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold cursor-pointer border-0">
+              Gửi
+            </button>
+          </form>
+        </div>
+
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-bold text-slate-800 m-0">
+              📅 Sự kiện thực tế tại trường (<span id="scrapedCountBadge">0</span>)
+            </h2>
+          </div>
+
+          <div class="flex gap-2 mb-2.5">
+            <input
+              id="scrapeSearchInput"
+              type="text"
+              oninput="renderScrapedCatalog()"
+              placeholder="Tìm tên sự kiện (VD: TOEIC, AI, tình nguyện...)"
+              class="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-slate-300"
+            />
+            <select
+              id="scrapeCatFilter"
+              onchange="renderScrapedCatalog()"
+              class="text-xs px-2 py-1.5 rounded-lg border border-slate-300 bg-white"
+            >
+              <option value="ALL">Tất cả</option>
+              <option value="Muc_1">Mục 1: Học tập</option>
+              <option value="Muc_3">Mục 3: Văn-Thể-Mỹ</option>
+              <option value="Muc_4">Mục 4: Cộng đồng</option>
+            </select>
+          </div>
+
+          <div id="scrapedCatalogList" class="space-y-1.5 max-h-64 overflow-y-auto pr-1"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: KẾT QUẢ ĐIỂM RÈN LUYỆN -->
+      <section class="lg:col-span-7 space-y-4">
+        <div class="card p-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div class="text-xs font-semibold text-slate-500">Tổng Điểm Rèn Luyện dự kiến</div>
+              <div class="flex items-baseline gap-2.5 mt-0.5">
+                <span id="totalScoreEl" class="text-4xl font-extrabold text-slate-900">--</span>
+                <span class="text-base font-semibold text-slate-400">/ 100 điểm</span>
+                <span id="rankBadgeEl" class="px-3 py-0.5 rounded-full text-sm font-bold bg-emerald-100 text-emerald-800">--</span>
+              </div>
+              <div id="subtotalInfoEl" class="text-xs text-slate-500 mt-1"></div>
+            </div>
+
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-1 text-center text-[11px] w-full sm:w-auto">
+              <div id="tier-Kém" class="px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500">Kém<br>&lt;35</div>
+              <div id="tier-Yếu" class="px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500">Yếu<br>35–49</div>
+              <div id="tier-Trung bình" class="px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500">TB<br>50–64</div>
+              <div id="tier-Khá" class="px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500">Khá<br>65–79</div>
+              <div id="tier-Tốt" class="px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500">Tốt<br>80–89</div>
+              <div id="tier-Xuất sắc" class="px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500">Xuất sắc<br>90+</div>
+            </div>
+          </div>
+
+          <div id="alertsBox" class="hidden mt-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-0.5"></div>
+        </div>
+
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold text-slate-800 m-0">Chi tiết 6 Mục đánh giá</h2>
+            <span class="text-[11px] text-slate-400">Mỗi mục có mức điểm tối đa riêng</span>
+          </div>
+          <div id="categoriesGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+        </div>
+
+        <div class="card p-4">
+          <h2 class="text-sm font-bold text-slate-800 mb-2.5 m-0">
+            Các hoạt động của bạn (<span id="eventCountEl">0</span>)
+          </h2>
+
+          <div class="p-2 mb-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center gap-2">
+            <input
+              id="customTitleInput"
+              type="text"
+              placeholder="Tên hoạt động bạn muốn thêm..."
+              class="flex-1 min-w-[150px] text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white"
+            />
+            <select
+              id="customCategorySelect"
+              onchange="onSelectCustomCategory()"
+              class="text-xs px-2 py-1.5 rounded-lg border border-slate-300 bg-white max-w-[230px]"
+            ></select>
+            <input
+              id="customPointsInput"
+              type="number"
+              class="w-16 text-xs px-2 py-1.5 rounded-lg border border-slate-300 bg-white"
+              placeholder="Điểm"
+            />
+            <button onclick="addCustomEventFromForm()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold cursor-pointer border-0">
+              + Thêm
+            </button>
+          </div>
+
+          <div id="eventsListEl" class="space-y-1.5 max-h-60 overflow-y-auto pr-1"></div>
+        </div>
+
+        <details class="card p-3.5">
+          <summary class="cursor-pointer text-xs font-semibold text-slate-500 select-none">
+            🛠️ Xem dữ liệu kỹ thuật bên dưới (JSON &amp; Log từ <span class="mono">credits.py</span>)
+          </summary>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+            <pre id="jsonPayloadEl" class="console-pre m-0"></pre>
+            <pre id="consoleLogEl" class="console-pre m-0"></pre>
+          </div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    let rulesData = null;
+    let defaultEventsData = [];
+    let currentEvents = [];
+    let scrapedCatalog = [];
+
+    const CAT_LABELS = {
+      Muc_1: "Mục 1",
+      Muc_2: "Mục 2",
+      Muc_3: "Mục 3",
+      Muc_4: "Mục 4",
+      Muc_5: "Mục 5",
+      Muc_6: "Mục 6"
+    };
+
+    const QUICK_ACTIVITIES = [
+      { label: "+ Hội thảo", category: "Academic_Workshop", title: "Hội thảo AI & Hướng nghiệp" },
+      { label: "+ Thi học thuật", category: "Academic_Competition", title: "Cuộc thi Học thuật Khoa" },
+      { label: "+ Khảo sát", category: "Course_Survey", title: "Khảo sát lấy ý kiến SV" },
+      { label: "+ Mác-Lênin", category: "Political_Contest", title: "Hội thi Olympic Mác-Lênin" },
+      { label: "+ Chạy bộ", category: "Sport_Running", title: "Giải chạy Việt dã KHTN" },
+      { label: "+ Việc làm", category: "Career_Fair", title: "Ngày hội Việc làm" },
+      { label: "+ Hiến máu", category: "Blood_Donation", title: "Hiến máu nhân đạo" },
+      { label: "+ TN ngắn", category: "Volunteer_Short", title: "Hoạt động tình nguyện (<24h)" },
+      { label: "+ Mùa hè xanh", category: "Volunteer_Long", title: "Chiến dịch Mùa Hè Xanh" },
+      { label: "+ Giải Nhất", category: "Competition_FirstPrize", title: "Giải Nhất cuộc thi" },
+      { label: "- Trừ khảo sát", category: "Penalty_Survey", title: "Không thực hiện khảo sát", penalty: true }
+    ];
+
+    const CHAT_KEYWORDS = [
+      { keys: ["hội thảo", "workshop", "hướng nghiệp", "kỹ năng", "seminar"], cat: "Academic_Workshop", title: "Hội thảo học thuật & Kỹ năng" },
+      { keys: ["thi học thuật", "cuộc thi học thuật", "olympic tin", "học thuật", "coding"], cat: "Academic_Competition", title: "Cuộc thi Học thuật Khoa" },
+      { keys: ["không khảo sát", "quên khảo sát", "trừ khảo sát", "vi phạm khảo sát", "bị trừ"], cat: "Penalty_Survey", title: "Không thực hiện khảo sát" },
+      { keys: ["khảo sát", "điều tra xã hội", "lấy ý kiến"], cat: "Course_Survey", title: "Khảo sát lấy ý kiến SV" },
+      { keys: ["mác-lênin", "mác lênin", "chính trị", "tư tưởng"], cat: "Political_Contest", title: "Hội thi Olympic Mác-Lênin" },
+      { keys: ["chạy bộ", "việt dã", "thanh niên khỏe", "thể thao", "uprace"], cat: "Sport_Running", title: "Giải chạy bộ / Thanh niên khỏe" },
+      { keys: ["việc làm", "career fair", "tư vấn tuyển sinh", "tuyển sinh"], cat: "Career_Fair", title: "Ngày hội Việc làm" },
+      { keys: ["hiến máu", "nhân đạo", "giọt hồng"], cat: "Blood_Donation", title: "Hiến máu tình nguyện" },
+      { keys: ["mùa hè xanh", "xuân tình nguyện", "dài hạn"], cat: "Volunteer_Long", title: "Chiến dịch Mùa Hè Xanh" },
+      { keys: ["tình nguyện", "ngắn hạn", "chủ nhật xanh"], cat: "Volunteer_Short", title: "Hoạt động tình nguyện (<24h)" },
+      { keys: ["giải nhất", "vô địch", "giải đặc biệt", "khen thưởng"], cat: "Competition_FirstPrize", title: "Giải Nhất cuộc thi" }
+    ];
+
+    function formatCatLabel(catId) {
+      return CAT_LABELS[catId] || catId;
+    }
+
+    function formatAlertText(rawAlert) {
+      return rawAlert
+        .replace(/Muc_(\d)/g, "Mục $1")
+        .replace("đạt mức tối đa: Điểm thô ", "đã đạt mức tối đa (điểm tích lũy ")
+        .replace("-> Quy về ", "→ giữ tối đa ")
+        .replace(/(\d+\/\d+đ)$/, "$1)");
+    }
+
+    async function initApp() {
+      renderQuickChips();
+      try {
+        const res = await fetch("/api/init");
+        const data = await res.json();
+        rulesData = data.rules;
+        defaultEventsData = data.default_events;
+        currentEvents = structuredClone(defaultEventsData);
+        scrapedCatalog = data.scraped_events || [];
+        document.getElementById("scrapedCountBadge").textContent = scrapedCatalog.length;
+
+        populateCustomDropdown();
+        renderScrapedCatalog();
+        renderDashboard(data.result);
+
+        appendBotMessage(
+          `Xin chào! Hiện đang hiển thị ví dụ **8 hoạt động mẫu** (**${data.result.payload.total_earned_points}/100đ — ${data.result.payload.classification}**).\nBạn có thể bấm **Làm lại từ đầu** để tự chọn hoạt động của mình, hoặc gõ tên hoạt động vào đây!`
+        );
+      } catch (_err) {
+        appendBotMessage("Chưa kết nối được máy chủ. Hãy mở file `run_web.bat` trước.");
+      }
+    }
+
+    function renderQuickChips() {
+      document.getElementById("quickChipsContainer").innerHTML = QUICK_ACTIVITIES.map((item, idx) => `
+        <button type="button" onclick="quickAddActivity(${idx})" class="chip ${item.penalty ? 'chip-penalty' : ''}">
+          ${escapeHtml(item.label)}
+        </button>
+      `).join("");
+    }
+
+    function renderScrapedCatalog() {
+      const listEl = document.getElementById("scrapedCatalogList");
+      const query = (document.getElementById("scrapeSearchInput").value || "").trim().toLowerCase();
+      const catFilter = document.getElementById("scrapeCatFilter").value;
+
+      const filtered = scrapedCatalog.filter(ev => {
+        if (catFilter !== "ALL" && ev.category_id !== catFilter) return false;
+        if (!query) return true;
+        return `${ev.title} ${ev.organizer || ""} ${(ev.raw_categories || []).join(" ")} ${ev.sub_code}`.toLowerCase().includes(query);
+      });
+
+      if (!filtered.length) {
+        listEl.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">Không tìm thấy sự kiện phù hợp.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.slice(0, 40).map(ev => `
+        <div class="p-2 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="text-xs font-semibold text-slate-800 truncate">${escapeHtml(ev.title)}</div>
+            <div class="text-[11px] text-slate-500">
+              <span class="font-semibold text-blue-700">${formatCatLabel(ev.category_id)} • Tiêu chí ${escapeHtml(ev.sub_code)}</span>
+              ${ev.date ? `• ${escapeHtml(ev.date)}` : ""}
+            </div>
+          </div>
+          <button onclick="addScrapedEvent('${escapeHtml(ev.post_id)}')" class="shrink-0 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold border-0 cursor-pointer">
+            + ${ev.points}đ
+          </button>
+        </div>
+      `).join("");
+    }
+
+    async function addScrapedEvent(postId) {
+      const found = scrapedCatalog.find(x => x.post_id === postId);
+      if (!found) return;
+      currentEvents.push({ title: found.title, event_category: found.event_category, points: found.points });
+      const result = await requestCalculation();
+      const p = result.payload;
+      appendUserMessage(`Thêm: ${found.title}`);
+      appendBotMessage(`✔ Đã cộng **+${found.points}đ** vào **${formatCatLabel(found.category_id)}** → Tổng: **${p.total_earned_points}/100đ (${p.classification})**`);
+    }
+
+    function populateCustomDropdown() {
+      if (!rulesData) return;
+      document.getElementById("customCategorySelect").innerHTML = Object.entries(rulesData.criteria_mapping).map(([code, info]) => {
+        const sign = info.default_points >= 0 ? "+" : "";
+        return `<option value="${code}">[${info.sub_code}] ${info.description} (${sign}${info.default_points}đ)</option>`;
+      }).join("");
+      onSelectCustomCategory();
+    }
+
+    function onSelectCustomCategory() {
+      const code = document.getElementById("customCategorySelect").value;
+      const info = rulesData?.criteria_mapping?.[code];
+      if (info) document.getElementById("customPointsInput").value = info.default_points;
+    }
+
+    async function quickAddActivity(idx) {
+      const item = QUICK_ACTIVITIES[idx];
+      const info = rulesData?.criteria_mapping?.[item.category];
+      const pts = info ? info.default_points : 0;
+      currentEvents.push({ title: item.title, event_category: item.category, points: pts });
+
+      const result = await requestCalculation();
+      const p = result.payload;
+      const sign = pts >= 0 ? "+" : "";
+      appendUserMessage(item.title);
+      appendBotMessage(
+        `✔ **${sign}${pts}đ** (${formatCatLabel(info?.category_id || "")}) → Tổng: **${p.total_earned_points}/100đ (${p.classification})**` +
+        (p.max_cap_alerts.length ? `\n⚠️ ${p.max_cap_alerts.map(formatAlertText).join(" | ")}` : "")
+      );
+    }
+
+    async function addCustomEventFromForm() {
+      const titleEl = document.getElementById("customTitleInput");
+      const code = document.getElementById("customCategorySelect").value;
+      const ptsVal = Number(document.getElementById("customPointsInput").value);
+      const info = rulesData?.criteria_mapping?.[code];
+      const title = titleEl.value.trim() || (info ? info.description : code);
+      const pts = Number.isNaN(ptsVal) ? (info ? info.default_points : 0) : ptsVal;
+
+      currentEvents.push({ title, event_category: code, points: pts });
+      titleEl.value = "";
+      await requestCalculation();
+    }
+
+    async function removeEventAt(index) {
+      const removed = currentEvents.splice(index, 1)[0];
+      const result = await requestCalculation();
+      if (removed) {
+        appendBotMessage(`🗑️ Đã bỏ **${removed.title}** → Tổng còn **${result.payload.total_earned_points}/100đ (${result.payload.classification})**`);
+      }
+    }
+
+    async function resetToDefault() {
+      currentEvents = structuredClone(defaultEventsData);
+      const result = await requestCalculation();
+      appendBotMessage(`📦 Đã nạp 8 hoạt động mẫu → **${result.payload.total_earned_points}/100đ (${result.payload.classification})**`);
+    }
+
+    async function clearAllEvents() {
+      currentEvents = [];
+      const result = await requestCalculation();
+      appendBotMessage(`🔄 Đã làm lại từ đầu — điểm mặc định không vi phạm là **${result.payload.total_earned_points}/100đ (${result.payload.classification})**.`);
+    }
+
+    async function requestCalculation() {
+      const res = await fetch("/api/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ events: currentEvents })
+      });
+      const result = await res.json();
+      renderDashboard(result);
+      return result;
+    }
+
+    async function onSubmitChat(e) {
+      e.preventDefault();
+      const input = document.getElementById("chatInput");
+      const message = input.value.trim();
+      if (!message) return;
+
+      appendUserMessage(message);
+      input.value = "";
+      const lower = message.toLowerCase();
+
+      if (["xóa hết", "làm lại", "reset", "xóa sạch", "clear"].some(k => lower.includes(k))) return clearAllEvents();
+      if (["dữ liệu mẫu", "mặc định", "sample", "nạp mẫu", "ví dụ"].some(k => lower.includes(k))) return resetToDefault();
+
+      if (["tìm", "gợi ý", "có hoạt động", "có sự kiện", "scrape"].some(k => lower.includes(k))) {
+        const stop = new Set(["tìm", "sự", "kiện", "hoạt", "động", "gợi", "ý", "có", "nào", "không", "trong", "cho", "mình", "xem", "về", "thêm", "scrape"]);
+        const tokens = lower.split(/\s+/).filter(w => w.length >= 2 && !stop.has(w));
+        const matches = scrapedCatalog
+          .map(item => ({ item, hits: tokens.filter(t => `${item.title} ${(item.raw_categories || []).join(" ")} ${item.organizer || ""} ${item.category_id}`.toLowerCase().includes(t)).length }))
+          .filter(x => !tokens.length || x.hits > 0)
+          .sort((a, b) => b.hits - a.hits)
+          .slice(0, 5)
+          .map(x => x.item);
+
+        if (matches.length) {
+          const lines = matches.map(m => `• **${m.title}** (${formatCatLabel(m.category_id)} • +${m.points}đ)`);
+          appendBotMessage(`🔎 Tìm thấy ${matches.length} sự kiện:\n${lines.join("\n")}`);
+        } else {
+          appendBotMessage("Chưa thấy sự kiện nào khớp. Bạn thử gõ `TOEIC`, `AI`, `hiến máu`, `Mùa hè xanh` nhé.");
+        }
+        return;
+      }
+
+      const added = [];
+      for (const rule of CHAT_KEYWORDS) {
+        if (rule.keys.some(k => lower.includes(k))) {
+          const info = rulesData?.criteria_mapping?.[rule.cat];
+          const pts = info ? info.default_points : 0;
+          currentEvents.push({ title: rule.title, event_category: rule.cat, points: pts });
+          added.push(`✔ ${rule.title} (${pts >= 0 ? "+" : ""}${pts}đ)`);
+        }
+      }
+
+      const result = await requestCalculation();
+      const p = result.payload;
+      if (added.length) {
+        const alertTxt = p.max_cap_alerts.length ? `\n⚠️ ${p.max_cap_alerts.map(formatAlertText).join(" | ")}` : "";
+        appendBotMessage(`${added.join("\n")}\n🎯 Tổng: **${p.total_earned_points}/100đ (${p.classification})**${alertTxt}`);
+      } else {
+        appendBotMessage(`📊 Hiện tại bạn đang có **${p.total_earned_points}/100đ (${p.classification})** với ${currentEvents.length} hoạt động.`);
+      }
+    }
+
+    function renderDashboard(result) {
+      const { payload, mapped_events, categories_detail, console_log } = result;
+
+      document.getElementById("totalScoreEl").textContent = payload.total_earned_points;
+      const badge = document.getElementById("rankBadgeEl");
+      badge.textContent = payload.classification;
+      badge.className = "px-3 py-0.5 rounded-full text-sm font-bold " + getRankStyle(payload.classification);
+
+      const addedTotal = payload.subtotal_points - 50;
+      const addedSign = addedTotal >= 0 ? "+" : "";
+      document.getElementById("subtotalInfoEl").textContent =
+        `50đ mặc định (không vi phạm) ${addedSign}${addedTotal}đ từ hoạt động`;
+
+      ["Kém", "Yếu", "Trung bình", "Khá", "Tốt", "Xuất sắc"].forEach(r => {
+        const el = document.getElementById("tier-" + r);
+        if (!el) return;
+        el.className = r === payload.classification
+          ? "px-2 py-1 rounded border border-blue-600 bg-blue-600 text-white font-bold shadow-sm"
+          : "px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500";
+      });
+
+      const alertsBox = document.getElementById("alertsBox");
+      if (payload.max_cap_alerts && payload.max_cap_alerts.length > 0) {
+        alertsBox.classList.remove("hidden");
+        alertsBox.innerHTML = payload.max_cap_alerts.map(a => `<div>⚠️ ${escapeHtml(formatAlertText(a))}</div>`).join("");
+      } else {
+        alertsBox.classList.add("hidden");
+        alertsBox.innerHTML = "";
+      }
+
+      document.getElementById("categoriesGrid").innerHTML = categories_detail.map(c => {
+        const isUnlimited = c.max_cap === null || c.max_cap === undefined;
+        const pct = isUnlimited ? Math.min(100, Math.abs(c.raw_points) * 2) : Math.max(0, Math.min(100, (c.raw_points / c.max_cap) * 100));
+        const barColor = isUnlimited ? "bg-rose-500" : (c.is_capped ? "bg-amber-500" : "bg-blue-600");
+        const statusTag = isUnlimited
+          ? `<span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-semibold">Không giới hạn</span>`
+          : (c.is_capped
+              ? `<span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">Đạt tối đa ${c.max_cap}đ</span>`
+              : `<span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Trong giới hạn</span>`);
+        const diff = c.raw_points - c.base_points;
+        const diffText = diff === 0 ? `Mặc định ${c.base_points}đ` : `Mặc định ${c.base_points}đ ${diff > 0 ? "+" : ""}${diff}đ`;
+
+        return `
+          <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-bold text-slate-800">${formatCatLabel(c.cat_id)}: ${escapeHtml(c.name)}</span>
+              ${statusTag}
+            </div>
+            <div class="flex items-baseline justify-between text-xs mt-1">
+              <span class="text-slate-500">${diffText}</span>
+              <span class="font-extrabold text-slate-900">${c.capped_points}${isUnlimited ? "đ" : "/" + c.max_cap + "đ"}</span>
+            </div>
+            <div class="progress-bar mt-1.5">
+              <div class="progress-fill ${barColor}" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      document.getElementById("eventCountEl").textContent = mapped_events.length;
+      const listEl = document.getElementById("eventsListEl");
+      if (mapped_events.length === 0) {
+        listEl.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">Chưa có hoạt động nào (mặc định 50đ).</div>`;
+      } else {
+        listEl.innerHTML = mapped_events.map((ev, i) => {
+          const sign = ev.points >= 0 ? "+" : "";
+          const ptsColor = ev.points < 0 ? "text-red-600 bg-red-50 border-red-200" : "text-emerald-700 bg-emerald-50 border-emerald-200";
+          return `
+            <div class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-semibold text-slate-800 truncate">${i + 1}. ${escapeHtml(ev.title)}</div>
+                <div class="text-[11px] text-slate-500">${formatCatLabel(ev.category_id)} • Tiêu chí ${escapeHtml(ev.sub_code)}</div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-xs font-bold px-2 py-0.5 rounded border ${ptsColor}">${sign}${ev.points}đ</span>
+                <button onclick="removeEventAt(${i})" class="text-xs text-slate-400 hover:text-red-600 bg-transparent border-0 cursor-pointer px-1">✕</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      document.getElementById("jsonPayloadEl").textContent = JSON.stringify(payload, null, 2);
+      document.getElementById("consoleLogEl").textContent = console_log;
+    }
+
+    function appendUserMessage(text) {
+      const box = document.getElementById("chatBox");
+      const div = document.createElement("div");
+      div.className = "msg-user";
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function appendBotMessage(markdownText) {
+      const box = document.getElementById("chatBox");
+      const div = document.createElement("div");
+      div.className = "msg-bot";
+      div.innerHTML = escapeHtml(markdownText)
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/`(.+?)`/g, "<code class='mono bg-slate-200/70 px-1 rounded text-xs'>$1</code>")
+        .replace(/\n/g, "<br>");
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function getRankStyle(rank) {
+      if (rank === "Xuất sắc" || rank === "Tốt") return "bg-emerald-100 text-emerald-800";
+      if (rank === "Khá" || rank === "Trung bình") return "bg-blue-100 text-blue-800";
+      if (rank === "Yếu") return "bg-amber-100 text-amber-800";
+      return "bg-red-100 text-red-800";
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    window.addEventListener("DOMContentLoaded", initApp);
+  </script>
+</body>
+</html>
