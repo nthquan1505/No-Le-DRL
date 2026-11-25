@@ -1,7 +1,7 @@
 {
   "schema_version": "events-query-embeddings-v1",
-  "source_events_path": "C:/Users/Dell/Desktop/HOCTAP/HCMUS/CT/VA DRL/No-Le-DRL/data/events.json",
-  "source_events_sha256": "f2e0f0c4d660378e46f118211dadae4f5816729c2278ec26f4b3166a554311a2",
+  "source_events_path": "/Users/Apple/Documents/Computational Thinking/No-Le-DRL/data/events.json",
+  "source_events_sha256": "2039da2804ded06282eaf482185297f68129270f5c827edb4ed703c40553b4a9",
   "embedding_model": "intfloat/multilingual-e5-small",
   "model_revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
   "embedding_dimension": 384,
@@ -21,7 +21,7 @@
     "max_seq_length": 512,
     "truncated_count": 0
   },
-  "generation_timestamp_utc": "2026-11-25T06:45:33+00:00",
+  "generation_timestamp_utc": "2026-11-25T07:56:53+00:00",
   "records": [
     {
       "embedding_row": 0,

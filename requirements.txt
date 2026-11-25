@@ -1,6 +1,8 @@
 # Core dependencies (Phases 0-2, deterministic tests & rubric loading)
 PyYAML>=6.0
 numpy>=1.24
+pandas>=2.0
+pyarrow>=14.0
 pytest>=8.0
 
 # Optional ML dependencies (Phase 3: P2 embedding & hierarchical KNN)

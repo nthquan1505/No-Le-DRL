@@ -1,52 +1,60 @@
-"""Tests for P2.1 e5-small embedder factory and interactive prototype backend (app.py)."""
+"""Tests for unified e5-small embedder and clean Classification + Module 6 backend (app.py)."""
 
 from __future__ import annotations
 
 import unittest
 
+import src.embedder as embedder_mod
 from app import PROTOTYPE_DIR, PrototypeService
 from configs import MODEL_ID
-from src.embedder import create_embedder, is_e5_runtime_available
+from src.embedder import E5Embedder, create_embedder, is_e5_runtime_available
 
 
-class TestEmbedderFactory(unittest.TestCase):
-    def test_e5_mode_reports_requested_model_and_falls_back_cleanly_if_uninstalled(self) -> None:
-        emb, status = create_embedder(mode="e5", allow_fallback=True)
+class TestEmbedder(unittest.TestCase):
+    def test_unified_e5_small_only_and_no_hashing_fallback(self) -> None:
+        self.assertFalse(hasattr(embedder_mod, "HashingDemoEmbedder"))
+        self.assertTrue(is_e5_runtime_available())
+        emb, status = create_embedder()
+        self.assertIsInstance(emb, E5Embedder)
+        self.assertTrue(status.is_e5_active)
         self.assertEqual(status.requested_model, MODEL_ID)
+        self.assertEqual(status.active_model, MODEL_ID)
         self.assertEqual(status.dimension, 384)
         self.assertEqual(emb.dimension, 384)
-        if is_e5_runtime_available():
-            self.assertTrue(status.is_e5_active)
-            self.assertEqual(status.active_model, MODEL_ID)
-        else:
-            self.assertFalse(status.is_e5_active)
-            self.assertIsNotNone(status.fallback_reason)
-            with self.assertRaises(ImportError):
-                create_embedder(mode="e5", allow_fallback=False)
 
 
 class TestPrototypeService(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.service = PrototypeService(embedder_mode="e5", allow_fallback=True)
+        cls.service = PrototypeService()
 
     def test_static_frontend_files_exist(self) -> None:
         self.assertTrue((PROTOTYPE_DIR / "index.html").is_file())
         self.assertTrue((PROTOTYPE_DIR / "styles.css").is_file())
         self.assertTrue((PROTOTYPE_DIR / "app.js").is_file())
 
-    def test_bootstrap_and_recommendations_include_exploration_slot_and_drop_reasons(self) -> None:
+    def test_bootstrap_payload_contains_only_real_modules(self) -> None:
         boot = self.service.bootstrap_payload()
         self.assertEqual(boot["embedder_status"]["requested_model"], MODEL_ID)
-        self.assertEqual(len(boot["rubric_catalog"]), 51)
+        self.assertEqual(boot["embedder_status"]["active_model"], MODEL_ID)
+        self.assertTrue(boot["embedder_status"]["is_e5_active"])
 
-        rec = boot["recommendations_bundle"]
-        self.assertEqual(rec["stats"]["total_cached_events"], 108)
-        self.assertGreater(len(rec["recommendations"]), 0)
-        self.assertGreater(len(rec["dropped_events"]), 0)
-        self.assertTrue(any(c["is_exploration_slot"] for c in rec["recommendations"]))
+        summary = boot["dual_branch_summary"]
+        self.assertEqual(summary["algorithm"], "hierarchical_two_stage_knn")
+        self.assertEqual(summary["sample_reference_count"], 127)
+        self.assertEqual(summary["rubric_total_prototypes"], 170)
+        self.assertEqual(summary["batch_events_count"], 108)
+        self.assertEqual(len(boot["dual_branch_events"]["events"]), 108)
 
-    def test_live_p2_inspector_returns_distinct_stage1_stage2_and_module6(self) -> None:
+        for mock_key in (
+            "recommendations_bundle",
+            "schedule_plan",
+            "weekly_timetable",
+            "interest_chips",
+        ):
+            self.assertNotIn(mock_key, boot)
+
+    def test_live_inspect_classify_returns_dual_branch_and_module6(self) -> None:
         res = self.service.inspect_classify(
             {
                 "title": "Cuộc thi An toàn thông tin HCMUS CTF 2026",
@@ -54,18 +62,18 @@ class TestPrototypeService(unittest.TestCase):
                 "organizer": "Khoa CNTT",
                 "role": "organizer",
                 "stage1_top_k": 2,
-                "stage1_neighbors": 5,
-                "stage2_neighbors": 3,
+                "k1": 10,
+                "k2": 10,
+                "beta": 0.5,
+                "alpha": 0.5,
             }
         )
+        self.assertFalse(res["reused_cached_query"])
         self.assertEqual(res["vector_dimension"], 384)
         self.assertAlmostEqual(res["vector_l2_norm"], 1.0, places=5)
-        self.assertEqual(len(res["classification"]["selected_candidate_groups"]), 2)
-        self.assertFalse(res["classification"]["is_calibrated"])
-        self.assertIsNone(res["classification"]["calibrated_confidence"])
         self.assertIn("module6_credit_estimate", res)
+        self.assertIn(res["module6_ref_mode"], {"predicted", "suggested_preview", "none"})
 
-        # Verify real dual-branch payload is connected to /api/classify
         db = res["dual_branch"]
         self.assertEqual(db["algorithm"], "hierarchical_two_stage_knn")
         self.assertIn(db["status"], {"PREDICTED", "NEEDS_REVIEW", "NO_MATCH"})
@@ -75,42 +83,28 @@ class TestPrototypeService(unittest.TestCase):
         self.assertIn("sample_neighbors", db["evidence"])
         self.assertIn("rubric_prototypes", db["evidence"])
 
-    def test_dual_branch_batch_events_endpoint_returns_108_events(self) -> None:
-        batch = self.service.get_dual_branch_events()
-        self.assertEqual(batch["summary"]["algorithm"], "hierarchical_two_stage_knn")
-        self.assertEqual(batch["summary"]["sample_reference_count"], 127)
-        self.assertEqual(batch["summary"]["rubric_total_prototypes"], 170)
-        self.assertEqual(len(batch["events"]), 108)
-
-    def test_schedule_planner_is_conflict_free_and_respects_group_caps(self) -> None:
-        plan = self.service.generate_schedule_plan(target_total=85)
-        self.assertGreaterEqual(plan["projected_total"], plan["current_total"])
-        for grp, pts in plan["projected_by_group"].items():
-            self.assertLessEqual(pts, plan["group_caps"][grp])
-
-    def test_feedback_joined_and_label_correction_update_ledger_and_cls_index(self) -> None:
-        svc = PrototypeService(embedder_mode="demo")
-        initial_cls_size = svc.cls_index.size
-        rec = svc.get_recommendations()
-        first_event = rec["recommendations"][0]
-        eid = first_event["event_id"]
-
-        # Label correction -> adds sample live to ClsIndex
-        corr = svc.record_feedback(
+    def test_inspect_classify_reuses_cached_query_vector_when_requested(self) -> None:
+        first_event = self.service.get_dual_branch_events()["events"][0]
+        res = self.service.inspect_classify(
             {
-                "action": "label_correction",
-                "event_id": eid,
-                "corrected_item_id": "1.6",
+                "post_id": first_event["post_id"],
+                "use_cached_query": True,
+                "title": first_event["title"],
+                "description": first_event["description"],
+                "organizer": first_event["organizer"],
+                "role": "participant",
             }
         )
-        self.assertEqual(svc.cls_index.size, initial_cls_size + 1)
-        self.assertEqual(corr["entry"]["corrected_group_id"], "C1")
+        self.assertTrue(res["reused_cached_query"])
+        self.assertEqual(res["vector_dimension"], 384)
+        self.assertIn("module6_credit_estimate", res)
 
-        # Joined -> updates Module 6 ledger score
-        score_before = svc.credit_engine.evaluate_ledger(svc.ledger).total_score
-        svc.record_feedback({"action": "joined", "event_id": eid})
-        score_after = svc.credit_engine.evaluate_ledger(svc.ledger).total_score
-        self.assertGreater(score_after, score_before)
+    def test_run_dual_branch_pipeline_passes_all_checks(self) -> None:
+        run_res = self.service.run_dual_branch_pipeline()
+        self.assertEqual(run_res["status"], "ok")
+        self.assertTrue(run_res["all_checks_passed"])
+        self.assertEqual(run_res["total_input_events"], 108)
+        self.assertEqual(len(run_res["dual_branch_events"]["events"]), 108)
 
 
 if __name__ == "__main__":
