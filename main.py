@@ -21,7 +21,6 @@ from database import (
     list_fanpages,
     remove_fanpage,
 )
-from rss import regenerate_all_feeds
 from scheduler import run_scrape_cycle, start_scheduler_async
 
 app = typer.Typer(
@@ -45,7 +44,7 @@ def cmd_add(
             if created:
                 console.print(
                     f"[green]+ Added fanpage:[/green] [bold]{fanpage.url}[/bold] "
-                    f"(ID: {fanpage.id}, RSS: [cyan]feeds/{fanpage.slug}.xml[/cyan])"
+                    f"(ID: {fanpage.id}, Events: [cyan]feeds/fanpages/{fanpage.slug}/events.json[/cyan])"
                 )
             else:
                 console.print(
@@ -72,7 +71,7 @@ def cmd_list() -> None:
     table.add_column("URL")
     table.add_column("Posts in DB", justify="right", style="green")
     table.add_column("Last Checked")
-    table.add_column("RSS File", style="magenta")
+    table.add_column("Events File", style="magenta")
 
     for fp, post_count in rows:
         lc = ensure_local_tz(fp.last_checked_at)
@@ -87,7 +86,7 @@ def cmd_list() -> None:
             fp.url,
             str(post_count),
             last_checked,
-            f"feeds/{fp.slug}.xml",
+            f"feeds/fanpages/{fp.slug}/events.json",
         )
 
     console.print(table)
@@ -101,7 +100,6 @@ def cmd_remove(
     removed = remove_fanpage(identifier)
     if removed:
         console.print(f"[green]Removed fanpage:[/green] [bold]{removed.url}[/bold] (ID: {removed.id})")
-        regenerate_all_feeds()
     else:
         console.print(f"[red]No fanpage found matching '{identifier}'.[/red]")
 
@@ -189,15 +187,6 @@ def cmd_posts(
         table.add_row(post.post_id, page_label, pub_str, snippet, post.post_url)
 
     console.print(table)
-
-
-@app.command("export-rss")
-def cmd_export_rss() -> None:
-    """Regenerate all .xml RSS feeds from the SQLite database without scraping."""
-    paths = regenerate_all_feeds()
-    console.print(f"[green]Generated {len(paths)} RSS XML feed file(s) in:[/green] [bold cyan]{FEEDS_DIR}[/bold cyan]")
-    for p in paths:
-        console.print(f"  - {p.name}")
 
 
 @app.command("test-proxy")
@@ -307,7 +296,6 @@ def cmd_extract(
         )
 
     sync_all_event_folders()
-    regenerate_all_feeds()
     console.print(table)
     console.print(
         f"[bold green]Extraction complete![/bold green] "

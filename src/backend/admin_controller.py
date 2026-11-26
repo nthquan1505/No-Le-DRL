@@ -1,14 +1,17 @@
 """Admin session & management controller (`/api/admin/*`)."""
 import asyncio
+from contextlib import closing
 from datetime import datetime
+import os
+from pathlib import Path
+import sqlite3
+import tempfile
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 
-from config import FEEDS_DIR, SCROLL_COUNT
+from config import FEEDS_DIR, SCROLL_COUNT, WEBAPP_DB_PATH
 from events import analyze_fanpage_posts, purge_fanpage_events, reclassify_all_events, sync_all_event_folders
-from rss import generate_all_rss, generate_fanpage_rss
-from scheduler import backup_state_to_git
 from scraper import is_facebook_post_url, scrape_fanpage
 from src.backend.runtime import manager, process_single_post_url, trigger_unified_scrape
 from src.model import (
@@ -21,6 +24,7 @@ from src.model import (
     count_fanpage_events_file,
     end_admin_session,
     ensure_local_tz,
+    init_db,
     is_admin_authenticated,
     is_admin_configured,
     list_all_event_subscriptions,
@@ -66,6 +70,44 @@ def admin_logout(response: Response):
     """Clear the admin session cookie."""
     end_admin_session(response)
     return {"ok": True, "authenticated": False}
+
+
+def _create_webapp_db_snapshot_bytes() -> bytes:
+    """Create a consistent SQLite online backup of `webapp.db`, read its bytes, and clean up the temp file."""
+    init_db()
+    if not WEBAPP_DB_PATH.is_file():
+        raise FileNotFoundError("webapp.db does not exist on the server.")
+    fd, tmp_str = tempfile.mkstemp(prefix="webapp_snapshot_", suffix=".db")
+    os.close(fd)
+    tmp_path = Path(tmp_str)
+    try:
+        with closing(sqlite3.connect(str(WEBAPP_DB_PATH))) as src_conn, closing(
+            sqlite3.connect(str(tmp_path))
+        ) as dst_conn:
+            src_conn.backup(dst_conn)
+        return tmp_path.read_bytes()
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
+@router.get("/api/admin/download-webapp-db", dependencies=[Depends(require_admin)])
+async def admin_download_webapp_db():
+    """Download a consistent snapshot of the current `webapp.db` SQLite database."""
+    try:
+        db_bytes = await asyncio.to_thread(_create_webapp_db_snapshot_bytes)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to snapshot webapp.db: {exc}") from exc
+
+    return Response(
+        content=db_bytes,
+        media_type="application/vnd.sqlite3",
+        headers={
+            "Content-Disposition": 'attachment; filename="webapp.db"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.get("/api/admin/verify", dependencies=[Depends(require_admin)])
@@ -152,7 +194,6 @@ async def admin_refetch_and_extract(body: RefetchExtractRequest):
 
                 new_posts = save_posts(fp.id, latest_items)
                 total_new += len(new_posts)
-                generate_fanpage_rss(fp)
 
                 ev_stats = await asyncio.to_thread(
                     analyze_fanpage_posts,
@@ -180,7 +221,6 @@ async def admin_refetch_and_extract(body: RefetchExtractRequest):
             if idx < len(rows) - 1:
                 await asyncio.sleep(2.5)
 
-        generate_all_rss()
         await asyncio.to_thread(sync_all_event_folders)
 
     msg = (
@@ -192,7 +232,6 @@ async def admin_refetch_and_extract(body: RefetchExtractRequest):
         + (f" Details: {' | '.join(error_details)}" if error_details else "")
     )
     await manager.broadcast_to_all({"event": "status", "message": msg, "refresh_tree": True})
-    asyncio.create_task(asyncio.to_thread(backup_state_to_git, "admin refetch & extract"))
 
     return {
         "status": "ok",
@@ -245,7 +284,6 @@ async def admin_import_crawl(body: ImportCrawlRequest):
 
         new_posts = save_posts(fp.id, scraped_items)
         total_new_posts += len(new_posts)
-        generate_fanpage_rss(fp)
 
         ev_stats = await asyncio.to_thread(
             analyze_fanpage_posts,
@@ -261,7 +299,6 @@ async def admin_import_crawl(body: ImportCrawlRequest):
         if ev_stats.get("updated_events"):
             await manager.on_events_updated(fp, ev_stats["updated_events"])
 
-    generate_all_rss()
     await asyncio.to_thread(sync_all_event_folders)
     await manager.broadcast_to_all(
         {
@@ -327,7 +364,6 @@ async def admin_remove_fanpage(identifier: str = Query(..., description="Fanpage
         raise HTTPException(status_code=404, detail="Fanpage not found.")
     (FEEDS_DIR / f"{removed.slug}.xml").unlink(missing_ok=True)
     purge_fanpage_events(removed.id, removed.slug, fanpage_name=removed.name)
-    generate_all_rss()
     await manager.broadcast_to_all(
         {"event": "status", "message": f"Removed fanpage: {removed.name or removed.slug}", "refresh_tree": True}
     )

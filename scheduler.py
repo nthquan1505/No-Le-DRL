@@ -34,81 +34,17 @@ from database import (
     save_posts,
     update_fanpage_metadata,
 )
-from rss import generate_all_rss, generate_fanpage_rss
 from events import analyze_fanpage_posts, sync_all_event_folders
 from scraper import scrape_fanpage
 
 console = Console()
 NewPostsCallback = Callable[[Fanpage, List[Post]], Awaitable[None]]
 EventsUpdatedCallback = Callable[[Fanpage, List[Dict[str, Any]]], Awaitable[None]]
-_GIT_BACKUP_LOCK = threading.Lock()
 
 
 def backup_state_to_git(reason: str = "scheduled crawl") -> bool:
-    """
-    Commit and push updated `rss_bot.db` and `feeds/` from the VM to GitHub as a backup.
-    Skips inside GitHub Actions or when `AUTO_GIT_BACKUP=false`. Never raises on git errors.
-    """
-    if os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
-        return False
-    if os.environ.get("AUTO_GIT_BACKUP", "true").strip().lower() in ("0", "false", "no", "off"):
-        return False
-
-    repo_dir = str(BASE_DIR)
-
-    def _run_git(*args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            ["git", "-C", repo_dir, *args],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            check=False,
-        )
-
-    with _GIT_BACKUP_LOCK:
-        try:
-            inside = _run_git("rev-parse", "--is-inside-work-tree")
-            if inside.returncode != 0 or inside.stdout.strip() != "true":
-                return False
-
-            add_res = _run_git("add", "rss_bot.db", "webapp.db", "feeds/")
-            if add_res.returncode != 0:
-                print(f"[git-backup] git add failed: {add_res.stderr.strip()}")
-                return False
-
-            diff_res = _run_git("diff", "--staged", "--quiet")
-            if diff_res.returncode == 0:
-                return False  # Nothing changed
-
-            branch_res = _run_git("rev-parse", "--abbrev-ref", "HEAD")
-            branch = branch_res.stdout.strip() if branch_res.returncode == 0 else "main"
-            if not branch or branch == "HEAD":
-                branch = "main"
-
-            stamp = datetime.now(SCRAPE_TIMEZONE).strftime("%Y-%m-%d %H:%M")
-            commit_res = _run_git(
-                "commit",
-                "-m",
-                f"chore(rss): {reason} & feed backup at {stamp} [skip ci]",
-            )
-            if commit_res.returncode != 0:
-                print(f"[git-backup] git commit failed: {commit_res.stderr.strip()}")
-                return False
-
-            pull_res = _run_git("pull", "--rebase", "--autostash", "origin", branch)
-            if pull_res.returncode != 0:
-                print(f"[git-backup] git pull --rebase warning: {pull_res.stderr.strip()}")
-
-            push_res = _run_git("push", "origin", branch)
-            if push_res.returncode != 0:
-                print(f"[git-backup] git push failed: {push_res.stderr.strip()}")
-                return False
-
-            print(f"[git-backup] Synced rss_bot.db & feeds/ to origin/{branch} at {stamp}.")
-            return True
-        except Exception as exc:
-            print(f"[git-backup] Unexpected error during backup: {exc}")
-            return False
+    """Disabled: fetched crawl/event data is kept on the server and no longer pushed to GitHub."""
+    return False
 
 
 async def run_scrape_cycle(
@@ -152,7 +88,7 @@ async def run_scrape_cycle(
     summary_table.add_column("Fanpage", style="bold")
     summary_table.add_column("Fetched", justify="right")
     summary_table.add_column("New Posts", justify="right", style="green")
-    summary_table.add_column("RSS XML File", style="cyan")
+    summary_table.add_column("Events JSON", style="cyan")
     summary_table.add_column("Status")
 
     for idx, (fp, existing_count) in enumerate(rows):
@@ -171,8 +107,6 @@ async def run_scrape_cycle(
 
             new_posts = save_posts(fp.id, scraped_items)
             total_new_posts += len(new_posts)
-
-            xml_path = generate_fanpage_rss(fp)
 
             try:
                 ev = await asyncio.to_thread(analyze_fanpage_posts, fp.id)
@@ -198,7 +132,7 @@ async def run_scrape_cycle(
                 fp.name or fp.slug,
                 str(len(scraped_items)),
                 f"+{len(new_posts)}",
-                xml_path.name,
+                f"fanpages/{fp.slug}/events.json",
                 "[green]OK[/green]",
             )
         except Exception as exc:
@@ -215,7 +149,6 @@ async def run_scrape_cycle(
         if idx < len(rows) - 1:
             await asyncio.sleep(3.5)
 
-    all_xml_path = generate_all_rss()
     try:
         await asyncio.to_thread(sync_all_event_folders)
     except Exception as sync_exc:
@@ -223,8 +156,7 @@ async def run_scrape_cycle(
     console.print(summary_table)
     console.print(
         f"[bold green]Cycle complete![/bold green] Added [bold]{total_new_posts}[/bold] new post(s). "
-        f"Combined RSS feed saved to: [underline cyan]{all_xml_path}[/underline cyan] "
-        f"(Folder: [cyan]{FEEDS_DIR}[/cyan])\n"
+        f"Events saved to webapp.db & JSON folder: [cyan]{FEEDS_DIR}[/cyan]\n"
     )
     return total_new_posts
 

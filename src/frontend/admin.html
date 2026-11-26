@@ -231,6 +231,7 @@
         <span id="scheduleBadge" class="badge sky">Schedule: 08:00, 14:00, 20:00 ICT</span>
         <span id="wsBadge" class="badge">Disconnected</span>
         <span class="badge mint">✓ Admin Session</span>
+        <button id="downloadDbBtn" onclick="downloadWebappDb()">⬇ Download webapp.db</button>
         <button class="secondary" onclick="scrapeAll()">↻ Scrape All Now</button>
         <button class="danger" onclick="logoutAdmin()">🔒 Lock &amp; Logout</button>
       </div>
@@ -320,7 +321,7 @@
           <div>
             <h3>📁 Distributed Feeds Directory Tree</h3>
             <div style="font-size:13px; color:var(--muted); margin-top:3px;">
-              Extracted <code>events.json</code> &amp; <code>.xml</code> files organized by folder
+              Extracted <code>events.json</code> files organized by folder
             </div>
           </div>
           <button class="secondary" onclick="loadDirectoryTree()">↻ Refresh Tree</button>
@@ -448,6 +449,51 @@
       window.location.href = '/login?tab=admin';
     }
 
+    async function downloadWebappDb() {
+      const btn = document.getElementById('downloadDbBtn');
+      const origText = btn ? btn.textContent : '⬇ Download webapp.db';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Preparing DB...';
+      }
+      try {
+        const tok = sessionStorage.getItem('adminToken');
+        const res = await fetch('/api/admin/download-webapp-db', {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+            ...(tok ? { 'X-Admin-Token': tok } : {}),
+          },
+        });
+        if (res.status === 401) {
+          window.location.href = '/login?tab=admin';
+          return;
+        }
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        const dlUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = dlUrl;
+        a.download = 'webapp.db';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(dlUrl), 5000);
+        setNotice('Downloaded current webapp.db from server.', false, 'actionMsg');
+      } catch (e) {
+        setNotice('Download failed: ' + e.message, true, 'actionMsg');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
+      }
+    }
+
     async function loadScheduleBadge() {
       try {
         const data = await fetchJson('/api/schedule');
@@ -479,8 +525,7 @@
               <tr>
                 <td>
                   <strong>${esc(f.name)}</strong><br>
-                  <a href="/feeds/fanpages/${encodeURIComponent(f.slug)}/events.json" target="_blank" style="font-size:12px;">events.json ↗</a> ·
-                  <a href="/feeds/${encodeURIComponent(f.slug)}.xml" target="_blank" style="font-size:12px;">rss.xml ↗</a>
+                  <a href="/feeds/fanpages/${encodeURIComponent(f.slug)}/events.json" target="_blank" style="font-size:12px;">events.json ↗</a>
                 </td>
                 <td><a href="${esc(f.url)}" target="_blank">${esc(f.url)}</a></td>
                 <td>${f.post_count ?? 0}</td>

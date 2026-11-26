@@ -8,8 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from config import FEEDS_DIR, SCRAPE_TIMEZONE
 from events import ingest_email_message
-from rss import generate_user_rss_xml
-from scheduler import backup_state_to_git, parse_scrape_hours, run_scrape_cycle
+from scheduler import parse_scrape_hours, run_scrape_cycle
 from src.backend.runtime import (
     manager,
     process_single_post_url,
@@ -226,7 +225,6 @@ async def api_run_scrape_now(target: Optional[str] = Query(None, description="Op
             on_new_posts=manager.on_new_posts_scraped,
             on_events_updated=manager.on_events_updated,
         )
-        await asyncio.to_thread(backup_state_to_git, "API VM crawl")
         await manager.broadcast_to_all(
             {
                 "event": "status",
@@ -261,8 +259,6 @@ async def api_subscribe_user(client_id: str, body: SubscribeRequest):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    generate_user_rss_xml(client_id)
-
     posts = get_posts_for_user(client_id, limit=50)
     await manager.send_to_user(
         client_id,
@@ -291,7 +287,6 @@ async def api_unsubscribe_user(client_id: str, url: str = Query(..., description
 
     subs = get_user_subscriptions(client_id)
     posts = get_posts_for_user(client_id, limit=50)
-    generate_user_rss_xml(client_id)
 
     await manager.send_to_user(
         client_id,
@@ -312,13 +307,6 @@ def api_get_user_posts(client_id: str, limit: int = Query(50, ge=1, le=200)):
         "count": len(posts),
         "posts": [p.to_dict() for p in posts],
     }
-
-
-@router.get("/users/{client_id}/rss.xml")
-def api_get_user_rss(client_id: str):
-    """Return personalized RSS 2.0 XML feed (Admin only)."""
-    xml_content = generate_user_rss_xml(client_id)
-    return Response(content=xml_content, media_type="application/rss+xml; charset=utf-8")
 
 
 @router.get("/feeds")
@@ -425,7 +413,6 @@ async def admin_client_websocket_endpoint(websocket: WebSocket, client_id: str):
                     raw_urls = [raw_urls]
                 try:
                     subs, needs_scrape = subscribe_user_to_fanpages(client_id, raw_urls)
-                    generate_user_rss_xml(client_id)
                     posts = get_posts_for_user(client_id, limit=50)
                     await manager.send_to_user(
                         client_id,
@@ -443,7 +430,6 @@ async def admin_client_websocket_endpoint(websocket: WebSocket, client_id: str):
             elif action == "unsubscribe":
                 target_url = data.get("url", "")
                 unsubscribe_user_from_fanpage(client_id, target_url)
-                generate_user_rss_xml(client_id)
                 subs = get_user_subscriptions(client_id)
                 posts = get_posts_for_user(client_id, limit=50)
                 await manager.send_to_user(

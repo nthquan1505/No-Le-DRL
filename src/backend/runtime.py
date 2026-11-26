@@ -11,8 +11,7 @@ from fastapi import HTTPException, WebSocket
 
 from config import DEFAULT_SCRAPE_HOURS, DEFAULT_SCRAPE_MINUTE, SCRAPE_TIMEZONE
 from events import extract_single_post_url
-from rss import generate_user_rss_xml
-from scheduler import backup_state_to_git, run_scrape_cycle
+from scheduler import run_scrape_cycle
 from src.model import Fanpage, Post, get_subscribers_for_fanpage
 
 
@@ -67,7 +66,6 @@ class ConnectionManager:
         subscriber_ids = get_subscribers_for_fanpage(fanpage.id)
         for client_id in subscriber_ids:
             if client_id in self.active_connections:
-                generate_user_rss_xml(client_id)
                 await self.send_to_user(client_id, payload)
 
     async def broadcast_event_updated(
@@ -155,7 +153,6 @@ async def scheduled_scrape_task() -> None:
             on_new_posts=manager.on_new_posts_scraped,
             on_events_updated=manager.on_events_updated,
         )
-        await asyncio.to_thread(backup_state_to_git, "scheduled VM crawl")
         await manager.broadcast_to_all(
             {
                 "event": "status",
@@ -175,7 +172,6 @@ async def trigger_background_scrape(target_slug_or_id: str | None = None) -> Non
             on_new_posts=manager.on_new_posts_scraped,
             on_events_updated=manager.on_events_updated,
         )
-        await asyncio.to_thread(backup_state_to_git, "manual VM crawl")
         await manager.broadcast_to_all(
             {
                 "event": "status",
@@ -243,7 +239,6 @@ async def process_single_post_url(url: str) -> Dict[str, Any]:
                 "__public__",
                 {"event": "new_posts", "fanpage": fp, "posts": [result["post"]]},
             )
-        asyncio.create_task(asyncio.to_thread(backup_state_to_git, "single post extract"))
     else:
         msg = result.get("detail") or "Post fetched and analyzed, but it is not an event (fanpage not added)."
 

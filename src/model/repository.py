@@ -126,13 +126,12 @@ def build_feeds_directory_tree() -> Dict[str, Any]:
         "fanpages": [],
         "emails": [],
         "inbox": [],
-        "rss": [],
     }
 
     for p in sorted(FEEDS_DIR.rglob("*")):
         if not p.is_file():
             continue
-        if p.suffix.lower() not in (".json", ".xml"):
+        if p.suffix.lower() != ".json":
             continue
         rel_parts = p.relative_to(FEEDS_DIR).parts
         info = inspect_feed_file(p)
@@ -145,10 +144,6 @@ def build_feeds_directory_tree() -> Dict[str, Any]:
             folders["emails"].append(info)
         elif rel_parts[0] == "inbox":
             folders["inbox"].append(info)
-        elif len(rel_parts) == 1 and p.suffix.lower() == ".xml":
-            folders["rss"].append(info)
-            if p.name == "all.xml":
-                folders["all"].append(info)
         elif len(rel_parts) == 2 and p.name == "events.json":
             continue
 
@@ -159,7 +154,7 @@ def build_feeds_directory_tree() -> Dict[str, Any]:
             {
                 "folder": "/feeds/all/",
                 "key": "all",
-                "description": "Combined deduplicated events.json & all.xml across all sources",
+                "description": "Combined deduplicated events.json across all sources",
                 "files": folders["all"],
             },
             {
@@ -179,12 +174,6 @@ def build_feeds_directory_tree() -> Dict[str, Any]:
                 "key": "inbox",
                 "description": "Client Email Inbox messages log and extraction statuses",
                 "files": folders["inbox"],
-            },
-            {
-                "folder": "/feeds/rss/",
-                "key": "rss",
-                "description": "Raw RSS 2.0 XML feeds for fanpages and subscribed users",
-                "files": folders["rss"],
             },
         ],
     }

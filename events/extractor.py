@@ -3221,7 +3221,6 @@ def _process_single_post_extraction(post_data: Dict[str, Any]) -> Dict[str, Any]
     saves the post, generates RSS/JSON feeds, and upserts the unified EventRecord.
     """
     from database import add_fanpage, save_posts, update_fanpage_metadata
-    from rss import generate_all_rss, generate_fanpage_rss
 
     init_db()
     content = (post_data.get("content") or "").strip()
@@ -3342,10 +3341,6 @@ def _process_single_post_extraction(post_data: Dict[str, Any]) -> Dict[str, Any]
             _write_events_json(fp, session)
         sync_all_event_folders(session)
         ev_dict = ev_record.to_dict()
-
-    if fp is not None:
-        generate_fanpage_rss(fp)
-    generate_all_rss()
 
     return {
         "status": upsert_status,

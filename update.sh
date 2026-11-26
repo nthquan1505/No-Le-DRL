@@ -20,18 +20,37 @@ if systemctl is-active --quiet rss-bot 2>/dev/null; then
 elif systemctl is-active --quiet fb-rss 2>/dev/null; then
     sudo systemctl stop fb-rss || true
 fi
-SERVER_PID=$(pgrep -f "python.*server\.py" || true)
+SERVER_PID=$(pgrep -f "python.*(main\.py\s+serve|server\.py|uvicorn.*server:app)" || true)
 if [ -n "$SERVER_PID" ]; then
     echo ">> Terminating background server process (PID: $SERVER_PID)..."
-    kill -15 "$SERVER_PID" 2>/dev/null || kill -9 "$SERVER_PID" 2>/dev/null
+    kill -15 $SERVER_PID 2>/dev/null || kill -9 $SERVER_PID 2>/dev/null || true
     sleep 1
 fi
 
-# 3. Fetch latest commits and reset working tree to origin/main cleanly
-echo ">> Fetching latest commits from origin/main..."
-git fetch origin main
-echo ">> Resetting working tree to origin/main (clean sync for rss_bot.db & feeds)..."
-git reset --hard origin/main
+# 3. Preserve live SQLite databases locally on VM (data is NOT synced via GitHub)
+TMP_BACKUP_DIR=$(mktemp -d)
+for db_file in webapp.db rss_bot.db; do
+    if [ -f "$SCRIPT_DIR/$db_file" ]; then
+        cp -p "$SCRIPT_DIR/$db_file" "$TMP_BACKUP_DIR/$db_file"
+    fi
+done
+
+TARGET_BRANCH="${1:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo deploy_server)}"
+if [ -z "$TARGET_BRANCH" ] || [ "$TARGET_BRANCH" = "HEAD" ]; then
+    TARGET_BRANCH="deploy_server"
+fi
+
+echo ">> Fetching latest code from origin/$TARGET_BRANCH..."
+git fetch origin "$TARGET_BRANCH"
+echo ">> Resetting code to origin/$TARGET_BRANCH (preserving VM database files)..."
+git reset --hard "origin/$TARGET_BRANCH"
+
+for db_file in webapp.db rss_bot.db; do
+    if [ -f "$TMP_BACKUP_DIR/$db_file" ]; then
+        cp -p "$TMP_BACKUP_DIR/$db_file" "$SCRIPT_DIR/$db_file"
+    fi
+done
+rm -rf "$TMP_BACKUP_DIR"
 
 # 4. Activate Python virtual environment
 VENV_DIR=""
@@ -74,18 +93,18 @@ elif command -v pm2 &> /dev/null && pm2 list | grep -q "server"; then
     echo ">> Reloading PM2 process..."
     pm2 restart all
 else
-    echo ">> Checking for running server.py / main.py processes..."
-    SERVER_PID=$(pgrep -f "python.*server\.py" || true)
+    echo ">> Checking for running server / main.py processes..."
+    SERVER_PID=$(pgrep -f "python.*(main\.py\s+serve|server\.py|uvicorn.*server:app)" || true)
     if [ -n "$SERVER_PID" ]; then
         echo ">> Stopping existing server (PID: $SERVER_PID)..."
-        kill -15 "$SERVER_PID" 2>/dev/null || kill -9 "$SERVER_PID" 2>/dev/null
+        kill -15 $SERVER_PID 2>/dev/null || kill -9 $SERVER_PID 2>/dev/null || true
         sleep 2
     fi
 
     echo ">> Starting new server in background (nohup)..."
-    nohup python server.py --host 0.0.0.0 --port 8000 >> "$SCRIPT_DIR/server.log" 2>&1 &
+    nohup python main.py serve --host 0.0.0.0 --port 8000 >> "$SCRIPT_DIR/server.log" 2>&1 &
     sleep 2
-    NEW_PID=$(pgrep -f "python.*server\.py" || true)
+    NEW_PID=$(pgrep -f "python.*(main\.py\s+serve|uvicorn.*server:app)" || true)
     echo ">> Server started with PID: $NEW_PID"
 fi
 
