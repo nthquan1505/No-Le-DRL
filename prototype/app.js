@@ -52,6 +52,16 @@ const state = {
   batchSearchQuery: "",
   selectedBatchPostId: null,
   selectedBatchEventDetail: null,
+  // Tab 3: Recommendation Demo state
+  recBootstrap: null,
+  recLastResult: null,
+  recActivePersonaId: "balanced_cs1",
+  recSubTab: "ranked", // "ranked" | "dropped"
+  recDropReasonFilter: "ALL",
+  recParticipatedIds: [],
+  recHiddenIds: [],
+  recWeeklySlots: [],
+  recBusyIntervals: [],
 };
 
 function escapeHtml(value) {
@@ -546,6 +556,532 @@ async function selectBatchEvent(postId) {
 }
 
 /* =========================================================================
+   TAB 3: RECOMMENDATION DEMO (P4 Demo + Demo M4/M6 + P5 + P6)
+   ========================================================================= */
+
+const WEEKDAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
+function fmtHour(h) {
+  const mins = Math.round(Number(h) * 60);
+  const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+  const mm = String(mins % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+function fmtShortDateTime(iso) {
+  if (!iso) return "Chưa rõ thời gian";
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})/);
+  if (!m) return String(iso);
+  return `${m[3]}/${m[2]}/${m[1]} ${m[4]}`;
+}
+
+function updateRecCurrentTotalBadge() {
+  const c1 = Math.min(30, Math.max(0, Number($("#recPtsC1").value || 0)));
+  const c2 = Math.min(20, Math.max(0, Number($("#recPtsC2").value || 0)));
+  const c3 = Math.min(25, Math.max(0, Number($("#recPtsC3").value || 0)));
+  const c4 = Math.min(25, Math.max(0, Number($("#recPtsC4").value || 0)));
+  const c5 = Math.min(30, Math.max(0, Number($("#recPtsC5").value || 0)));
+  const total = Math.min(100, c1 + c2 + c3 + c4 + c5);
+  const target = Number($("#recTargetTotal").value || 85);
+  $("#recCurrentTotalBadge").textContent = `${total} / ${target}đ`;
+}
+
+function renderRecSlotsList() {
+  const container = $("#recSlotsList");
+  const items = [];
+  state.recWeeklySlots.forEach((s, idx) => {
+    const day = WEEKDAY_LABELS[Number(s.day_of_week) % 7] || "T?";
+    items.push(`
+      <div class="slot-pill">
+        <span><strong class="mono">${day} ${fmtHour(s.start_hour)}–${fmtHour(s.end_hour)}</strong> · ${escapeHtml(s.label || "Lịch học")}</span>
+        <button type="button" class="slot-remove-btn" data-remove-slot="${idx}" title="Xóa slot">×</button>
+      </div>
+    `);
+  });
+  state.recBusyIntervals.forEach((b, idx) => {
+    items.push(`
+      <div class="slot-pill">
+        <span><span class="badge badge-danger mono" style="padding:1px 6px">${b.is_exam ? "THI" : "BẬN"}</span> ${escapeHtml(b.label || "Lịch cố định")} <span class="mono text-muted">(${fmtShortDateTime(b.start_datetime)})</span></span>
+        <button type="button" class="slot-remove-btn" data-remove-busy="${idx}" title="Xóa lịch">×</button>
+      </div>
+    `);
+  });
+  container.innerHTML = items.length
+    ? items.join("")
+    : `<div class="helper-text">Chưa có khung giờ bận nào.</div>`;
+}
+
+function renderRecUserActionState() {
+  const box = $("#recUserActionState");
+  if (!state.recParticipatedIds.length && !state.recHiddenIds.length) {
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="card-title-row">
+      <strong>Trạng thái test P5 đang bật:</strong>
+      <button id="btnRecClearActions" type="button" class="btn btn-ghost btn-sm" style="padding:2px 8px">Xóa hết</button>
+    </div>
+    <div class="badge-row" style="margin-top:6px">
+      ${state.recParticipatedIds
+        .map(
+          (id) => `<span class="badge badge-teal mono">Đã tham gia: ${escapeHtml(id)}</span>`
+        )
+        .join("")}
+      ${state.recHiddenIds
+        .map((id) => `<span class="badge badge-orange mono">Đã ẩn: ${escapeHtml(id)}</span>`)
+        .join("")}
+    </div>
+  `;
+}
+
+function applyCreditPresetToForm(presetId) {
+  const presets = (state.recBootstrap && state.recBootstrap.credit_presets) || [];
+  const p = presets.find((x) => x.id === presetId);
+  if (!p) return;
+  const g = p.current_by_group || {};
+  $("#recPtsC1").value = g.C1 ?? 0;
+  $("#recPtsC2").value = g.C2 ?? 0;
+  $("#recPtsC3").value = g.C3 ?? 0;
+  $("#recPtsC4").value = g.C4 ?? 0;
+  $("#recPtsC5").value = g.C5 ?? 0;
+  $("#recTargetTotal").value = p.target_total ?? 85;
+  updateRecCurrentTotalBadge();
+}
+
+function applySchedulePresetToForm(presetId) {
+  const presets = (state.recBootstrap && state.recBootstrap.schedule_presets) || [];
+  const p = presets.find((x) => x.id === presetId);
+  if (!p) return;
+  state.recWeeklySlots = (p.weekly_slots || []).map((s) => ({ ...s }));
+  state.recBusyIntervals = (p.busy_intervals || []).map((b) => ({ ...b }));
+  const ew = (p.exam_weeks && p.exam_weeks[0]) || ["", ""];
+  $("#recExamStart").value = ew[0] || "";
+  $("#recExamEnd").value = ew[1] || "";
+  $("#recScheduleSummaryBadge").textContent = presetId;
+  renderRecSlotsList();
+}
+
+function applyWeightPresetToForm(presetId) {
+  const map = (state.recBootstrap && state.recBootstrap.weight_presets) || {};
+  const p = map[presetId];
+  if (!p || !p.weights) return;
+  $("#recW1").value = p.weights.w1_gain;
+  $("#recW2").value = p.weights.w2_interest;
+  $("#recW3").value = p.weights.w3_fit;
+  $("#recW4").value = p.weights.w4_urgency;
+  $("#recWeightSummaryBadge").textContent = presetId;
+}
+
+function applyRecPersona(personaId) {
+  const personas = (state.recBootstrap && state.recBootstrap.personas) || [];
+  const p = personas.find((x) => x.id === personaId);
+  if (!p) return;
+  state.recActivePersonaId = personaId;
+  state.recParticipatedIds = [];
+  state.recHiddenIds = [];
+
+  document.querySelectorAll("#recPersonaBar .persona-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.personaId === personaId);
+  });
+
+  // Interest chips
+  const selectedChips = new Set(p.interest_chips || []);
+  document.querySelectorAll("#recChipsGrid .interest-toggle").forEach((lbl) => {
+    const inp = lbl.querySelector("input");
+    const checked = selectedChips.has(inp.value);
+    inp.checked = checked;
+    lbl.classList.toggle("checked", checked);
+  });
+  $("#recFreeText").value = p.free_text || "";
+
+  // Constraints
+  $("#recRefNow").value = String(p.reference_now || "2026-10-01").slice(0, 10);
+  $("#recHomeCampus").value = p.home_campus || "cs1_nvc";
+  $("#recCohort").value = p.cohort || "";
+  $("#recMaxTravel").value = p.max_travel_min ?? 45;
+  $("#recMaxBudget").value = p.max_budget_vnd ?? "";
+  $("#recPrefStart").value = (p.pref_hours && p.pref_hours[0]) ?? 8;
+  $("#recPrefEnd").value = (p.pref_hours && p.pref_hours[1]) ?? 21;
+  $("#recStrictTravel").checked = Boolean(p.strict_max_travel);
+  $("#recIncludeMandatory").checked = Boolean(p.include_mandatory_demo);
+
+  // Demo M6
+  $("#recCreditPreset").value = p.credit_preset || "mid_semester";
+  applyCreditPresetToForm(p.credit_preset || "mid_semester");
+
+  // Demo M4
+  $("#recSchedulePreset").value = p.schedule_preset || "light_schedule";
+  applySchedulePresetToForm(p.schedule_preset || "light_schedule");
+
+  // Weights
+  $("#recWeightPreset").value = p.weight_preset || "balanced";
+  applyWeightPresetToForm(p.weight_preset || "balanced");
+
+  renderRecUserActionState();
+}
+
+function buildRecPayloadFromForm() {
+  const chips = Array.from(document.querySelectorAll("#recChipsGrid input:checked")).map(
+    (inp) => inp.value
+  );
+  const examS = $("#recExamStart").value.trim();
+  const examE = $("#recExamEnd").value.trim();
+  const examWeeks = examS && examE ? [[examS, examE]] : [];
+
+  const weightPreset = $("#recWeightPreset").value;
+  const customWeights = {
+    w1_gain: Number($("#recW1").value || 0),
+    w2_interest: Number($("#recW2").value || 0),
+    w3_fit: Number($("#recW3").value || 0),
+    w4_urgency: Number($("#recW4").value || 0),
+  };
+
+  const budgetRaw = $("#recMaxBudget").value.trim();
+  const travelRaw = $("#recMaxTravel").value.trim();
+
+  return {
+    user_id: state.recActivePersonaId || "demo_user",
+    cohort: $("#recCohort").value.trim() || null,
+    interest_chips: chips,
+    free_text: $("#recFreeText").value.trim(),
+    home_campus: $("#recHomeCampus").value,
+    max_travel_min: travelRaw === "" ? null : Number(travelRaw),
+    strict_max_travel: $("#recStrictTravel").checked,
+    max_budget_vnd: budgetRaw === "" ? null : Number(budgetRaw),
+    pref_hours: [Number($("#recPrefStart").value || 8), Number($("#recPrefEnd").value || 21)],
+    participated_event_ids: [...state.recParticipatedIds],
+    hidden_event_ids: [...state.recHiddenIds],
+    reference_now: `${$("#recRefNow").value || "2026-10-01"}T08:00:00+07:00`,
+    include_mandatory_demo: $("#recIncludeMandatory").checked,
+    credit_preset: $("#recCreditPreset").value,
+    current_by_group: {
+      C1: Number($("#recPtsC1").value || 0),
+      C2: Number($("#recPtsC2").value || 0),
+      C3: Number($("#recPtsC3").value || 0),
+      C4: Number($("#recPtsC4").value || 0),
+      C5: Number($("#recPtsC5").value || 0),
+    },
+    target_total: Number($("#recTargetTotal").value || 85),
+    schedule_preset: $("#recSchedulePreset").value,
+    schedule: {
+      preset_id: $("#recSchedulePreset").value,
+      weekly_slots: state.recWeeklySlots,
+      busy_intervals: state.recBusyIntervals,
+      exam_weeks: examWeeks,
+      default_travel_buffer_min: 30,
+    },
+    weight_preset: weightPreset,
+    custom_weights: customWeights,
+    interest_calibration_mode: $("#recInterestMode").value,
+  };
+}
+
+function renderRecommendationResults() {
+  const res = state.recLastResult;
+  const pane = $("#recResultPane");
+  if (!res) {
+    pane.innerHTML = `<div class="card empty-state">Bấm <strong>Chạy Đề Xuất (P5 + P6)</strong> để xem kết quả.</div>`;
+    return;
+  }
+
+  const sum = res.pipeline_summary || {};
+  const cal = res.interest_calibration || {};
+  const m6 = res.demo_module6_state || {};
+  const ranked = res.ranked_events || [];
+  const dropped = res.dropped_events || [];
+  const reasonCounts = sum.drop_reason_counts || {};
+
+  const kpiHtml = `
+    <div class="card">
+      <div class="card-title-row">
+        <h2 class="card-title">Tổng quan Pipeline (P4 → M4/M6 → P5 → P6)</h2>
+        <span class="mono text-muted" style="font-size:12px">${escapeHtml(res.elapsed_ms)} ms · mốc ${fmtShortDateTime(sum.reference_now)}</span>
+      </div>
+      <div class="rec-kpi-grid" style="margin-top:12px">
+        <div class="kpi-box">
+          <div class="kpi-label">Đầu vào PREDICTED</div>
+          <div class="kpi-val mono text-teal">${sum.predicted_events_entered_p5} <span class="text-muted" style="font-size:12px">/ ${sum.total_batch_events}</span></div>
+          <div class="helper-text" style="font-size:11px">Bỏ ${sum.excluded_not_predicted} chưa PREDICTED</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-label">Đạt P5 (Xếp hạng P6)</div>
+          <div class="kpi-val mono text-teal">${sum.eligible_after_p5}</div>
+          <div class="helper-text" style="font-size:11px">Bị lọc cứng P5: ${sum.dropped_by_p5}</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-label">Interest [c_min .. c_max]</div>
+          <div class="kpi-val mono" style="font-size:13.5px">[${fmtOptNum(cal.c_min, 3)}, ${fmtOptNum(cal.c_max, 3)}]</div>
+          <div class="helper-text" style="font-size:11px">${cal.sample_count} sample · ${escapeHtml(cal.mode)}</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-label">ĐRL hiện tại (Demo M6)</div>
+          <div class="kpi-val mono">${m6.current_total ?? 0} / ${m6.target_total ?? 85}đ</div>
+          <div class="helper-text" style="font-size:11px">Dư C1:${m6.remaining_cap_by_group?.C1 ?? 0} · C3:${m6.remaining_cap_by_group?.C3 ?? 0} · C4:${m6.remaining_cap_by_group?.C4 ?? 0}</div>
+        </div>
+      </div>
+
+      <div class="rec-subtabs" style="margin-top:14px">
+        <div class="status-filter-pills">
+          <button type="button" class="filter-pill ${state.recSubTab === "ranked" ? "active" : ""}" data-rec-subtab="ranked">
+            Xếp hạng Đề xuất P6 (${ranked.length})
+          </button>
+          <button type="button" class="filter-pill ${state.recSubTab === "dropped" ? "active" : ""}" data-rec-subtab="dropped">
+            Bị lọc cứng P5 · Vì sao bị loại? (${dropped.length})
+          </button>
+        </div>
+        <span class="mono text-muted" style="font-size:11.5px">
+          w=(${fmtOptNum(res.profile_used?.weights?.w1_gain, 2)}, ${fmtOptNum(res.profile_used?.weights?.w2_interest, 2)}, ${fmtOptNum(res.profile_used?.weights?.w3_fit, 2)}, ${fmtOptNum(res.profile_used?.weights?.w4_urgency, 2)})
+        </span>
+      </div>
+    </div>
+  `;
+
+  let bodyHtml = "";
+  if (state.recSubTab === "ranked") {
+    if (!ranked.length) {
+      bodyHtml = `<div class="card empty-state">Không có sự kiện nào vượt qua bộ lọc cứng P5. Hãy xem tab <strong>Bị lọc cứng P5</strong> hoặc nới lỏng ràng buộc (mốc ngày, ngân sách, trần C1, lịch học).</div>`;
+    } else {
+      bodyHtml = ranked
+        .map((ev) => {
+          const c = ev.components || {};
+          const wc = ev.weighted_contributions || {};
+          const ce = ev.credit_estimate || {};
+          const fa = ev.fit_assessment || {};
+          const sub = fa.sub_scores || {};
+          const gd = ev.gain_details || {};
+          const barDenom = Math.max(1.0, Number(ev.score_total || 1.0));
+          const pct = (v) => Math.max(0, Math.min(100, (Number(v || 0) / barDenom) * 100)).toFixed(1);
+
+          const ptsBadge = ev.is_mandatory
+            ? `<span class="badge badge-danger mono">BẮT BUỘC · ${escapeHtml(ev.rubric_item_id || "6.4")} (tránh trừ ${Math.abs(ev.mandatory_info?.penalty_if_missed || 20)}đ)</span>`
+            : `<span class="badge badge-teal mono">${escapeHtml(ev.rubric_item_id || "?")} (${escapeHtml(ev.parent_group_id || "?")}) · +${ce.effective_points ?? 0}đ</span>`;
+
+          const modeLabel =
+            ev.online_mode === "online"
+              ? "Online · 0p"
+              : `${ev.online_mode || "offline"} · ~${fa.estimated_travel_min ?? "?"}p`;
+
+          const feeLabel =
+            ev.fee_vnd === 0
+              ? "Miễn phí"
+              : ev.fee_vnd != null
+                ? `${Number(ev.fee_vnd).toLocaleString("vi-VN")}đ`
+                : "Không rõ phí";
+
+          const deadlineLabel =
+            ev.days_to_deadline != null ? `Còn ${fmtOptNum(ev.days_to_deadline, 1)} ngày` : "Không rõ hạn";
+
+          return `
+            <div class="rec-card ${ev.is_mandatory ? "mandatory-card" : ""}">
+              <div class="rec-card-top">
+                <div>
+                  <div class="badge-row" style="margin-bottom:6px">
+                    <span class="rec-rank-pill mono">#${ev.rank}</span>
+                    ${ptsBadge}
+                    ${fa.in_exam_week ? `<span class="badge badge-orange">Tuần thi</span>` : ""}
+                    <span class="badge badge-muted mono">${escapeHtml(ev.event_id)}</span>
+                  </div>
+                  <div style="font-size:15px;font-weight:700;color:var(--color-fg)">${escapeHtml(ev.title)}</div>
+                  <div class="rec-meta-line" style="margin-top:4px">
+                    <span>${fmtShortDateTime(ev.start_datetime)}</span>
+                    <span>• ${escapeHtml(modeLabel)}</span>
+                    <span>• ${escapeHtml(feeLabel)}</span>
+                    <span>• ${escapeHtml(deadlineLabel)}</span>
+                  </div>
+                </div>
+                <div class="rec-score-box">
+                  <div class="kpi-label">Score</div>
+                  <div class="rec-score-total mono">${fmtOptNum(ev.score_total, 3)}</div>
+                </div>
+              </div>
+
+              <div class="score-bar-track" title="Đóng góp theo trọng số: Gain / Interest / Fit / Urgency / Penalty">
+                <div class="seg-gain" style="width:${pct(wc.gain)}%"></div>
+                <div class="seg-interest" style="width:${pct(wc.interest)}%"></div>
+                <div class="seg-fit" style="width:${pct(wc.fit)}%"></div>
+                <div class="seg-urgency" style="width:${pct(wc.urgency)}%"></div>
+                <div class="seg-penalty" style="width:${pct(wc.penalty)}%"></div>
+              </div>
+
+              <div class="component-pills">
+                <div class="comp-pill">
+                  <div class="comp-pill-label"><span class="comp-dot seg-gain"></span>Gain</div>
+                  <div class="comp-pill-val mono">${fmtOptNum(c.gain, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.gain, 3)})</span></div>
+                </div>
+                <div class="comp-pill">
+                  <div class="comp-pill-label"><span class="comp-dot seg-interest"></span>Interest</div>
+                  <div class="comp-pill-val mono">${fmtOptNum(c.interest, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.interest, 3)})</span></div>
+                </div>
+                <div class="comp-pill">
+                  <div class="comp-pill-label"><span class="comp-dot seg-fit"></span>Fit</div>
+                  <div class="comp-pill-val mono">${fmtOptNum(c.fit, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.fit, 3)})</span></div>
+                </div>
+                <div class="comp-pill">
+                  <div class="comp-pill-label"><span class="comp-dot seg-urgency"></span>Urgency</div>
+                  <div class="comp-pill-val mono">${fmtOptNum(c.urgency, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.urgency, 3)})</span></div>
+                </div>
+                <div class="comp-pill">
+                  <div class="comp-pill-label"><span class="comp-dot seg-penalty"></span>Penalty</div>
+                  <div class="comp-pill-val mono">${Number(c.penalty) > 0 ? "+" : ""}${fmtOptNum(c.penalty, 3)}</div>
+                </div>
+              </div>
+
+              <div class="rec-card-actions">
+                <details style="flex:1 1 260px">
+                  <summary class="helper-text" style="cursor:pointer;font-weight:600">Chi tiết tính toán M4 · M6 · E5</summary>
+                  <div class="rubric-context-box mono" style="font-size:11.5px;margin-top:6px">
+                    <div><strong>Gain (M6):</strong> P_eff=${ce.effective_points}, P_use=${gd.p_use ?? 0}, gap=${gd.group_gap_points ?? 0}/${gd.group_cap ?? "?"}, m_gap=${fmtOptNum(gd.m_gap, 3)}, src=${escapeHtml(ce.source)} (r=${fmtOptNum(gd.r_src, 2)})</div>
+                    <div><strong>Interest (E5):</strong> cos_raw=${fmtOptNum(ev.interest_cos_raw, 4)} | range=[${fmtOptNum(cal.c_min, 4)}, ${fmtOptNum(cal.c_max, 4)}] → ${fmtOptNum(c.interest, 4)}</div>
+                    <div><strong>Fit (M4):</strong> f_travel=${fmtOptNum(sub.f_travel, 3)}, f_slack=${fmtOptNum(sub.f_slack, 3)} (slack=${fa.nearest_slack_min ?? "none"}p), f_pref=${fmtOptNum(sub.f_pref, 3)}, f_exam=${fmtOptNum(sub.f_exam, 2)}</div>
+                    <div><strong>Địa điểm:</strong> ${escapeHtml(ev.location || "Chưa rõ")}</div>
+                    ${ev.is_mandatory ? `<div style="color:#991B1B"><strong>Penalty (Bắt buộc):</strong> ${escapeHtml(ev.mandatory_info?.reason || "")}</div>` : ""}
+                  </div>
+                </details>
+                <div class="badge-row">
+                  <button type="button" class="btn btn-ghost btn-sm" data-rec-join="${escapeHtml(ev.event_id)}">Đã tham gia</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-rec-hide="${escapeHtml(ev.event_id)}">Ẩn</button>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+  } else {
+    const reasonKeys = Object.keys(reasonCounts).sort((a, b) => reasonCounts[b] - reasonCounts[a]);
+    const filteredDrops =
+      state.recDropReasonFilter === "ALL"
+        ? dropped
+        : dropped.filter((d) =>
+            (d.reasons || []).some((r) => r.code === state.recDropReasonFilter)
+          );
+
+    const pillsHtml = `
+      <div class="card" style="padding:12px 16px">
+        <div class="status-filter-pills">
+          <button type="button" class="filter-pill ${state.recDropReasonFilter === "ALL" ? "active" : ""}" data-drop-filter="ALL">
+            Tất cả (${dropped.length})
+          </button>
+          ${reasonKeys
+            .map(
+              (code) => `
+                <button type="button" class="filter-pill mono ${state.recDropReasonFilter === code ? "active" : ""}" data-drop-filter="${escapeHtml(code)}">
+                  ${escapeHtml(code)} (${reasonCounts[code]})
+                </button>
+              `
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+
+    const listHtml = filteredDrops.length
+      ? filteredDrops
+          .map(
+            (d) => `
+              <div class="dropped-card">
+                <div class="card-title-row">
+                  <div>
+                    <span class="mono text-muted" style="font-size:11.5px">${escapeHtml(d.event_id)} · ${escapeHtml(d.rubric_item_id || "?")} (${escapeHtml(d.parent_group_id || "?")})</span>
+                    <div style="font-weight:700;font-size:13.5px">${escapeHtml(d.title)}</div>
+                  </div>
+                  <div class="badge-row">
+                    ${(d.reasons || [])
+                      .map((r) => `<span class="badge badge-danger mono">${escapeHtml(r.code)}</span>`)
+                      .join("")}
+                  </div>
+                </div>
+                <ul class="drop-reason-list">
+                  ${(d.reasons || []).map((r) => `<li>${escapeHtml(r.message)}</li>`).join("")}
+                </ul>
+              </div>
+            `
+          )
+          .join("")
+      : `<div class="card empty-state">Không có sự kiện bị lọc khớp mã lý do này.</div>`;
+
+    bodyHtml = pillsHtml + listHtml;
+  }
+
+  pane.innerHTML = kpiHtml + bodyHtml;
+}
+
+async function runRecommendationQuery() {
+  const btn = $("#btnRecRun");
+  btn.disabled = true;
+  try {
+    const payload = buildRecPayloadFromForm();
+    const res = await apiPost("/api/recommendation/run", payload);
+    state.recLastResult = res;
+    renderRecommendationResults();
+  } catch (err) {
+    showToast(`Lỗi chạy đề xuất: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function initRecommendationControls(recBoot) {
+  state.recBootstrap = recBoot;
+
+  // Personas
+  $("#recPersonaBar").innerHTML = (recBoot.personas || [])
+    .map(
+      (p) => `
+        <button type="button" class="persona-btn" data-persona-id="${escapeHtml(p.id)}" title="${escapeHtml(p.description || "")}">
+          ${escapeHtml(p.label)}
+        </button>
+      `
+    )
+    .join("");
+
+  // Interest chips
+  $("#recChipsGrid").innerHTML = (recBoot.interest_chips || [])
+    .map(
+      (c) => `
+        <label class="interest-toggle">
+          <input type="checkbox" value="${escapeHtml(c.id)}" />
+          <span>${escapeHtml(c.label)}</span>
+        </label>
+      `
+    )
+    .join("");
+
+  // Reference now quick presets
+  $("#recRefNowPresets").innerHTML = (recBoot.reference_now_presets || [])
+    .map(
+      (p) => `
+        <button type="button" class="chip-btn mono" data-ref-now="${escapeHtml(p.value.slice(0, 10))}">
+          ${escapeHtml(p.label)}
+        </button>
+      `
+    )
+    .join("");
+
+  // Credit presets
+  $("#recCreditPreset").innerHTML = (recBoot.credit_presets || [])
+    .map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.label)}</option>`)
+    .join("");
+
+  // Schedule presets
+  $("#recSchedulePreset").innerHTML = (recBoot.schedule_presets || [])
+    .map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.label)}</option>`)
+    .join("");
+
+  // Weight presets (+ custom)
+  const wEntries = Object.entries(recBoot.weight_presets || {});
+  $("#recWeightPreset").innerHTML =
+    wEntries
+      .map(([k, v]) => `<option value="${escapeHtml(k)}">${escapeHtml(v.label || k)}</option>`)
+      .join("") + `<option value="custom">Tùy chỉnh tay (custom)</option>`;
+
+  applyRecPersona("balanced_cs1");
+}
+
+/* =========================================================================
    EVENT LISTENERS & INIT
    ========================================================================= */
 
@@ -642,11 +1178,147 @@ function setupListeners() {
       btn.textContent = "Chạy lại Pipeline";
     }
   });
+
+  // --- Tab 3: Recommendation Demo Listeners ---
+  $("#recPersonaBar").addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-persona-id]");
+    if (!btn) return;
+    applyRecPersona(btn.dataset.personaId);
+    await runRecommendationQuery();
+  });
+
+  $("#recChipsGrid").addEventListener("change", (e) => {
+    const inp = e.target.closest("input[type='checkbox']");
+    if (!inp) return;
+    inp.closest(".interest-toggle").classList.toggle("checked", inp.checked);
+  });
+
+  $("#recRefNowPresets").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-ref-now]");
+    if (!btn) return;
+    $("#recRefNow").value = btn.dataset.refNow;
+  });
+
+  $("#recCreditPreset").addEventListener("change", (e) => {
+    applyCreditPresetToForm(e.target.value);
+  });
+
+  ["#recPtsC1", "#recPtsC2", "#recPtsC3", "#recPtsC4", "#recPtsC5", "#recTargetTotal"].forEach(
+    (sel) => {
+      $(sel).addEventListener("input", updateRecCurrentTotalBadge);
+    }
+  );
+
+  $("#recSchedulePreset").addEventListener("change", (e) => {
+    applySchedulePresetToForm(e.target.value);
+  });
+
+  $("#btnRecAddSlot").addEventListener("click", () => {
+    const dow = Number($("#recNewSlotDay").value || 0);
+    const s = Number($("#recNewSlotStart").value || 13);
+    const e = Number($("#recNewSlotEnd").value || 17);
+    if (e <= s) {
+      showToast("Giờ kết thúc phải lớn hơn giờ bắt đầu.");
+      return;
+    }
+    state.recWeeklySlots.push({
+      day_of_week: dow,
+      start_hour: s,
+      end_hour: e,
+      label: "Lịch bận tùy chỉnh",
+      location: $("#recHomeCampus").value,
+      is_exam: false,
+    });
+    renderRecSlotsList();
+  });
+
+  $("#recSlotsList").addEventListener("click", (e) => {
+    const rmSlot = e.target.closest("button[data-remove-slot]");
+    if (rmSlot) {
+      state.recWeeklySlots.splice(Number(rmSlot.dataset.removeSlot), 1);
+      renderRecSlotsList();
+      return;
+    }
+    const rmBusy = e.target.closest("button[data-remove-busy]");
+    if (rmBusy) {
+      state.recBusyIntervals.splice(Number(rmBusy.dataset.removeBusy), 1);
+      renderRecSlotsList();
+    }
+  });
+
+  $("#recWeightPreset").addEventListener("change", (e) => {
+    if (e.target.value !== "custom") {
+      applyWeightPresetToForm(e.target.value);
+    } else {
+      $("#recWeightSummaryBadge").textContent = "custom";
+    }
+  });
+
+  ["#recW1", "#recW2", "#recW3", "#recW4"].forEach((sel) => {
+    $(sel).addEventListener("input", () => {
+      $("#recWeightPreset").value = "custom";
+      $("#recWeightSummaryBadge").textContent = "custom";
+    });
+  });
+
+  $("#recForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await runRecommendationQuery();
+  });
+
+  $("#btnRecReset").addEventListener("click", async () => {
+    applyRecPersona("balanced_cs1");
+    await runRecommendationQuery();
+    showToast("Đã đặt lại cấu hình Demo Recommendation mặc định");
+  });
+
+  $("#recUserActionState").addEventListener("click", async (e) => {
+    if (!e.target.closest("#btnRecClearActions")) return;
+    state.recParticipatedIds = [];
+    state.recHiddenIds = [];
+    renderRecUserActionState();
+    await runRecommendationQuery();
+  });
+
+  $("#recResultPane").addEventListener("click", async (e) => {
+    const subBtn = e.target.closest("button[data-rec-subtab]");
+    if (subBtn) {
+      state.recSubTab = subBtn.dataset.recSubtab;
+      renderRecommendationResults();
+      return;
+    }
+    const dropFilterBtn = e.target.closest("button[data-drop-filter]");
+    if (dropFilterBtn) {
+      state.recDropReasonFilter = dropFilterBtn.dataset.dropFilter;
+      renderRecommendationResults();
+      return;
+    }
+    const joinBtn = e.target.closest("button[data-rec-join]");
+    if (joinBtn) {
+      const eid = joinBtn.dataset.recJoin;
+      if (!state.recParticipatedIds.includes(eid)) state.recParticipatedIds.push(eid);
+      renderRecUserActionState();
+      await runRecommendationQuery();
+      showToast(`Đã đánh dấu tham gia ${eid} → kiểm tra tại tab Bị lọc cứng P5`);
+      return;
+    }
+    const hideBtn = e.target.closest("button[data-rec-hide]");
+    if (hideBtn) {
+      const eid = hideBtn.dataset.recHide;
+      if (!state.recHiddenIds.includes(eid)) state.recHiddenIds.push(eid);
+      renderRecUserActionState();
+      await runRecommendationQuery();
+      showToast(`Đã ẩn ${eid} → P5 xử lý (sự kiện bắt buộc vẫn được giữ lại)`);
+    }
+  });
 }
 
 async function init() {
   setupListeners();
-  const data = await apiGet("/api/bootstrap");
+  const [data, recBoot] = await Promise.all([
+    apiGet("/api/bootstrap"),
+    apiGet("/api/recommendation/bootstrap"),
+  ]);
   state.bootstrap = data;
   state.dualBranchSummary = data.dual_branch_summary || null;
   state.dualBranchEvents = (data.dual_branch_events && data.dual_branch_events.events) || [];
@@ -658,11 +1330,13 @@ async function init() {
 
   syncDefaultParams();
   renderBatchBrowser();
+  initRecommendationControls(recBoot);
 
   await runLiveClassify({ useCachedQuery: false });
   if (state.dualBranchEvents.length) {
     await selectBatchEvent(state.dualBranchEvents[0].post_id);
   }
+  await runRecommendationQuery();
 }
 
 init().catch((err) => {

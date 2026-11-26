@@ -188,21 +188,31 @@ def validate_loaded_assets(assets: LoadedAssets) -> ValidationReport:
         else "; ".join(sample_ref_errors[:5]),
     )
 
-    # Verify Rubric branch refs/groups/stages against rubric.yaml
+    # Verify Rubric branch refs/groups/stages against rubric.yaml (supports Schema v1 & v2)
     rm = assets.rubric_branch.metadata
     rubric_ref_errors: List[str] = []
     s1_count = 0
     s2_count = 0
+    reminder_count = 0
+    special_count = 0
+    positive_groups = {"C1", "C2", "C3", "C4"}
+    has_elig_col = "eligibility_class" in rm.columns
+
     for _, row in rm.iterrows():
         stage = str(row["stage"])
-        grp = str(row["group_id"])
-        if grp not in valid_groups:
-            rubric_ref_errors.append(f"prototype {row['prototype_id']}: invalid group_id '{grp}'")
-            continue
+        grp_val = row["group_id"]
+        grp = None if (grp_val is None or pd.isna(grp_val) or str(grp_val) == "") else str(grp_val)
+        elig = str(row["eligibility_class"]) if (has_elig_col and not pd.isna(row["eligibility_class"])) else None
+
         if stage == "group":
             s1_count += 1
+            if grp not in positive_groups:
+                rubric_ref_errors.append(f"prototype {row['prototype_id']}: Stage 1 group_id '{grp}' not in C1-C4")
         elif stage == "criterion":
             s2_count += 1
+            if grp not in valid_groups:
+                rubric_ref_errors.append(f"prototype {row['prototype_id']}: invalid group_id '{grp}'")
+                continue
             ref = str(row["criterion_ref"])
             key = str(row["criterion_key"])
             if ref not in ref_to_item:
@@ -213,13 +223,32 @@ def validate_loaded_assets(assets: LoadedAssets) -> ValidationReport:
                     rubric_ref_errors.append(
                         f"prototype {row['prototype_id']}: mismatch ({ref}, {key}, {grp})"
                     )
+                if has_elig_col and elig not in ("positive_candidate", "conditional_candidate"):
+                    rubric_ref_errors.append(
+                        f"prototype {row['prototype_id']}: ineligible Stage 2 eligibility_class '{elig}'"
+                    )
+        elif stage == "reminder":
+            reminder_count += 1
+            ref = str(row["criterion_ref"])
+            key = str(row["criterion_key"])
+            if grp != "P" or ref not in ref_to_item or ref_to_item[ref][0] != key:
+                rubric_ref_errors.append(f"prototype {row['prototype_id']}: invalid reminder ({ref}, {key}, {grp})")
+            if has_elig_col and elig != "reminder_only":
+                rubric_ref_errors.append(f"prototype {row['prototype_id']}: reminder eligibility_class='{elig}'")
+        elif stage == "special":
+            special_count += 1
+            ref = str(row["criterion_ref"])
+            if ref != "NONE" or bool(row["event_matchable"]):
+                rubric_ref_errors.append(f"prototype {row['prototype_id']}: invalid special prototype ({ref})")
+            if has_elig_col and elig != "negative_reference_only":
+                rubric_ref_errors.append(f"prototype {row['prototype_id']}: special eligibility_class='{elig}'")
         else:
             rubric_ref_errors.append(f"prototype {row['prototype_id']}: unexpected stage '{stage}'")
 
     report.add(
         "rubric_prototypes_referential_integrity",
         len(rubric_ref_errors) == 0 and s1_count > 0 and s2_count > 0,
-        f"Stage 1={s1_count}, Stage 2={s2_count}; errors={len(rubric_ref_errors)}",
+        f"Stage 1={s1_count}, Stage 2={s2_count}, reminder={reminder_count}, special={special_count}; errors={len(rubric_ref_errors)}",
     )
 
     # Verify input events.json basic integrity

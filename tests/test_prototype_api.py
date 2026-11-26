@@ -41,8 +41,8 @@ class TestPrototypeService(unittest.TestCase):
 
         summary = boot["dual_branch_summary"]
         self.assertEqual(summary["algorithm"], "hierarchical_two_stage_knn")
-        self.assertEqual(summary["sample_reference_count"], 127)
-        self.assertEqual(summary["rubric_total_prototypes"], 170)
+        self.assertEqual(summary["sample_reference_count"], 908)
+        self.assertEqual(summary["rubric_total_prototypes"], 176)
         self.assertEqual(summary["batch_events_count"], 108)
         self.assertEqual(len(boot["dual_branch_events"]["events"]), 108)
 
@@ -83,9 +83,28 @@ class TestPrototypeService(unittest.TestCase):
         self.assertIn("sample_neighbors", db["evidence"])
         self.assertIn("rubric_prototypes", db["evidence"])
 
-    def test_inspect_classify_reuses_cached_query_vector_when_requested(self) -> None:
-        first_event = self.service.get_dual_branch_events()["events"][0]
-        res = self.service.inspect_classify(
+    def test_dual_branch_batch_events_endpoint_returns_108_events(self) -> None:
+        batch = self.service.get_dual_branch_events()
+        self.assertEqual(batch["summary"]["algorithm"], "hierarchical_two_stage_knn")
+        self.assertEqual(batch["summary"]["sample_reference_count"], 908)
+        self.assertEqual(batch["summary"]["rubric_total_prototypes"], 176)
+        self.assertEqual(len(batch["events"]), 108)
+
+    def test_schedule_planner_is_conflict_free_and_respects_group_caps(self) -> None:
+        plan = self.service.generate_schedule_plan(target_total=85)
+        self.assertGreaterEqual(plan["projected_total"], plan["current_total"])
+        for grp, pts in plan["projected_by_group"].items():
+            self.assertLessEqual(pts, plan["group_caps"][grp])
+
+    def test_feedback_joined_and_label_correction_update_ledger_and_cls_index(self) -> None:
+        svc = PrototypeService(embedder_mode="demo")
+        initial_cls_size = svc.cls_index.size
+        rec = svc.get_recommendations()
+        first_event = rec["recommendations"][0]
+        eid = first_event["event_id"]
+
+        # Label correction -> adds sample live to ClsIndex
+        corr = svc.record_feedback(
             {
                 "post_id": first_event["post_id"],
                 "use_cached_query": True,

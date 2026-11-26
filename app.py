@@ -35,6 +35,14 @@ from src.classification.pipeline.classification_pipeline import ClassificationPi
 from src.classification.retrieval.rubric_retriever import RubricRetriever
 from src.classification.retrieval.sample_retriever import SampleRetriever
 from src.embedder import create_embedder
+from src.recommendation import (
+    DemoCreditProvider,
+    DemoScheduleProvider,
+    available_demo_personas,
+    load_recommendation_candidate_pool,
+    load_recommendation_config,
+    run_recommendation_demo,
+)
 from src.schemas import EventNormalized
 from src.vector_ops import l2_norm, l2_normalize
 
@@ -86,6 +94,16 @@ class PrototypeService:
             str(spec["ref"]): str(spec["name"])
             for spec in self.credit_engine.rubric["items"].values()
         }
+
+        # 4. Recommendation Demo Subsystem (P4 Demo + Demo M4/M6 + P5 Filter + P6 Scoring)
+        self.rec_config = load_recommendation_config()
+        pen_cfg = (self.rec_config.get("scoring") or {}).get("penalty_mandatory") or {}
+        self.demo_credit_provider = DemoCreditProvider(
+            credit_engine=self.credit_engine,
+            enable_item_2_2_penalty_link=bool(pen_cfg.get("enable_item_2_2_penalty_link", False)),
+        )
+        self.rec_chip_vec_cache: Dict[str, List[float]] = {}
+        self.rec_candidates = load_recommendation_candidate_pool()
 
     def _load_dual_branch_batch_outputs(self) -> None:
         """Load precomputed dual-branch classification_events.json and shared query vectors."""
@@ -190,6 +208,7 @@ class PrototypeService:
         pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
         run_summary = pipeline.run()
         self._load_dual_branch_batch_outputs()
+        self.rec_candidates = load_recommendation_candidate_pool()
         return {
             "status": "ok",
             "algorithm": run_summary.algorithm_name,
@@ -386,6 +405,47 @@ class PrototypeService:
             "dual_branch_events": self.get_dual_branch_events(),
         }
 
+    def get_recommendation_bootstrap(self) -> Dict[str, Any]:
+        """Bootstrap metadata powering Tab 3 Recommendation Demo UI (P4/M4/M6/P5/P6)."""
+        chips_raw = self.rec_config.get("interest_chips") or {}
+        interest_chips = [
+            {"id": str(k), "label": str(v["label"]), "text": str(v["text"])}
+            for k, v in chips_raw.items()
+        ]
+        summary = self._dual_branch_summary()
+        status_counts = summary.get("status_counts") or {}
+        return {
+            "interest_chips": interest_chips,
+            "personas": available_demo_personas(),
+            "weight_presets": dict(self.rec_config.get("weight_presets") or {}),
+            "schedule_presets": DemoScheduleProvider.available_presets(),
+            "credit_presets": DemoCreditProvider.available_presets(),
+            "group_caps": self.demo_credit_provider.group_caps,
+            "reference_now_presets": [
+                {"value": "2026-10-01T08:00:00+07:00", "label": "01/10/2026 (18 PREDICTED)"},
+                {"value": "2026-11-01T08:00:00+07:00", "label": "01/11/2026 (11 PREDICTED)"},
+                {"value": "2026-04-01T08:00:00+07:00", "label": "01/04/2026 (36 PREDICTED)"},
+            ],
+            "pool_stats": {
+                "total_events": len(self.rec_candidates),
+                "predicted_count": int(status_counts.get("PREDICTED", 0)),
+                "needs_review_count": int(status_counts.get("NEEDS_REVIEW", 0)),
+                "sample_embeddings_count": int(self.dual_assets.sample_branch.embeddings.shape[0]),
+            },
+        }
+
+    def run_recommendation(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute Demo P4 + Demo M4/M6 -> P5 Hard Filter -> P6 Scoring on PREDICTED events."""
+        return run_recommendation_demo(
+            payload or {},
+            candidates=self.rec_candidates,
+            sample_embeddings=self.dual_assets.sample_branch.embeddings,
+            embedder=self.embedder,
+            credit_provider=self.demo_credit_provider,
+            config=self.rec_config,
+            chip_vec_cache=self.rec_chip_vec_cache,
+        )
+
 
 def make_handler(service: PrototypeService):
     """Create HTTP request handler bound to a PrototypeService instance."""
@@ -431,6 +491,8 @@ def make_handler(service: PrototypeService):
                 self._send_json(service.bootstrap_payload())
             elif path == "/api/dual-branch/events":
                 self._send_json(service.get_dual_branch_events())
+            elif path == "/api/recommendation/bootstrap":
+                self._send_json(service.get_recommendation_bootstrap())
             else:
                 self.send_error(HTTPStatus.NOT_FOUND, f"Unknown route: {path}")
 
@@ -442,6 +504,8 @@ def make_handler(service: PrototypeService):
                     self._send_json(service.inspect_classify(body))
                 elif path == "/api/dual-branch/run":
                     self._send_json(service.run_dual_branch_pipeline())
+                elif path == "/api/recommendation/run":
+                    self._send_json(service.run_recommendation(body))
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, f"Unknown route: {path}")
             except Exception as exc:

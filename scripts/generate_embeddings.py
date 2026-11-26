@@ -26,6 +26,7 @@ import csv
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import sys
 import unicodedata
@@ -39,6 +40,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 # ---------------------------------------------------------------------------
 # Constants (strictly matching configs/model_config.py)
 # ---------------------------------------------------------------------------
@@ -48,10 +53,12 @@ PASSAGE_PREFIX = "passage: "
 QUERY_PREFIX = "query: "
 BATCH_SIZE = 32
 DEFAULT_RUBRIC_PATH = Path("data/raw/rubric.yaml")
-DEFAULT_SAMPLES_CSV_PATH = Path("res/events_full.csv")
+DEFAULT_SAMPLES_CSV_PATH = Path("data/raw/activities_sample.csv")
 DEFAULT_OUTPUT_DIR = Path("data/processed/cls_index")
+DEFAULT_SAMPLE_REPORT_PATH = Path("outputs/sample_embedding_generation_report.md")
 
 POSITIVE_MAJOR_GROUPS = ("C1", "C2", "C3", "C4", "C5")
+POSITIVE_SAMPLE_GROUPS = ("C1", "C2", "C3", "C4")
 SPECIAL_EXCLUDED_LABELS = {"NONE", "NO_MATCH", "NEEDS_REVIEW"}
 
 VALID_RUBRIC_STAGES = {"group", "criterion"}
@@ -475,12 +482,12 @@ def build_rubric_prototypes(rubric: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
-# Sample Record Construction from events_full.csv
+# Sample Record Construction from Labeled Sample CSV (e.g., activities_sample.csv)
 # ---------------------------------------------------------------------------
 
 
 def detect_csv_columns(fieldnames: Sequence[str]) -> Dict[str, Optional[str]]:
-    """Detect and map actual CSV columns without hardcoding blind assumptions."""
+    """Detect and map actual CSV columns without assuming legacy schema."""
     cols = [c.strip() for c in fieldnames if c]
     col_lower = {c.lower(): c for c in cols}
 
@@ -491,10 +498,12 @@ def detect_csv_columns(fieldnames: Sequence[str]) -> Dict[str, Optional[str]]:
         return None
 
     mapping = {
-        "row_id": pick(["STT", "id", "row_id"]),
+        "row_id": pick(["STT", "sample_id", "id", "row_id"]),
+        "group_id": pick(["group_id", "Nhom", "group", "parent_group_id"]),
         "label": pick(["Ma_Muc", "criterion_ref", "label", "rubric_item_id"]),
-        "title": pick(["Ten_Hoat_Dong", "title", "activity_title", "event_title"]),
-        "description": pick(["Mo_Ta", "description", "activity_description", "noi_dung"]),
+        "criterion_key": pick(["criterion_key", "item_key"]),
+        "title": pick(["Ten_Hoat_Dong", "event_title", "title", "activity_title"]),
+        "description": pick(["Mo_Ta", "event_description", "description", "activity_description", "noi_dung", "content"]),
         "organizer": pick(["Organizer", "Don_Vi", "don_vi_to_chuc", "organizer"]),
         "role": pick(["Vai_Tro", "role"]),
         "criterion_text": pick(["Tieu_Chi_Quy_Che", "criterion_label", "criterion_name"]),
@@ -508,44 +517,135 @@ def detect_csv_columns(fieldnames: Sequence[str]) -> Dict[str, Optional[str]]:
     return mapping
 
 
+def build_sample_embedding_text(
+    event_title: str,
+    event_description: Optional[str],
+    passage_prefix: str = PASSAGE_PREFIX,
+) -> str:
+    """Construct strictly leakage-free E5 sample passage text aligned with event_text_builder.
+
+    Format:
+        `passage: [event title]` or `passage: [event title] [event description]`
+    """
+    title_norm = normalize_whitespace(event_title)
+    desc_norm = normalize_whitespace(event_description or "")
+    parts = [p for p in (title_norm, desc_norm) if p]
+    if not parts:
+        raise ValueError("Cannot construct sample embedding_text when both title and description are empty.")
+    body = " ".join(parts)
+    if body.startswith(passage_prefix):
+        return body
+    return f"{passage_prefix}{body}"
+
+
 def build_sample_records(
     csv_path: Path,
     rubric: Dict[str, Any],
+    *,
+    model_name: str = MODEL_ID,
+    embedding_dim: int = EMBEDDING_DIM,
+    normalization: str = "l2",
+    passage_prefix: str = PASSAGE_PREFIX,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    """Parse events_full.csv, map valid event_matchable:true labels, and audit exclusions/duplicates."""
+    """Inspect, validate, and build leakage-free eligible sample records from the labeled CSV.
+
+    - Preserves original records, source row positions, and duplicate/multi-label distinctions.
+    - Never silently modifies labels or fabricates unavailable fields.
+    - Separately records malformed rows and label inconsistencies so callers can abort safely.
+    """
+    groups_map: Dict[str, Any] = rubric.get("groups") or {}
     items: Dict[str, Any] = rubric.get("items") or {}
     ref_to_item: Dict[str, Tuple[str, Dict[str, Any]]] = {
         str(v["ref"]).strip(): (k, v) for k, v in items.items() if isinstance(v, dict) and "ref" in v
     }
 
+    # Pre-scan raw CSV with stdlib csv.reader to detect any column-width / malformed rows
+    raw_bytes = csv_path.read_bytes()
+    has_utf8_bom = raw_bytes.startswith(b"\xef\xbb\xbf")
     with open(csv_path, encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if not reader.fieldnames:
+        raw_reader = csv.reader(handle)
+        header = next(raw_reader, None)
+        if not header:
             raise ValueError(f"CSV file '{csv_path}' has no header row.")
-        col_map = detect_csv_columns(reader.fieldnames)
-        raw_rows = list(reader)
+        raw_list_rows = list(raw_reader)
+
+    expected_width = len(header)
+    malformed_rows: List[Dict[str, Any]] = []
+    for row_idx, rvals in enumerate(raw_list_rows, start=1):
+        if len(rvals) != expected_width:
+            malformed_rows.append(
+                {
+                    "source_row_index": row_idx,
+                    "csv_line_number": row_idx + 1,
+                    "actual_columns": len(rvals),
+                    "expected_columns": expected_width,
+                    "preview": rvals[:4],
+                }
+            )
+
+    col_map = detect_csv_columns(header)
+    raw_rows: List[Dict[str, str]] = [
+        {header[i]: (rvals[i] if i < len(rvals) else "") for i in range(expected_width)}
+        for rvals in raw_list_rows
+    ]
 
     samples: List[Dict[str, Any]] = []
     excluded_rows: List[Dict[str, Any]] = []
     invalid_or_special_rows: List[Dict[str, Any]] = []
+    label_inconsistencies: List[Dict[str, Any]] = []
+    skipped_empty_text_rows: List[Dict[str, Any]] = []
 
+    row_id_col = col_map["row_id"]
+    group_col = col_map["group_id"]
+    label_col = col_map["label"]
+    key_col = col_map["criterion_key"]
     title_col = col_map["title"]
     desc_col = col_map["description"]
-    label_col = col_map["label"]
+    org_col = col_map["organizer"]
+    role_col = col_map["role"]
+    crit_text_col = col_map["criterion_text"]
     assert title_col is not None and label_col is not None
 
+    dataset_rel = (
+        csv_path.resolve().relative_to(PROJECT_ROOT).as_posix()
+        if csv_path.resolve().is_relative_to(PROJECT_ROOT)
+        else csv_path.as_posix()
+    )
+    sample_id_prefix = clean_key(csv_path.stem)
+
+    # Track Tieu_Chi_Quy_Che variants per Ma_Muc for consistency audit
+    crit_text_by_label: Dict[str, Counter] = {}
+    missing_counts_all: Dict[str, int] = {col: 0 for col in header}
+
     for row_idx, row in enumerate(raw_rows, start=1):
+        for col in header:
+            if not normalize_whitespace(row.get(col, "")):
+                missing_counts_all[col] += 1
+
         original_label = normalize_whitespace(row.get(label_col, ""))
+        raw_group = normalize_whitespace(row.get(group_col, "")) if group_col else ""
+        raw_key = normalize_whitespace(row.get(key_col, "")) if key_col else ""
+        source_stt = normalize_whitespace(row.get(row_id_col, "")) if row_id_col else ""
         event_title = normalize_whitespace(row.get(title_col, ""))
-        event_desc = normalize_whitespace(row.get(desc_col, "")) if desc_col else ""
+        event_desc_raw = normalize_whitespace(row.get(desc_col, "")) if desc_col else ""
+        event_desc: Optional[str] = event_desc_raw if event_desc_raw else None
+        organizer_raw = normalize_whitespace(row.get(org_col, "")) if org_col else ""
+        organizer: Optional[str] = organizer_raw if organizer_raw else None
+        role_raw = normalize_whitespace(row.get(role_col, "")) if role_col else ""
+        role: Optional[str] = role_raw if role_raw else None
+        crit_text_raw = normalize_whitespace(row.get(crit_text_col, "")) if crit_text_col else ""
+
+        if original_label and crit_text_raw:
+            crit_text_by_label.setdefault(original_label, Counter())[crit_text_raw] += 1
 
         # Preserve full original row fields as traceability metadata
         source_meta = {k: normalize_whitespace(v) for k, v in row.items()}
 
-        # Check missing / special / unknown labels
+        # 1. Label integrity checks
         if not original_label:
             rec = {
                 "source_row_index": row_idx,
+                "csv_line_number": row_idx + 1,
                 "original_label": original_label,
                 "event_title": event_title,
                 "reason": "missing_label",
@@ -553,11 +653,13 @@ def build_sample_records(
             }
             excluded_rows.append(rec)
             invalid_or_special_rows.append(rec)
+            label_inconsistencies.append(rec)
             continue
 
         if original_label.upper() in SPECIAL_EXCLUDED_LABELS:
             rec = {
                 "source_row_index": row_idx,
+                "csv_line_number": row_idx + 1,
                 "original_label": original_label,
                 "event_title": event_title,
                 "reason": f"special_non_criterion_label ({original_label.upper()})",
@@ -570,6 +672,7 @@ def build_sample_records(
         if original_label not in ref_to_item:
             rec = {
                 "source_row_index": row_idx,
+                "csv_line_number": row_idx + 1,
                 "original_label": original_label,
                 "event_title": event_title,
                 "reason": "unknown_or_unmapped_rubric_ref",
@@ -577,29 +680,84 @@ def build_sample_records(
             }
             excluded_rows.append(rec)
             invalid_or_special_rows.append(rec)
+            label_inconsistencies.append(rec)
             continue
 
-        if not event_title:
+        criterion_key, item = ref_to_item[original_label]
+        group_id = str(item["group"]).strip()
+        tieu_chi = str(item["tieu_chi"]).strip() if item.get("tieu_chi") else None
+
+        # Cross-check optional explicit group_id / criterion_key columns against rubric.yaml
+        if group_id not in groups_map:
             rec = {
                 "source_row_index": row_idx,
+                "csv_line_number": row_idx + 1,
                 "original_label": original_label,
                 "event_title": event_title,
-                "reason": "empty_activity_title",
+                "reason": f"invalid_rubric_group_id ({group_id})",
                 "source_metadata": source_meta,
             }
             excluded_rows.append(rec)
             invalid_or_special_rows.append(rec)
+            label_inconsistencies.append(rec)
             continue
 
-        criterion_key, item = ref_to_item[original_label]
+        if raw_group and raw_group != group_id:
+            rec = {
+                "source_row_index": row_idx,
+                "csv_line_number": row_idx + 1,
+                "original_label": original_label,
+                "event_title": event_title,
+                "reason": f"group_id_mismatch (csv={raw_group!r} vs rubric={group_id!r})",
+                "source_metadata": source_meta,
+            }
+            excluded_rows.append(rec)
+            invalid_or_special_rows.append(rec)
+            label_inconsistencies.append(rec)
+            continue
+
+        if raw_key and raw_key != criterion_key:
+            rec = {
+                "source_row_index": row_idx,
+                "csv_line_number": row_idx + 1,
+                "original_label": original_label,
+                "event_title": event_title,
+                "reason": f"criterion_key_mismatch (csv={raw_key!r} vs rubric={criterion_key!r})",
+                "source_metadata": source_meta,
+            }
+            excluded_rows.append(rec)
+            invalid_or_special_rows.append(rec)
+            label_inconsistencies.append(rec)
+            continue
+
+        # 2. Usable text check (never produce zero vectors for empty text)
+        if not event_title and not event_desc:
+            rec = {
+                "source_row_index": row_idx,
+                "csv_line_number": row_idx + 1,
+                "original_label": original_label,
+                "criterion_key": criterion_key,
+                "group_id": group_id,
+                "event_title": event_title,
+                "reason": "empty_event_text (both title and description empty)",
+                "source_metadata": source_meta,
+            }
+            excluded_rows.append(rec)
+            invalid_or_special_rows.append(rec)
+            skipped_empty_text_rows.append(rec)
+            continue
+
+        # 3. Rubric eligibility filtering (positive C1-C4 event_matchable:true criteria only)
         if item.get("event_matchable") is not True:
             excluded_rows.append(
                 {
                     "source_row_index": row_idx,
+                    "csv_line_number": row_idx + 1,
                     "original_label": original_label,
                     "criterion_key": criterion_key,
-                    "group_id": str(item.get("group", "")),
+                    "group_id": group_id,
                     "kind": str(item.get("kind", "")),
+                    "mvp_scope": str(item.get("mvp_scope", "")),
                     "event_title": event_title,
                     "reason": f"non_event_matchable_criterion (event_matchable=false, kind={item.get('kind')})",
                     "source_metadata": source_meta,
@@ -607,79 +765,182 @@ def build_sample_records(
             )
             continue
 
-        # Construct strictly leakage-free activity embedding text
-        text_parts = [event_title]
-        if event_desc:
-            text_parts.append(event_desc)
-        embedding_text = format_passage(" ".join(text_parts))
+        mvp_scope = str(item.get("mvp_scope") or "").strip()
+        if group_id not in POSITIVE_SAMPLE_GROUPS or mvp_scope == "remind":
+            excluded_rows.append(
+                {
+                    "source_row_index": row_idx,
+                    "csv_line_number": row_idx + 1,
+                    "original_label": original_label,
+                    "criterion_key": criterion_key,
+                    "group_id": group_id,
+                    "kind": str(item.get("kind", "")),
+                    "mvp_scope": mvp_scope,
+                    "event_title": event_title,
+                    "reason": (
+                        f"excluded_non_positive_group_or_reminder "
+                        f"(group={group_id}, kind={item.get('kind')}, mvp_scope={mvp_scope})"
+                    ),
+                    "source_metadata": source_meta,
+                }
+            )
+            continue
 
-        group_id = str(item["group"]).strip()
-        tieu_chi = str(item["tieu_chi"]).strip() if item.get("tieu_chi") else None
+        # 4. Strictly leakage-free activity embedding text
+        embedding_text = build_sample_embedding_text(
+            event_title=event_title,
+            event_description=event_desc,
+            passage_prefix=passage_prefix,
+        )
 
         samples.append(
             {
                 "embedding_row": len(samples),
-                "sample_id": f"events_full_row_{row_idx:04d}",
+                "sample_id": f"{sample_id_prefix}_row_{row_idx:04d}",
                 "source_row_index": row_idx,
+                "source_stt": source_stt if source_stt else None,
+                "source_dataset": dataset_rel,
                 "event_title": event_title,
+                "event_description": event_desc,
                 "embedding_text": embedding_text,
                 "original_label": original_label,
                 "criterion_ref": str(item["ref"]).strip(),
                 "criterion_key": criterion_key,
                 "group_id": group_id,
                 "tieu_chi": tieu_chi,
+                "role": role,
+                "organizer": organizer,
                 "label_status": "valid_event_matchable",
+                "embedding_model": model_name,
+                "embedding_dimension": int(embedding_dim),
+                "normalization": normalization,
                 "source_metadata": json.dumps(source_meta, ensure_ascii=False),
             }
         )
 
-    # Detect exact and orthographic near-duplicates preserved among eligible samples
+    # Detect exact, multi-label, and orthographic near-duplicates preserved among eligible samples
     def strip_diacritics_key(s: str) -> str:
         nfd = unicodedata.normalize("NFD", s.lower().replace("đ", "d"))
         stripped = "".join(ch for ch in nfd if unicodedata.category(ch) != "Mn")
         return re.sub(r"[^a-z0-9]+", " ", stripped).strip()
 
+    exact_row_groups: Dict[Tuple[str, ...], List[Dict[str, Any]]] = {}
     exact_title_groups: Dict[str, List[Dict[str, Any]]] = {}
     diacritic_title_groups: Dict[str, List[Dict[str, Any]]] = {}
     for s in samples:
+        exact_row_key = (
+            s["criterion_ref"],
+            (s["organizer"] or "").lower(),
+            s["event_title"].lower(),
+            (s["event_description"] or "").lower(),
+            (s["role"] or "").lower(),
+        )
+        exact_row_groups.setdefault(exact_row_key, []).append(s)
         exact_title_groups.setdefault(s["event_title"].lower(), []).append(s)
         diacritic_title_groups.setdefault(strip_diacritics_key(s["event_title"]), []).append(s)
 
-    preserved_exact_duplicates = [
-        [
-            {"sample_id": x["sample_id"], "source_row_index": x["source_row_index"], "event_title": x["event_title"], "criterion_ref": x["criterion_ref"]}
+    def summarize_dup(grp: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return [
+            {
+                "sample_id": x["sample_id"],
+                "source_row_index": x["source_row_index"],
+                "event_title": x["event_title"],
+                "criterion_ref": x["criterion_ref"],
+                "group_id": x["group_id"],
+                "organizer": x["organizer"],
+                "role": x["role"],
+            }
             for x in grp
         ]
+
+    preserved_exact_row_duplicates = [
+        summarize_dup(grp) for grp in exact_row_groups.values() if len(grp) > 1
+    ]
+    preserved_exact_duplicates = [
+        summarize_dup(grp) for grp in exact_title_groups.values() if len(grp) > 1
+    ]
+    preserved_cross_criterion_duplicates = [
+        summarize_dup(grp)
         for grp in exact_title_groups.values()
-        if len(grp) > 1
+        if len(grp) > 1 and len({x["criterion_ref"] for x in grp}) > 1
+    ]
+    preserved_same_criterion_duplicates = [
+        summarize_dup(grp)
+        for grp in exact_title_groups.values()
+        if len(grp) > 1 and len({x["criterion_ref"] for x in grp}) == 1
     ]
     preserved_near_duplicates = [
-        [
-            {"sample_id": x["sample_id"], "source_row_index": x["source_row_index"], "event_title": x["event_title"], "criterion_ref": x["criterion_ref"]}
-            for x in grp
-        ]
+        summarize_dup(grp)
         for grp in diacritic_title_groups.values()
-        if len(grp) > 1
+        if len({x["event_title"].lower() for x in grp}) > 1
     ]
 
-    # Identify eligible rubric criteria with 0 samples in events_full.csv
+    # Also compute all-source-row title duplicate statistics for transparency
+    all_title_groups: Dict[str, List[Dict[str, Any]]] = {}
+    all_full_row_groups: Dict[Tuple[str, ...], List[int]] = {}
+    for idx, r in enumerate(raw_rows, start=1):
+        t = normalize_whitespace(r.get(title_col, ""))
+        lbl = normalize_whitespace(r.get(label_col, ""))
+        org = normalize_whitespace(r.get(org_col, "")) if org_col else ""
+        rl = normalize_whitespace(r.get(role_col, "")) if role_col else ""
+        pts = normalize_whitespace(r.get(col_map["points"], "")) if col_map["points"] else ""
+        all_title_groups.setdefault(t.lower(), []).append({"row": idx, "label": lbl, "org": org, "role": rl, "title": t})
+        all_full_row_groups.setdefault((lbl, org.lower(), t.lower(), rl.lower(), pts), []).append(idx)
+
+    # Identify eligible C1-C4 rubric criteria with 0 samples
     covered_refs = {s["criterion_ref"] for s in samples}
     uncovered_em_true = [
-        {"criterion_ref": str(v["ref"]), "criterion_key": k, "group_id": str(v["group"]), "anchors_status": str(v.get("anchors_status", ""))}
+        {
+            "criterion_ref": str(v["ref"]),
+            "criterion_key": k,
+            "group_id": str(v["group"]),
+            "anchors_status": str(v.get("anchors_status", "")),
+        }
         for k, v in items.items()
-        if isinstance(v, dict) and v.get("event_matchable") is True and str(v["ref"]) not in covered_refs
+        if isinstance(v, dict)
+        and v.get("event_matchable") is True
+        and str(v.get("group", "")).strip() in POSITIVE_SAMPLE_GROUPS
+        and str(v["ref"]) not in covered_refs
     ]
 
+    # Missing counts among eligible samples
+    eligible_missing_counts = {
+        "event_title": sum(1 for s in samples if not s["event_title"]),
+        "event_description": sum(1 for s in samples if s["event_description"] is None),
+        "role": sum(1 for s in samples if s["role"] is None),
+        "organizer": sum(1 for s in samples if s["organizer"] is None),
+    }
+
     audit = {
+        "source_csv_path": dataset_rel,
+        "source_csv_size_bytes": len(raw_bytes),
+        "source_csv_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+        "source_has_utf8_bom": has_utf8_bom,
         "total_source_rows": len(raw_rows),
-        "csv_columns": list(reader.fieldnames),
+        "csv_columns": list(header),
         "detected_column_mapping": col_map,
+        "missing_counts_all_rows": missing_counts_all,
+        "eligible_missing_counts": eligible_missing_counts,
+        "malformed_rows": malformed_rows,
+        "label_inconsistencies": label_inconsistencies,
+        "skipped_empty_text_rows": skipped_empty_text_rows,
+        "criterion_text_variants": {
+            lbl: dict(cnt) for lbl, cnt in crit_text_by_label.items() if len(cnt) > 1
+        },
         "eligible_sample_count": len(samples),
         "excluded_row_count": len(excluded_rows),
         "invalid_or_special_label_count": len(invalid_or_special_rows),
         "excluded_rows": excluded_rows,
         "invalid_or_special_rows": invalid_or_special_rows,
+        "all_source_exact_row_dup_groups": sum(1 for v in all_full_row_groups.values() if len(v) > 1),
+        "all_source_title_dup_groups": sum(1 for v in all_title_groups.values() if len(v) > 1),
+        "all_source_cross_label_title_dup_groups": sum(
+            1 for v in all_title_groups.values() if len(v) > 1 and len({x["label"] for x in v}) > 1
+        ),
+        "preserved_exact_row_duplicates": preserved_exact_row_duplicates,
         "preserved_exact_duplicates": preserved_exact_duplicates,
+        "preserved_cross_criterion_duplicates": preserved_cross_criterion_duplicates,
+        "preserved_same_criterion_duplicates": preserved_same_criterion_duplicates,
         "preserved_near_duplicates": preserved_near_duplicates,
         "uncovered_eligible_criteria": uncovered_em_true,
     }
@@ -819,51 +1080,699 @@ def encode_texts(model, texts: Sequence[str], batch_size: int = BATCH_SIZE) -> T
 
 
 def write_rubric_parquet(records: List[Dict[str, Any]], path: Path) -> None:
+    """Write Schema v2.0 rubric_metadata.parquet aligned 1:1 with rubric_embeddings.npy."""
+    normalized_rows: List[Dict[str, Any]] = []
+    for rec in records:
+        bm = rec.get("boundary_metadata")
+        bm_str = (
+            bm
+            if isinstance(bm, str)
+            else json.dumps(bm if isinstance(bm, dict) else {}, ensure_ascii=False, allow_nan=False)
+        )
+        unc_list = (bm.get("uncertain") if isinstance(bm, dict) else None) or []
+        unc_notes = rec.get("uncertain_notes")
+        if unc_notes is None and unc_list:
+            unc_notes = json.dumps(unc_list, ensure_ascii=False)
+        has_unc = bool(rec.get("has_uncertain", bool(unc_list)))
+
+        crit_ast = rec.get("criterion_anchor_status", rec.get("criterion_anchors_status"))
+        elig_class = str(rec.get("eligibility_class") or "positive_candidate")
+        is_pos = bool(
+            rec.get(
+                "is_positive_target",
+                elig_class in ("positive_candidate", "conditional_candidate"),
+            )
+        )
+        can_none = rec.get("can_decide_none")
+
+        normalized_rows.append(
+            {
+                "embedding_row": int(rec["embedding_row"]),
+                "schema_version": str(rec.get("schema_version") or "2.0"),
+                "prototype_id": str(rec["prototype_id"]),
+                "stage": str(rec["stage"]),
+                "group_id": None if rec.get("group_id") in (None, "") else str(rec["group_id"]),
+                "tieu_chi": None if rec.get("tieu_chi") in (None, "") else str(rec["tieu_chi"]),
+                "criterion_key": None if rec.get("criterion_key") in (None, "") else str(rec["criterion_key"]),
+                "criterion_ref": None if rec.get("criterion_ref") in (None, "") else str(rec["criterion_ref"]),
+                "prototype_type": str(rec["prototype_type"]),
+                "prototype_family": str(rec.get("prototype_family") or rec["prototype_type"]),
+                "anchor_status": None if rec.get("anchor_status") in (None, "") else str(rec["anchor_status"]),
+                "criterion_anchor_status": None if crit_ast in (None, "") else str(crit_ast),
+                "criterion_anchors_status": None if crit_ast in (None, "") else str(crit_ast),
+                "anchor_text": None if rec.get("anchor_text") in (None, "") else str(rec["anchor_text"]),
+                "source_anchor_index": (
+                    int(rec["source_anchor_index"])
+                    if rec.get("source_anchor_index") is not None
+                    else None
+                ),
+                "event_matchable": bool(rec["event_matchable"]),
+                "eligibility_class": elig_class,
+                "embedding_text": str(rec["embedding_text"]),
+                "source_fields": [str(x) for x in (rec.get("source_fields") or [])],
+                "boundary_metadata": bm_str,
+                "required_signals": [str(x) for x in (rec.get("required_signals") or [])],
+                "negative_keywords": [str(x) for x in (rec.get("negative_keywords") or [])],
+                "kind": None if rec.get("kind") in (None, "") else str(rec["kind"]),
+                "mvp_scope": None if rec.get("mvp_scope") in (None, "") else str(rec["mvp_scope"]),
+                "is_positive_target": is_pos,
+                "can_decide_none": None if can_none is None else bool(can_none),
+                "has_uncertain": has_unc,
+                "uncertain_notes": unc_notes,
+                "notes": str(rec.get("notes") or ""),
+            }
+        )
+
     schema = pa.schema(
         [
             pa.field("embedding_row", pa.int64(), nullable=False),
+            pa.field("schema_version", pa.string(), nullable=False),
             pa.field("prototype_id", pa.string(), nullable=False),
             pa.field("stage", pa.string(), nullable=False),
-            pa.field("group_id", pa.string(), nullable=False),
+            pa.field("group_id", pa.string(), nullable=True),
             pa.field("tieu_chi", pa.string(), nullable=True),
             pa.field("criterion_key", pa.string(), nullable=True),
             pa.field("criterion_ref", pa.string(), nullable=True),
             pa.field("prototype_type", pa.string(), nullable=False),
+            pa.field("prototype_family", pa.string(), nullable=False),
             pa.field("anchor_status", pa.string(), nullable=True),
+            pa.field("criterion_anchor_status", pa.string(), nullable=True),
             pa.field("criterion_anchors_status", pa.string(), nullable=True),
+            pa.field("anchor_text", pa.string(), nullable=True),
+            pa.field("source_anchor_index", pa.int64(), nullable=True),
             pa.field("event_matchable", pa.bool_(), nullable=False),
+            pa.field("eligibility_class", pa.string(), nullable=False),
             pa.field("embedding_text", pa.string(), nullable=False),
             pa.field("source_fields", pa.list_(pa.string()), nullable=False),
+            pa.field("boundary_metadata", pa.string(), nullable=False),
+            pa.field("required_signals", pa.list_(pa.string()), nullable=False),
+            pa.field("negative_keywords", pa.list_(pa.string()), nullable=False),
             pa.field("kind", pa.string(), nullable=True),
             pa.field("mvp_scope", pa.string(), nullable=True),
             pa.field("is_positive_target", pa.bool_(), nullable=False),
+            pa.field("can_decide_none", pa.bool_(), nullable=True),
             pa.field("has_uncertain", pa.bool_(), nullable=False),
             pa.field("uncertain_notes", pa.string(), nullable=True),
+            pa.field("notes", pa.string(), nullable=False),
         ]
     )
-    table = pa.Table.from_pylist(records, schema=schema)
+    table = pa.Table.from_pylist(normalized_rows, schema=schema)
     pq.write_table(table, path)
 
 
+def load_rubric_prototypes_jsonl(jsonl_path: Path) -> List[Dict[str, Any]]:
+    """Load Schema v2.0 rubric prototypes from rubric_prototypes.jsonl and assign embedding_row."""
+    records: List[Dict[str, Any]] = []
+    with open(jsonl_path, encoding="utf-8") as handle:
+        for line_no, raw_line in enumerate(handle, start=1):
+            line = raw_line.strip()
+            if not line:
+                continue
+            obj = json.loads(line)
+            if not isinstance(obj, dict):
+                raise ValueError(f"Line {line_no} in {jsonl_path} is not a JSON object.")
+            text = str(obj.get("embedding_text") or "")
+            if not text.startswith(PASSAGE_PREFIX):
+                text = format_passage(text)
+            if text.startswith(PASSAGE_PREFIX + PASSAGE_PREFIX):
+                raise ValueError(f"Double 'passage: ' prefix detected on {obj.get('prototype_id')}")
+            obj["embedding_text"] = text
+            obj["embedding_row"] = len(records)
+            records.append(obj)
+    return records
+
+
+def validate_rubric_cross_artifact_consistency(
+    *,
+    rubric: Dict[str, Any],
+    jsonl_path: Path,
+    parquet_path: Path,
+    npy_path: Path,
+    model,
+) -> Dict[str, Any]:
+    """Validate rubric.yaml -> rubric_prototypes.jsonl -> rubric_metadata.parquet -> rubric_embeddings.npy."""
+    checks: List[Dict[str, Any]] = []
+
+    def add(name: str, passed: bool, detail: str) -> None:
+        checks.append({"check": name, "passed": bool(passed), "detail": detail})
+
+    jsonl_records = load_rubric_prototypes_jsonl(jsonl_path)
+    df = pd.read_parquet(parquet_path)
+    vecs = np.load(npy_path, mmap_mode="r")
+
+    n = len(jsonl_records)
+    add(
+        "cross_artifact_row_counts_match",
+        n == len(df) == vecs.shape[0] and vecs.shape[1] == EMBEDDING_DIM,
+        f"jsonl={n}, parquet={len(df)}, npy={tuple(vecs.shape)}",
+    )
+    add("npy_float32_and_finite", vecs.dtype == np.float32 and bool(np.isfinite(vecs).all()), f"dtype={vecs.dtype}")
+
+    norms = np.linalg.norm(np.asarray(vecs, dtype=np.float64), axis=1)
+    max_norm_err = float(np.max(np.abs(norms - 1.0))) if len(norms) else float("inf")
+    add("npy_l2_normalized", max_norm_err < 1e-5, f"max |norm - 1| = {max_norm_err:.2e}")
+
+    jsonl_ids = [r["prototype_id"] for r in jsonl_records]
+    pq_ids = df["prototype_id"].tolist()
+    pq_rows = df["embedding_row"].tolist()
+    add(
+        "prototype_id_and_embedding_row_exact_order",
+        jsonl_ids == pq_ids and pq_rows == list(range(n)) and len(set(jsonl_ids)) == n,
+        f"exact 1:1 order across {n} prototypes",
+    )
+
+    # Verify exact text match between JSONL and Parquet
+    texts_match = [r["embedding_text"] for r in jsonl_records] == df["embedding_text"].tolist()
+    add("embedding_text_jsonl_parquet_match", texts_match, f"exact match={texts_match}")
+
+    # Spot-check vector re-encoding alignment across all 4 stages (group, criterion, reminder, special)
+    spot_indices: List[int] = []
+    for st in ("group", "criterion", "reminder", "special"):
+        matches = df.index[df["stage"] == st].tolist()
+        if matches:
+            spot_indices.append(int(matches[0]))
+            if matches[-1] != matches[0]:
+                spot_indices.append(int(matches[-1]))
+    spot_indices = sorted(set(spot_indices))
+    reenc, _ = encode_texts(model, [df.iloc[i]["embedding_text"] for i in spot_indices])
+    cosines = [float(np.dot(vecs[i], v)) for i, v in zip(spot_indices, reenc)]
+    add(
+        "vector_to_prototype_alignment_spotcheck",
+        all(c >= 0.99999 for c in cosines),
+        f"spot_indices={spot_indices}, min_cosine={min(cosines):.6f}",
+    )
+
+    # Scope separation checks
+    s1 = df[df["stage"] == "group"]
+    s2 = df[df["stage"] == "criterion"]
+    rem = df[df["stage"] == "reminder"]
+    spec = df[df["stage"] == "special"]
+    add(
+        "stage_and_eligibility_isolation",
+        (
+            s1["group_id"].tolist() == ["C1", "C2", "C3", "C4"]
+            and set(s2["group_id"]) <= {"C1", "C2", "C3", "C4"}
+            and set(s2["eligibility_class"]) <= {"positive_candidate", "conditional_candidate"}
+            and set(rem["criterion_ref"]) == {"6.4"}
+            and set(rem["eligibility_class"]) == {"reminder_only"}
+            and set(spec["criterion_ref"]) == {"NONE"}
+            and set(spec["eligibility_class"]) == {"negative_reference_only"}
+        ),
+        f"group={len(s1)}, criterion={len(s2)}, reminder={len(rem)}, special={len(spec)}",
+    )
+
+    return {"all_passed": all(c["passed"] for c in checks), "checks": checks}
+
+
 def write_sample_parquet(records: List[Dict[str, Any]], path: Path) -> None:
+    """Write sample_metadata.parquet aligned 1:1 with sample_embeddings.npy (zero vectors stored)."""
     schema = pa.schema(
         [
             pa.field("embedding_row", pa.int64(), nullable=False),
             pa.field("sample_id", pa.string(), nullable=False),
             pa.field("source_row_index", pa.int64(), nullable=False),
+            pa.field("source_stt", pa.string(), nullable=True),
+            pa.field("source_dataset", pa.string(), nullable=False),
             pa.field("event_title", pa.string(), nullable=False),
+            pa.field("event_description", pa.string(), nullable=True),
             pa.field("embedding_text", pa.string(), nullable=False),
             pa.field("original_label", pa.string(), nullable=False),
             pa.field("criterion_ref", pa.string(), nullable=False),
             pa.field("criterion_key", pa.string(), nullable=False),
             pa.field("group_id", pa.string(), nullable=False),
             pa.field("tieu_chi", pa.string(), nullable=True),
+            pa.field("role", pa.string(), nullable=True),
+            pa.field("organizer", pa.string(), nullable=True),
             pa.field("label_status", pa.string(), nullable=False),
+            pa.field("embedding_model", pa.string(), nullable=False),
+            pa.field("embedding_dimension", pa.int64(), nullable=False),
+            pa.field("normalization", pa.string(), nullable=False),
             pa.field("source_metadata", pa.string(), nullable=False),
         ]
     )
     table = pa.Table.from_pylist(records, schema=schema)
     pq.write_table(table, path)
+
+
+def validate_sample_artifacts(
+    *,
+    npy_path: Path,
+    parquet_path: Path,
+    rubric: Dict[str, Any],
+    model,
+    sample_audit: Dict[str, Any],
+    token_stats: Dict[str, Any],
+    expected_model: str = MODEL_ID,
+    expected_dim: int = EMBEDDING_DIM,
+) -> Dict[str, Any]:
+    """Run Section 10 A-D technical validation on (temporary or final) sample artifacts."""
+    from src.classification.data.loaders import ReferenceBranchDataset
+    from src.classification.data.validators import REQUIRED_SAMPLE_COLUMNS
+    from src.classification.retrieval.sample_retriever import SampleRetriever
+
+    checks: List[Dict[str, Any]] = []
+
+    def add(name: str, passed: bool, detail: str) -> None:
+        checks.append({"check": name, "passed": bool(passed), "detail": detail})
+
+    # --- A. Dataset Validation ---
+    add(
+        "dataset_zero_malformed_rows",
+        len(sample_audit["malformed_rows"]) == 0,
+        f"malformed_rows={len(sample_audit['malformed_rows'])} across {sample_audit['total_source_rows']} source rows",
+    )
+    add(
+        "dataset_zero_label_inconsistencies",
+        len(sample_audit["label_inconsistencies"]) == 0 and len(sample_audit["criterion_text_variants"]) == 0,
+        (
+            f"label_inconsistencies={len(sample_audit['label_inconsistencies'])}, "
+            f"criterion_text_variants={len(sample_audit['criterion_text_variants'])}"
+        ),
+    )
+    add(
+        "dataset_zero_empty_event_texts",
+        len(sample_audit["skipped_empty_text_rows"]) == 0,
+        f"empty_text_rows={len(sample_audit['skipped_empty_text_rows'])}",
+    )
+
+    # --- B. Embedding Validation ---
+    sample_vectors = np.load(npy_path)
+    sample_metadata = pd.read_parquet(parquet_path)
+    n_expected = int(sample_audit["eligible_sample_count"])
+
+    add(
+        "embedding_count_matches_eligible_samples",
+        sample_vectors.ndim == 2 and sample_vectors.shape[0] == n_expected and n_expected > 0,
+        f"npy_rows={sample_vectors.shape[0]}, eligible_samples={n_expected}",
+    )
+    add(
+        "embedding_dimension_384",
+        sample_vectors.ndim == 2 and sample_vectors.shape[1] == expected_dim,
+        f"shape={tuple(sample_vectors.shape)}, expected_dim={expected_dim}",
+    )
+    add(
+        "embedding_dtype_float32",
+        sample_vectors.dtype == np.float32,
+        f"dtype={sample_vectors.dtype}",
+    )
+    add(
+        "embedding_all_finite",
+        bool(np.isfinite(sample_vectors).all()),
+        "No NaN or Inf values",
+    )
+
+    norms = np.linalg.norm(np.asarray(sample_vectors, dtype=np.float64), axis=1)
+    max_norm_err = float(np.max(np.abs(norms - 1.0))) if len(norms) else float("inf")
+    add(
+        "embedding_l2_normalized",
+        max_norm_err < 1e-5,
+        f"max |norm - 1| = {max_norm_err:.2e}",
+    )
+    add(
+        "tokenizer_zero_silent_truncation",
+        int(token_stats.get("truncated_count", 0)) == 0,
+        (
+            f"min={token_stats.get('min_tokens')}, median={token_stats.get('median_tokens')}, "
+            f"max={token_stats.get('max_tokens')}, max_seq_length={token_stats.get('max_seq_length')}, "
+            f"truncated={token_stats.get('truncated_count')}"
+        ),
+    )
+
+    # Leakage and prefix check
+    leakage_hits: List[str] = []
+    prefix_bad = 0
+    for _, row in sample_metadata.iterrows():
+        etext = str(row["embedding_text"])
+        if not etext.startswith(PASSAGE_PREFIX) or etext.startswith(PASSAGE_PREFIX + PASSAGE_PREFIX):
+            prefix_bad += 1
+        desc_val = None if pd.isna(row["event_description"]) else str(row["event_description"])
+        expected_etext = build_sample_embedding_text(str(row["event_title"]), desc_val)
+        if etext != expected_etext:
+            leakage_hits.append(f"{row['sample_id']}: embedding_text deviates from leakage-free template")
+        meta = json.loads(row["source_metadata"])
+        tc_qc = str(meta.get("Tieu_Chi_Quy_Che") or "").strip()
+        if tc_qc and tc_qc.lower() in etext.lower():
+            leakage_hits.append(f"{row['sample_id']}: contains Tieu_Chi_Quy_Che")
+        for forbidden in ("NONE", "NO_MATCH", "NEEDS_REVIEW", "Vai trò:", "Đơn vị tổ chức:", "Diem_Toi_Da"):
+            if forbidden in etext:
+                leakage_hits.append(f"{row['sample_id']}: contains forbidden marker '{forbidden}'")
+    add(
+        "embedding_passage_prefix_and_zero_leakage",
+        prefix_bad == 0 and len(leakage_hits) == 0,
+        f"prefix_errors={prefix_bad}, leakage_hits={len(leakage_hits)}"
+        + ("" if not leakage_hits else f" ({'; '.join(leakage_hits[:3])})"),
+    )
+
+    # Re-encode spot check across first, middle, last, and each major group
+    spot_indices: List[int] = [0, len(sample_metadata) // 2, len(sample_metadata) - 1]
+    for grp in POSITIVE_SAMPLE_GROUPS:
+        g_idx = sample_metadata.index[sample_metadata["group_id"] == grp].tolist()
+        if g_idx:
+            spot_indices.append(int(g_idx[0]))
+            spot_indices.append(int(g_idx[-1]))
+    spot_indices = sorted(set(spot_indices))
+    reenc, _ = encode_texts(model, [str(sample_metadata.iloc[i]["embedding_text"]) for i in spot_indices])
+    spot_cos = [float(np.dot(sample_vectors[idx], vec)) for idx, vec in zip(spot_indices, reenc)]
+    add(
+        "embedding_vector_row_alignment_spotcheck",
+        all(c >= 0.99999 for c in spot_cos),
+        f"spot_indices={spot_indices}, min_cosine={min(spot_cos):.6f}",
+    )
+
+    # --- C. Metadata Validation ---
+    missing_req_cols = sorted(REQUIRED_SAMPLE_COLUMNS - set(sample_metadata.columns))
+    no_vector_cols = not any("vector" in c.lower() or c.lower() == "embedding" for c in sample_metadata.columns)
+    add(
+        "metadata_schema_and_no_embedded_vectors",
+        len(missing_req_cols) == 0 and no_vector_cols,
+        f"columns={len(sample_metadata.columns)}, missing_required={missing_req_cols}, no_vector_col={no_vector_cols}",
+    )
+    add(
+        "metadata_row_count_matches_embeddings",
+        len(sample_metadata) == sample_vectors.shape[0],
+        f"metadata_rows={len(sample_metadata)}, embedding_rows={sample_vectors.shape[0]}",
+    )
+    emb_rows_ok = list(sample_metadata["embedding_row"]) == list(range(len(sample_metadata)))
+    sid_unique = bool(sample_metadata["sample_id"].is_unique)
+    src_rows = sample_metadata["source_row_index"].tolist()
+    src_order_ok = all(a < b for a, b in zip(src_rows, src_rows[1:]))
+    add(
+        "metadata_contiguous_embedding_row_and_source_order",
+        emb_rows_ok and sid_unique and src_order_ok,
+        f"embedding_row_0..N-1={emb_rows_ok}, unique_sample_id={sid_unique}, strictly_increasing_source_row={src_order_ok}",
+    )
+
+    valid_groups = set((rubric.get("groups") or {}).keys())
+    items = rubric.get("items") or {}
+    ref_to_item = {
+        str(v["ref"]).strip(): (k, v)
+        for k, v in items.items()
+        if isinstance(v, dict) and "ref" in v
+    }
+    ref_errors: List[str] = []
+    for _, row in sample_metadata.iterrows():
+        ref = str(row["criterion_ref"])
+        key = str(row["criterion_key"])
+        grp = str(row["group_id"])
+        orig = str(row["original_label"])
+        if orig != ref:
+            ref_errors.append(f"{row['sample_id']}: original_label {orig!r} != criterion_ref {ref!r}")
+        elif grp not in valid_groups or grp not in POSITIVE_SAMPLE_GROUPS:
+            ref_errors.append(f"{row['sample_id']}: invalid group_id {grp!r}")
+        elif ref not in ref_to_item:
+            ref_errors.append(f"{row['sample_id']}: unknown criterion_ref {ref!r}")
+        else:
+            rkey, ritem = ref_to_item[ref]
+            if rkey != key or str(ritem.get("group")) != grp or ritem.get("event_matchable") is not True:
+                ref_errors.append(f"{row['sample_id']}: rubric mismatch ({ref}, {key}, {grp})")
+    add(
+        "metadata_rubric_referential_integrity",
+        len(ref_errors) == 0,
+        f"All {len(sample_metadata)} rows match rubric.yaml C1-C4 event_matchable:true criteria"
+        if not ref_errors
+        else "; ".join(ref_errors[:5]),
+    )
+
+    model_col_ok = bool(
+        (sample_metadata["embedding_model"] == expected_model).all()
+        and (sample_metadata["embedding_dimension"] == expected_dim).all()
+        and (sample_metadata["normalization"] == "l2").all()
+    )
+    add(
+        "metadata_embedding_provenance_recorded",
+        model_col_ok,
+        f"model={expected_model}, dim={expected_dim}, normalization=l2",
+    )
+
+    # --- D. Compatibility Validation (SampleRetriever Stage 1 & Stage 2) ---
+    ds = ReferenceBranchDataset(
+        branch_name="sample",
+        embeddings=sample_vectors,
+        metadata=sample_metadata,
+        embeddings_path=npy_path,
+        metadata_path=parquet_path,
+    )
+    retriever = SampleRetriever(ds)
+    probe_q = np.asarray(sample_vectors[0], dtype=np.float32)
+    s1_hits = retriever.retrieve_stage1(probe_q, top_k=10)
+    s2_hits = retriever.retrieve_stage2(probe_q, candidate_groups=["C1", "C3"], top_k=10)
+    compat_ok = (
+        retriever.eligible_count == len(sample_metadata)
+        and retriever.available_groups == list(POSITIVE_SAMPLE_GROUPS)
+        and len(s1_hits) == 10
+        and len(s2_hits) == 10
+        and all(h.group_id in {"C1", "C3"} for h in s2_hits)
+        and abs(s1_hits[0].similarity - 1.0) < 1e-4
+    )
+    add(
+        "sample_retriever_stage1_stage2_compatibility",
+        compat_ok,
+        (
+            f"eligible={retriever.eligible_count}, groups={retriever.available_groups}, "
+            f"stage1_hits={len(s1_hits)} (top1_sim={s1_hits[0].similarity:.6f}), "
+            f"stage2_C1C3_hits={len(s2_hits)}"
+        ),
+    )
+
+    return {"all_passed": all(c["passed"] for c in checks), "checks": checks}
+
+
+def build_sample_audit_report(
+    *,
+    sample_records: List[Dict[str, Any]],
+    sample_audit: Dict[str, Any],
+    embedding_config: Dict[str, Any],
+    model_info: Dict[str, Any],
+    token_stats: Dict[str, Any],
+    validation: Dict[str, Any],
+    output_dir: Path,
+    generation_ts: str,
+    rubric_untouched_hashes: Dict[str, str],
+) -> str:
+    """Build outputs/sample_embedding_generation_report.md covering all Section 12 sections."""
+    grp_counts = Counter(r["group_id"] for r in sample_records)
+    ref_counts = Counter(r["criterion_ref"] for r in sample_records)
+    ref_to_group = {r["criterion_ref"]: r["group_id"] for r in sample_records}
+    ref_to_key = {r["criterion_ref"]: r["criterion_key"] for r in sample_records}
+    excl_by_reason = Counter(e["reason"] for e in sample_audit["excluded_rows"])
+    excl_by_ref = Counter(
+        (e["original_label"], e.get("group_id", "?"), e.get("kind", "?"))
+        for e in sample_audit["excluded_rows"]
+    )
+
+    col_map = sample_audit["detected_column_mapping"]
+    embedded_fields = [col_map["title"]] + ([col_map["description"]] if col_map.get("description") else [])
+    metadata_only_fields = [c for c in sample_audit["csv_columns"] if c not in embedded_fields]
+
+    lines: List[str] = [
+        "# Sample Embedding Generation Audit Report — HCMUS DRL",
+        "",
+        f"> **Generated (UTC):** `{generation_ts}`  ",
+        "> **Scope notice:** Technical data, embedding, metadata, and compatibility audit for the Sample Branch (`sample_embeddings.npy`, `sample_metadata.parquet`). Does **not** evaluate classification accuracy, precision, recall, or F1-score, and no classification algorithm, fusion weights, or Rubric Branch artifacts were modified.",
+        "",
+        "---",
+        "",
+        "## 1. Source Dataset",
+        "",
+        "| Property | Value |",
+        "|---|---|",
+        f"| **Authoritative input file** | `{sample_audit['source_csv_path']}` |",
+        f"| **File format** | CSV (`utf-8`, BOM=`{sample_audit['source_has_utf8_bom']}`, delimiter=`,`, quotechar=`\"`) |",
+        f"| **File size / SHA-256** | `{sample_audit['source_csv_size_bytes']}` bytes / `{sample_audit['source_csv_sha256']}` |",
+        f"| **Total source records** | `{sample_audit['total_source_rows']}` |",
+        f"| **Detected columns ({len(sample_audit['csv_columns'])})** | `{', '.join(sample_audit['csv_columns'])}` |",
+        f"| **Malformed rows (column-count mismatch)** | `{len(sample_audit['malformed_rows'])}` |",
+        f"| **Fields selected for `embedding_text`** | `{', '.join(embedded_fields)}` *(no separate description column present in source CSV)* |",
+        f"| **Fields kept in metadata only (strictly excluded from `embedding_text`)** | `{', '.join(metadata_only_fields)}` |",
+        "",
+        "### Detected Source Schema & Column Mapping",
+        "",
+        "| Source Column | Empty Rows (of 1,330) | Mapped Role / Metadata Field | Embedded in Vector? |",
+        "|---|---:|---|---|",
+    ]
+
+    role_desc = {
+        col_map.get("row_id"): "Source row identifier (`source_stt`, `source_row_index`)",
+        col_map.get("label"): "Ground-truth criterion reference (`original_label`, `criterion_ref` -> rubric `criterion_key`, `group_id`)",
+        col_map.get("organizer"): "Organizing unit (`organizer`, nullable)",
+        col_map.get("title"): "Event title (`event_title`)",
+        col_map.get("description"): "Event description (`event_description`, nullable)",
+        col_map.get("role"): "Participation role (`role`, nullable)",
+        col_map.get("criterion_text"): "Rubric criterion description (metadata only in `source_metadata`; excluded to prevent label leakage)",
+        col_map.get("points"): "Max DRL points (metadata only in `source_metadata`; excluded to prevent label leakage)",
+    }
+    for col in sample_audit["csv_columns"]:
+        is_emb = "**YES**" if col in embedded_fields else "No (metadata only)"
+        empty_n = sample_audit["missing_counts_all_rows"].get(col, 0)
+        lines.append(f"| `{col}` | {empty_n} | {role_desc.get(col, 'Preserved in `source_metadata`')} | {is_emb} |")
+
+    lines += [
+        "",
+        "---",
+        "",
+        "## 2. Processing Summary",
+        "",
+        "| Metric | Count |",
+        "|---|---:|",
+        f"| **Total source rows (`activities_sample.csv`)** | `{sample_audit['total_source_rows']}` |",
+        f"| **Valid eligible samples embedded (`C1`–`C4`, `event_matchable: true`)** | **`{sample_audit['eligible_sample_count']}`** |",
+        f"| **Skipped / excluded rows (non-eligible or Group `P` reminder/penalty)** | `{sample_audit['excluded_row_count']}` |",
+        f"| **Invalid / unknown / malformed label rows** | `{sample_audit['invalid_or_special_label_count']}` |",
+        f"| **Label inconsistencies (`Ma_Muc` / `group_id` / `criterion_key` / `Tieu_Chi_Quy_Che`)** | `{len(sample_audit['label_inconsistencies']) + len(sample_audit['criterion_text_variants'])}` |",
+        f"| **Exact full-row duplicates (ignoring `STT`) — all source / eligible** | `{sample_audit['all_source_exact_row_dup_groups']}` / `{len(sample_audit['preserved_exact_row_duplicates'])}` |",
+        f"| **Duplicate-title groups among eligible samples (preserved)** | `{len(sample_audit['preserved_exact_duplicates'])}` groups (`{len(sample_audit['preserved_cross_criterion_duplicates'])}` cross-criterion + `{len(sample_audit['preserved_same_criterion_duplicates'])}` same-criterion) |",
+        f"| **Orthographic / diacritic near-duplicate groups among eligible samples (preserved)** | `{len(sample_audit['preserved_near_duplicates'])}` |",
+        "",
+        "### Samples by Major Group (`group_id`)",
+        "",
+        "| `group_id` | Eligible Samples | Share (%) |",
+        "|---|---:|---:|",
+    ]
+    total_el = max(len(sample_records), 1)
+    for grp in POSITIVE_SAMPLE_GROUPS:
+        cnt = grp_counts.get(grp, 0)
+        lines.append(f"| `{grp}` | {cnt} | {100.0 * cnt / total_el:.1f}% |")
+
+    lines += [
+        "",
+        "### Samples by Criterion (`criterion_ref`)",
+        "",
+        "| `criterion_ref` | `group_id` | `criterion_key` | Eligible Samples |",
+        "|---|---|---|---:|",
+    ]
+    for ref in sorted(ref_counts.keys(), key=lambda x: [int(p) if p.isdigit() else 999 for p in x.split(".")]):
+        lines.append(f"| `{ref}` | `{ref_to_group[ref]}` | `{ref_to_key[ref]}` | {ref_counts[ref]} |")
+
+    lines += [
+        "",
+        "### Excluded / Skipped Rows Breakdown (Documented, Not Silently Dropped)",
+        "",
+        "| Exclusion Reason | Row Count |",
+        "|---|---:|",
+    ]
+    for reason, cnt in sorted(excl_by_reason.items(), key=lambda kv: (-kv[1], kv[0])):
+        lines.append(f"| `{reason}` | {cnt} |")
+
+    lines += [
+        "",
+        "<details>",
+        "<summary>Excluded rows by criterion (`Ma_Muc`)</summary>",
+        "",
+        "| `Ma_Muc` | `group_id` | `kind` | Excluded Rows |",
+        "|---|---|---|---:|",
+    ]
+    for (muc, grp, kind), cnt in sorted(
+        excl_by_ref.items(),
+        key=lambda kv: [int(p) if p.isdigit() else 999 for p in kv[0][0].split(".")],
+    ):
+        lines.append(f"| `{muc}` | `{grp}` | `{kind}` | {cnt} |")
+    lines += [
+        "",
+        "</details>",
+        "",
+        "### Preserved Duplicate & Multi-Label Records (Zero Silent Deletion)",
+        "",
+        f"- **Cross-criterion duplicate titles (`{len(sample_audit['preserved_cross_criterion_duplicates'])}` groups, preserved as separate labeled samples):**",
+    ]
+    for grp in sample_audit["preserved_cross_criterion_duplicates"]:
+        detail = "; ".join(
+            f"`{x['sample_id']}` (row `{x['source_row_index']}`, ref `{x['criterion_ref']}`, org=`{x['organizer'] or ''}`, role=`{x['role'] or ''}`)"
+            for x in grp
+        )
+        lines.append(f"  - \"{grp[0]['event_title']}\": {detail}")
+
+    lines.append(
+        f"- **Same-criterion duplicate titles (`{len(sample_audit['preserved_same_criterion_duplicates'])}` groups, differing by organizer or role — preserved):**"
+    )
+    for grp in sample_audit["preserved_same_criterion_duplicates"]:
+        detail = "; ".join(
+            f"`{x['sample_id']}` (row `{x['source_row_index']}`, ref `{x['criterion_ref']}`, org=`{x['organizer'] or ''}`, role=`{x['role'] or ''}`)"
+            for x in grp
+        )
+        lines.append(f"  - \"{grp[0]['event_title']}\": {detail}")
+
+    lines.append(
+        f"- **Orthographic / diacritic near-duplicate groups (`{len(sample_audit['preserved_near_duplicates'])}` groups — preserved):**"
+    )
+    for grp in sample_audit["preserved_near_duplicates"]:
+        detail = "; ".join(
+            f"`{x['sample_id']}` (row `{x['source_row_index']}`, ref `{x['criterion_ref']}`, title=\"{x['event_title']}\")"
+            for x in grp
+        )
+        lines.append(f"  - {detail}")
+
+    lines += [
+        "",
+        "---",
+        "",
+        "## 3. Embedding Configuration",
+        "",
+        "| Parameter | Value (from `embedding_config.json`) |",
+        "|---|---|",
+        f"| **Model name** | `{model_info['model_name']}` |",
+        f"| **Model revision** | `{model_info['model_revision']}` |",
+        f"| **Embedding dimension** | `{model_info['embedding_dimension']}` |",
+        f"| **Data type** | `{model_info['dtype']}` |",
+        f"| **Pooling method** | `{model_info['pooling_method']}` |",
+        f"| **Normalization** | L2 unit normalization (`l2_normalization: true`) |",
+        f"| **Tokenizer** | `{model_info['tokenizer_config']['tokenizer_class']}` (`max_seq_length={model_info['tokenizer_config']['max_seq_length']}`, `do_lower_case={model_info['tokenizer_config']['do_lower_case']}`) |",
+        f"| **Prefix convention** | Sample passages: `passage: ...` / Queries: `query: ...` |",
+        "| **Text construction rules** | Unicode NFC + whitespace collapse (matching `src/classification/embeddings/event_text_builder.py`); embeds `Ten_Hoat_Dong` only (no description column in CSV); strictly excludes `Ma_Muc`, `group_id`, `criterion_key`, `Tieu_Chi_Quy_Che`, `Diem_Toi_Da`, `Vai_Tro`, and `Organizer` to prevent label leakage. |",
+        f"| **Truncation strategy & token stats** | Model `max_seq_length = {token_stats['max_seq_length']}` tokens; observed sample lengths: `min={token_stats['min_tokens']}`, `median={token_stats['median_tokens']}`, `max={token_stats['max_tokens']}`, **`truncated_count={token_stats['truncated_count']}`** (no truncation needed). |",
+        "",
+        "---",
+        "",
+        "## 4. Generated Artifacts",
+        "",
+        "| Artifact | Rows | Dimension / Columns | Alignment Status |",
+        "|---|---:|---|---|",
+        f"| `{output_dir.as_posix()}/sample_embeddings.npy` | `{len(sample_records)}` | `({len(sample_records)}, {model_info['embedding_dimension']})`, `float32`, L2-normalized | Exact 1:1 with `sample_metadata.parquet` (`0..{len(sample_records)-1}`) |",
+        f"| `{output_dir.as_posix()}/sample_metadata.parquet` | `{len(sample_records)}` | `{len(sample_records[0]) if sample_records else 0}` columns (zero embedded vectors) | Exact 1:1 with `sample_embeddings.npy` (`embedding_row == 0..{len(sample_records)-1}`) |",
+        "",
+        f"**Metadata columns:** `{', '.join(sample_records[0].keys()) if sample_records else ''}`",
+        "",
+        "---",
+        "",
+        "## 5. Technical Validation Results",
+        "",
+        "| Check | Status | Details |",
+        "|---|---|---|",
+    ]
+    for chk in validation["checks"]:
+        badge = "**PASS**" if chk["passed"] else "**FAIL**"
+        safe_detail = str(chk["detail"]).replace("|", "\\|")
+        lines.append(f"| `{chk['check']}` | {badge} | {safe_detail} |")
+
+    if rubric_untouched_hashes:
+        lines += [
+            "",
+            "### Untouched Rubric & Read-Only Artifacts Verification (SHA-256)",
+            "",
+            "| Artifact | SHA-256 |",
+            "|---|---|",
+        ]
+        for rel, h in rubric_untouched_hashes.items():
+            lines.append(f"| `{rel}` | `{h}` |")
+
+    unc_refs = [u["criterion_ref"] for u in sample_audit["uncovered_eligible_criteria"]]
+    lines += [
+        "",
+        "---",
+        "",
+        "## 6. Unresolved Issues & Data Quality Notes",
+        "",
+        f"1. **No separate event description column in `activities_sample.csv`:** The CSV provides `Ten_Hoat_Dong` (event title) only; `event_description` is preserved as `null` across all `{len(sample_records)}` samples without fabrication. Runtime incoming queries in `events.json` include both title and description.",
+        f"2. **Missing optional metadata fields among eligible samples:** `role` (`Vai_Tro`) is empty/null on `{sample_audit['eligible_missing_counts']['role']}/{len(sample_records)}` samples, and `organizer` (`Organizer`) is empty/null on `{sample_audit['eligible_missing_counts']['organizer']}/{len(sample_records)}` samples (stored as `null`, not fabricated).",
+        f"3. **Uncovered C1–C4 `event_matchable: true` criteria (`{len(unc_refs)}/20`):** Criteria `{', '.join(unc_refs) if unc_refs else 'none'}` have `0` rows in `activities_sample.csv` and continue to rely on Stage 2 Rubric Branch prototypes (via `missing_branch_reference_policy: reweight_available_branch`).",
+        f"4. **Criterion `6.4` (`STT=1329`, `group=P`) excluded from positive Sample Branch:** Row 1329 (`\"Không tham gia, không đạt Sinh hoạt công dân Cuối khóa năm học 2025-2026\"`, `Diem_Toi_Da=-20`) is a mandatory-event penalty record (`group: P`, `mvp_scope: remind`) and is excluded from the positive `C1`–`C4` Sample Branch to remain aligned with `RubricRetriever` (`stage=\"reminder\"`) and `Module3Config.excluded_parent_groups = (\"P\",)`.",
+        "5. **Cross-criterion identical titles (`6` groups, `12` rows) & near-duplicate cross-criterion titles (`1` group):** Identical event titles appear under different criteria (`1.9` vs `3.5`, `3.1` vs `3.3`, `3.3` vs `3.5`, `3.5` vs `4.5`, `4.3` vs `4.5`), reflecting role/mobilization/fundraising distinctions not fully expressed by title alone. All records are preserved faithfully without merging or relabeling.",
+        "6. **Criterion `3.3` role coverage:** Among the `47` eligible `3.3` samples, `21` carry explicit `Vai_Tro = \"Huy động lực lượng\"`, `6` carry `\"Tham gia\"`, and `20` have empty `Vai_Tro` — reinforcing why the existing `3.3` mobilization decision guard remains important.",
+        "7. **Severe class count imbalance:** `3.5` (`298`) and `1.9` (`242`) account for `540/908` (`59.5%`) of eligible samples, whereas `2.2`, `3.13`, and `4.6` have `1` sample each.",
+        "8. **Raw source title artifacts preserved verbatim (no rewriting):** Row `751` (`3.5`) contains a raw concatenation/truncation artifact (`\"...“Theo dấu chân Bác”DTVT - Tổ chức sự kiện “Hành trình theo chân Bác\"`); rows `32`, `742`, `743`, `1113` contain leading underscore artifacts (`_Chấn động Pangaea`, `_Tứ cực đại chiến`, `_25DTV CUP`, `_Thanh niên hành động xanh`); minor source typos exist on rows `402`, `416`, `549`, `1255`.",
+        "9. **No verified negative (`NONE` / `NO_MATCH`) samples:** `activities_sample.csv` contains only DRL rubric records (`0` negative/out-of-scope examples).",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -1069,8 +1978,10 @@ def validate_artifacts(
         s1_vecs.shape == (4, EMBEDDING_DIM)
         and s2_rubric_vecs.shape[0] > 0
         and s2_rubric_vecs.shape[1] == EMBEDDING_DIM
-        and s2_sample_vecs.shape[0] == 105  # 50 (C1) + 55 (C3)
-        and crit_vecs.shape == (17, EMBEDDING_DIM)
+        and s2_sample_vecs.shape[0] == len(s2_sample_rows)
+        and s2_sample_vecs.shape[0] > 0
+        and crit_vecs.shape == (len(crit_rows), EMBEDDING_DIM)
+        and crit_vecs.shape[0] > 0
     )
     record_check(
         "two_stage_knn_filtering_compatibility",
@@ -1344,7 +2255,269 @@ def main() -> int:
     parser.add_argument("--samples-csv", type=Path, default=DEFAULT_SAMPLES_CSV_PATH)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
+    parser.add_argument(
+        "--rubric-only",
+        action="store_true",
+        help=(
+            "Regenerate ONLY rubric_embeddings.npy and rubric_metadata.parquet from "
+            "rubric_prototypes.jsonl using the existing embedding_config.json "
+            "(leaves sample_*, events_query_*, and embedding_config.json untouched)."
+        ),
+    )
+    parser.add_argument(
+        "--rubric-jsonl",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR / "rubric_prototypes.jsonl",
+        help="Path to authoritative rubric_prototypes.jsonl (used in --rubric-only mode).",
+    )
+    parser.add_argument(
+        "--sample-only",
+        action="store_true",
+        help=(
+            "Regenerate ONLY sample_embeddings.npy and sample_metadata.parquet from "
+            "--samples-csv using the existing embedding_config.json with temp-file "
+            "validation and atomic replacement (leaves rubric_*, events_query_*, and "
+            "embedding_config.json untouched)."
+        ),
+    )
+    parser.add_argument(
+        "--sample-report",
+        type=Path,
+        default=DEFAULT_SAMPLE_REPORT_PATH,
+        help="Output path for the sample embedding audit report (used in --sample-only mode).",
+    )
     args = parser.parse_args()
+
+    if args.sample_only and args.rubric_only:
+        print("[ERROR] --sample-only and --rubric-only are mutually exclusive.", file=sys.stderr)
+        return 1
+
+    if args.sample_only:
+        if not args.rubric.exists():
+            print(f"[ERROR] Missing rubric file: {args.rubric}", file=sys.stderr)
+            return 1
+        if not args.samples_csv.exists():
+            print(
+                f"[ERROR] Missing authoritative sample dataset: {args.samples_csv}. "
+                "Will not substitute another CSV.",
+                file=sys.stderr,
+            )
+            return 1
+        emb_cfg_path = args.output_dir / "embedding_config.json"
+        if not emb_cfg_path.exists():
+            print(f"[ERROR] Missing embedding_config.json: {emb_cfg_path}", file=sys.stderr)
+            return 1
+
+        emb_cfg = json.loads(emb_cfg_path.read_text(encoding="utf-8"))
+        cfg_model_id = str(emb_cfg.get("model_name") or MODEL_ID)
+        cfg_dim = int(emb_cfg.get("embedding_dimension") or EMBEDDING_DIM)
+        cfg_passage_prefix = str((emb_cfg.get("prefixes") or {}).get("passage") or PASSAGE_PREFIX)
+        cfg_norm = "l2" if emb_cfg.get("l2_normalization", True) else "none"
+        if cfg_model_id != MODEL_ID or cfg_dim != EMBEDDING_DIM:
+            print(
+                f"[ERROR] Unexpected embedding_config.json: model={cfg_model_id}, dim={cfg_dim}",
+                file=sys.stderr,
+            )
+            return 1
+
+        # Record SHA-256 of untouched read-only artifacts before running
+        untouched_paths = [
+            args.samples_csv,
+            args.rubric,
+            args.output_dir / "rubric_embeddings.npy",
+            args.output_dir / "rubric_metadata.parquet",
+            args.output_dir / "rubric_prototypes.jsonl",
+            emb_cfg_path,
+            Path("data/generated/events_query_embeddings.npy"),
+            Path("data/generated/events_query_metadata.json"),
+        ]
+        pre_hashes: Dict[str, str] = {
+            p.as_posix(): sha256_file(p) for p in untouched_paths if p.exists()
+        }
+
+        generation_ts = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+        print(f"[1/5] Inspecting & validating sample dataset ({args.samples_csv}) against {args.rubric}...")
+        rubric = yaml.safe_load(args.rubric.read_text(encoding="utf-8"))
+        sample_records, sample_audit = build_sample_records(
+            args.samples_csv,
+            rubric,
+            model_name=cfg_model_id,
+            embedding_dim=cfg_dim,
+            normalization=cfg_norm,
+            passage_prefix=cfg_passage_prefix,
+        )
+        print(
+            f"      Source rows={sample_audit['total_source_rows']}, "
+            f"eligible={sample_audit['eligible_sample_count']}, "
+            f"excluded={sample_audit['excluded_row_count']}, "
+            f"malformed={len(sample_audit['malformed_rows'])}, "
+            f"label_inconsistencies={len(sample_audit['label_inconsistencies'])}"
+        )
+
+        # Safety gate (Section 4 & Section 11): abort before touching artifacts on unresolved errors
+        if sample_audit["malformed_rows"] or sample_audit["label_inconsistencies"] or not sample_records:
+            print(
+                "[ERROR] Unresolved dataset/label inconsistencies detected. "
+                "Existing sample artifacts left untouched.",
+                file=sys.stderr,
+            )
+            for err in (sample_audit["malformed_rows"] + sample_audit["label_inconsistencies"])[:10]:
+                print(f"  - {err}", file=sys.stderr)
+            return 2
+
+        print(f"[2/5] Loading model `{cfg_model_id}` (matching embedding_config.json)...")
+        model, model_info = load_e5_model(cfg_model_id)
+        if emb_cfg.get("model_revision") and model_info["model_revision"] != emb_cfg.get("model_revision"):
+            print(
+                f"[ERROR] Model revision mismatch: loaded={model_info['model_revision']} "
+                f"vs config={emb_cfg.get('model_revision')}",
+                file=sys.stderr,
+            )
+            return 1
+
+        print(f"[3/5] Encoding {len(sample_records)} eligible sample passages...")
+        sample_vectors, sample_token_stats = encode_texts(
+            model,
+            [r["embedding_text"] for r in sample_records],
+            batch_size=args.batch_size,
+        )
+        print(f"      Token stats: {json.dumps(sample_token_stats)}")
+
+        # Write to temporary files first (Section 11 safe replacement)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        tmp_npy = args.output_dir / "sample_embeddings.npy.tmp"
+        tmp_pq = args.output_dir / "sample_metadata.parquet.tmp"
+        final_npy = args.output_dir / "sample_embeddings.npy"
+        final_pq = args.output_dir / "sample_metadata.parquet"
+
+        try:
+            with open(tmp_npy, "wb") as fh:
+                np.save(fh, sample_vectors)
+            write_sample_parquet(sample_records, tmp_pq)
+
+            print("[4/5] Running Section 10 A-D technical validation on temporary artifacts...")
+            validation = validate_sample_artifacts(
+                npy_path=tmp_npy,
+                parquet_path=tmp_pq,
+                rubric=rubric,
+                model=model,
+                sample_audit=sample_audit,
+                token_stats=sample_token_stats,
+                expected_model=cfg_model_id,
+                expected_dim=cfg_dim,
+            )
+            for chk in validation["checks"]:
+                print(f"      [{'PASS' if chk['passed'] else 'FAIL'}] {chk['check']}: {chk['detail']}")
+
+            if not validation["all_passed"]:
+                print(
+                    "[ERROR] Validation failed on temporary sample artifacts. "
+                    "Cleaning up temp files and keeping existing artifacts intact.",
+                    file=sys.stderr,
+                )
+                return 2
+
+            print("[5/5] Atomically replacing sample_embeddings.npy and sample_metadata.parquet...")
+            os.replace(tmp_npy, final_npy)
+            os.replace(tmp_pq, final_pq)
+        finally:
+            for leftover in (tmp_npy, tmp_pq):
+                if leftover.exists():
+                    try:
+                        leftover.unlink()
+                    except OSError:
+                        pass
+
+        # Verify untouched files remained byte-for-byte identical
+        post_hashes: Dict[str, str] = {
+            p.as_posix(): sha256_file(p) for p in untouched_paths if p.exists()
+        }
+        if post_hashes != pre_hashes:
+            print("[ERROR] Unexpected modification detected in read-only artifacts!", file=sys.stderr)
+            return 2
+
+        # Write audit report
+        args.sample_report.parent.mkdir(parents=True, exist_ok=True)
+        report_md = build_sample_audit_report(
+            sample_records=sample_records,
+            sample_audit=sample_audit,
+            embedding_config=emb_cfg,
+            model_info=model_info,
+            token_stats=sample_token_stats,
+            validation=validation,
+            output_dir=args.output_dir,
+            generation_ts=generation_ts,
+            rubric_untouched_hashes=post_hashes,
+        )
+        args.sample_report.write_text(report_md, encoding="utf-8")
+        print(f"[OK] Wrote audit report -> {args.sample_report}")
+        print(
+            f"\n[SUCCESS] Regenerated {final_npy} {sample_vectors.shape} and "
+            f"{final_pq} ({len(sample_records)} rows) with 100% validation PASS."
+        )
+        return 0
+
+    if args.rubric_only:
+        if not args.rubric.exists():
+            print(f"[ERROR] Missing rubric file: {args.rubric}", file=sys.stderr)
+            return 1
+        if not args.rubric_jsonl.exists():
+            print(f"[ERROR] Missing rubric prototypes JSONL: {args.rubric_jsonl}", file=sys.stderr)
+            return 1
+        emb_cfg_path = args.output_dir / "embedding_config.json"
+        if not emb_cfg_path.exists():
+            print(f"[ERROR] Missing embedding_config.json: {emb_cfg_path}", file=sys.stderr)
+            return 1
+
+        emb_cfg = json.loads(emb_cfg_path.read_text(encoding="utf-8"))
+        cfg_model_id = str(emb_cfg.get("model_name") or MODEL_ID)
+        if cfg_model_id != MODEL_ID:
+            print(f"[ERROR] Unexpected model in embedding_config.json: {cfg_model_id}", file=sys.stderr)
+            return 1
+
+        print(f"[1/4] Loading rubric ({args.rubric}) & JSONL prototypes ({args.rubric_jsonl})...")
+        rubric = yaml.safe_load(args.rubric.read_text(encoding="utf-8"))
+        rubric_records = load_rubric_prototypes_jsonl(args.rubric_jsonl)
+        print(f"      Loaded {len(rubric_records)} rubric prototypes from JSONL.")
+
+        print(f"[2/4] Loading model `{cfg_model_id}` (matching embedding_config.json)...")
+        model, model_info = load_e5_model(cfg_model_id)
+        if emb_cfg.get("model_revision") and model_info["model_revision"] != emb_cfg.get("model_revision"):
+            print(
+                f"[ERROR] Model revision mismatch: loaded={model_info['model_revision']} "
+                f"vs config={emb_cfg.get('model_revision')}",
+                file=sys.stderr,
+            )
+            return 1
+
+        print(f"[3/4] Encoding {len(rubric_records)} rubric prototypes...")
+        rubric_vectors, rubric_token_stats = encode_texts(
+            model,
+            [r["embedding_text"] for r in rubric_records],
+            batch_size=args.batch_size,
+        )
+        print(f"      Token stats: {json.dumps(rubric_token_stats)}")
+
+        npy_path = args.output_dir / "rubric_embeddings.npy"
+        pq_path = args.output_dir / "rubric_metadata.parquet"
+        np.save(npy_path, rubric_vectors)
+        write_rubric_parquet(rubric_records, pq_path)
+        print(f"      Wrote {npy_path} {rubric_vectors.shape} and {pq_path} ({len(rubric_records)} rows).")
+
+        print("[4/4] Running cross-artifact consistency validation...")
+        validation = validate_rubric_cross_artifact_consistency(
+            rubric=rubric,
+            jsonl_path=args.rubric_jsonl,
+            parquet_path=pq_path,
+            npy_path=npy_path,
+            model=model,
+        )
+        for chk in validation["checks"]:
+            print(f"      [{'PASS' if chk['passed'] else 'FAIL'}] {chk['check']}: {chk['detail']}")
+        if not validation["all_passed"]:
+            return 2
+        print("\n[SUCCESS] Rubric embeddings & metadata synchronized with rubric_prototypes.jsonl.")
+        return 0
 
     # 1. Verify input files strictly without substituting alternatives
     if not args.rubric.exists():

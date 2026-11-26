@@ -50,6 +50,12 @@
             </svg>
             <span>Danh sách 108 sự kiện</span>
           </button>
+          <button class="nav-tab" role="tab" aria-selected="false" data-tab="recommend">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <span>Đề xuất hoạt động (Demo)</span>
+          </button>
         </nav>
 
         <div class="topbar-meta">
@@ -198,6 +204,240 @@
 
           <div id="batchDetailPane" class="result-col">
             <div class="card empty-state">Chọn một sự kiện ở cột bên trái để xem kết quả phân loại và ước tính điểm ĐRL.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           TAB 3: RECOMMENDATION DEMO (P4 Demo + Demo M4/M6 + P5 + P6)
+      ================================================================= -->
+      <section id="tab-recommend" class="tab-panel" role="tabpanel">
+        <div class="split-layout rec-split-layout">
+          <!-- Left Column: Demo Control Panel -->
+          <div class="card rec-control-card">
+            <div class="card-header">
+              <div class="card-title-row">
+                <h1 class="card-title">Cấu hình Demo Đề xuất</h1>
+                <span class="badge badge-teal mono">PREDICTED only</span>
+              </div>
+              <p class="helper-text">
+                Kiểm thử <strong>P4</strong> (User Profile gọn), <strong>Demo M4</strong> (lịch &amp; di chuyển),
+                <strong>Demo M6</strong> (điểm &amp; trần), <strong>P5</strong> (lọc cứng) và <strong>P6</strong> (chấm điểm).
+              </p>
+            </div>
+
+            <!-- 1-click Personas -->
+            <div class="rec-section">
+              <div class="rec-section-title">Kịch bản Persona nhanh</div>
+              <div id="recPersonaBar" class="persona-grid"></div>
+            </div>
+
+            <form id="recForm" class="form-stack">
+              <!-- P4 Interests -->
+              <div class="rec-section">
+                <div class="rec-section-title">1. Sở thích đơn giản (P4 · e5-small)</div>
+                <div id="recChipsGrid" class="interest-chip-grid"></div>
+                <div class="form-field" style="margin-top:8px">
+                  <label for="recFreeText">Mô tả tự do ngắn <span class="label-hint">(tùy chọn)</span></label>
+                  <input
+                    id="recFreeText"
+                    type="text"
+                    class="input-text"
+                    placeholder="Vd: thích AI, lập trình, seminar chuyên môn..."
+                  />
+                </div>
+              </div>
+
+              <!-- P5 Hard Constraints -->
+              <div class="rec-section">
+                <div class="rec-section-title">2. Ràng buộc Lọc cứng (P5)</div>
+                <div class="form-field">
+                  <label for="recRefNow">Mốc thời gian kiểm thử (<code class="mono">reference_now</code>)</label>
+                  <input id="recRefNow" type="date" class="input-text mono" value="2026-10-01" />
+                  <div id="recRefNowPresets" class="quick-samples" style="margin:6px 0 0"></div>
+                </div>
+
+                <div class="form-row-2" style="margin-top:8px">
+                  <div class="form-field">
+                    <label for="recHomeCampus">Cơ sở học chính</label>
+                    <select id="recHomeCampus" class="input-text">
+                      <option value="cs1_nvc">CS1 · Nguyễn Văn Cừ</option>
+                      <option value="cs2_lt">CS2 · Linh Trung</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="recCohort">Khóa <span class="label-hint">(test đối tượng)</span></label>
+                    <input id="recCohort" type="text" class="input-text mono" value="K24" placeholder="Vd: K24, K26" />
+                  </div>
+                </div>
+
+                <div class="form-row-2" style="margin-top:8px">
+                  <div class="form-field">
+                    <label for="recMaxTravel">Di chuyển tối đa (phút)</label>
+                    <input id="recMaxTravel" type="number" min="0" max="180" value="45" class="input-text mono" />
+                  </div>
+                  <div class="form-field">
+                    <label for="recMaxBudget">Ngân sách tối đa (VNĐ)</label>
+                    <input id="recMaxBudget" type="number" min="0" step="5000" value="30000" class="input-text mono" />
+                  </div>
+                </div>
+
+                <div class="form-row-2" style="margin-top:8px">
+                  <div class="form-field">
+                    <label for="recPrefStart">Giờ rảnh từ</label>
+                    <input id="recPrefStart" type="number" min="0" max="23" step="0.5" value="8" class="input-text mono" />
+                  </div>
+                  <div class="form-field">
+                    <label for="recPrefEnd">Đến giờ</label>
+                    <input id="recPrefEnd" type="number" min="1" max="24" step="0.5" value="21" class="input-text mono" />
+                  </div>
+                </div>
+
+                <div class="checkbox-stack" style="margin-top:8px">
+                  <label class="checkbox-row">
+                    <input id="recStrictTravel" type="checkbox" checked />
+                    <span>Lọc cứng ở P5 nếu vượt thời gian di chuyển tối đa</span>
+                  </label>
+                  <label class="checkbox-row">
+                    <input id="recIncludeMandatory" type="checkbox" />
+                    <span>Chèn sự kiện bắt buộc mẫu (<strong>6.4 Tuần SHCD</strong>) để test <code>Penalty</code></span>
+                  </label>
+                </div>
+
+                <div id="recUserActionState" class="user-action-state" hidden></div>
+              </div>
+
+              <!-- Demo Module 6 -->
+              <details class="collapsible-box" open>
+                <summary class="collapsible-summary">
+                  <span>3. Demo Module 6 · Điểm ĐRL hiện có</span>
+                  <span id="recCurrentTotalBadge" class="badge badge-teal mono">57 / 85đ</span>
+                </summary>
+                <div class="collapsible-body">
+                  <div class="form-row-2">
+                    <div class="form-field">
+                      <label for="recCreditPreset">Preset điểm</label>
+                      <select id="recCreditPreset" class="input-text"></select>
+                    </div>
+                    <div class="form-field">
+                      <label for="recTargetTotal">Mục tiêu tổng</label>
+                      <input id="recTargetTotal" type="number" min="0" max="100" value="85" class="input-text mono" />
+                    </div>
+                  </div>
+                  <div class="group-pts-grid">
+                    <div class="form-field">
+                      <label for="recPtsC1" class="mono">C1 /30</label>
+                      <input id="recPtsC1" type="number" min="0" max="30" value="22" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recPtsC2" class="mono">C2 /20</label>
+                      <input id="recPtsC2" type="number" min="0" max="20" value="15" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recPtsC3" class="mono">C3 /25</label>
+                      <input id="recPtsC3" type="number" min="0" max="25" value="10" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recPtsC4" class="mono">C4 /25</label>
+                      <input id="recPtsC4" type="number" min="0" max="25" value="10" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recPtsC5" class="mono">C5 /30</label>
+                      <input id="recPtsC5" type="number" min="0" max="30" value="0" class="input-text mono" />
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Demo Module 4 -->
+              <details class="collapsible-box">
+                <summary class="collapsible-summary">
+                  <span>4. Demo Module 4 · Lịch cá nhân &amp; Tuần thi</span>
+                  <span id="recScheduleSummaryBadge" class="badge badge-muted mono">light</span>
+                </summary>
+                <div class="collapsible-body">
+                  <div class="form-field">
+                    <label for="recSchedulePreset">Preset thời khóa biểu</label>
+                    <select id="recSchedulePreset" class="input-text"></select>
+                  </div>
+                  <div id="recSlotsList" class="slots-list"></div>
+                  <div class="slot-add-row">
+                    <select id="recNewSlotDay" class="input-text">
+                      <option value="0">T2</option>
+                      <option value="1">T3</option>
+                      <option value="2">T4</option>
+                      <option value="3">T5</option>
+                      <option value="4">T6</option>
+                      <option value="5" selected>T7</option>
+                      <option value="6">CN</option>
+                    </select>
+                    <input id="recNewSlotStart" type="number" min="0" max="23" step="0.5" value="13" class="input-text mono" title="Giờ bắt đầu" />
+                    <input id="recNewSlotEnd" type="number" min="1" max="24" step="0.5" value="17" class="input-text mono" title="Giờ kết thúc" />
+                    <button id="btnRecAddSlot" type="button" class="btn btn-ghost btn-sm">+ Thêm</button>
+                  </div>
+                  <div class="form-row-2">
+                    <div class="form-field">
+                      <label for="recExamStart">Tuần thi từ ngày</label>
+                      <input id="recExamStart" type="date" class="input-text mono" value="" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recExamEnd">Đến ngày</label>
+                      <input id="recExamEnd" type="date" class="input-text mono" value="" />
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- P6 Weights & Interest Mode -->
+              <details class="collapsible-box">
+                <summary class="collapsible-summary">
+                  <span>5. Trọng số P6 (<code class="mono">w1..w4</code>) &amp; Scale Interest</span>
+                  <span id="recWeightSummaryBadge" class="badge badge-muted mono">balanced</span>
+                </summary>
+                <div class="collapsible-body">
+                  <div class="form-field">
+                    <label for="recWeightPreset">Chế độ trọng số</label>
+                    <select id="recWeightPreset" class="input-text"></select>
+                  </div>
+                  <div class="weights-4-grid">
+                    <div class="form-field">
+                      <label for="recW1" class="mono">w1 Gain</label>
+                      <input id="recW1" type="number" min="0" max="1" step="0.05" value="0.40" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recW2" class="mono">w2 Int</label>
+                      <input id="recW2" type="number" min="0" max="1" step="0.05" value="0.25" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recW3" class="mono">w3 Fit</label>
+                      <input id="recW3" type="number" min="0" max="1" step="0.05" value="0.20" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recW4" class="mono">w4 Urg</label>
+                      <input id="recW4" type="number" min="0" max="1" step="0.05" value="0.15" class="input-text mono" />
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label for="recInterestMode">Cách tính <code>[c_min, c_max]</code> cho Interest</label>
+                    <select id="recInterestMode" class="input-text">
+                      <option value="per_user_samples_minmax">Duyệt toàn bộ 908 sample → [min, max]</option>
+                      <option value="per_user_samples_p1_p99">Duyệt toàn bộ 908 sample → [p1, p99]</option>
+                      <option value="fixed">Ngưỡng cố định [0.72, 0.90]</option>
+                    </select>
+                  </div>
+                </div>
+              </details>
+
+              <div class="form-row-2">
+                <button id="btnRecRun" type="submit" class="btn btn-primary btn-full">Chạy Đề Xuất (P5 + P6)</button>
+                <button id="btnRecReset" type="button" class="btn btn-ghost btn-full">Đặt lại mặc định</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Right Column: Pipeline KPIs, Ranked P6 Cards & P5 Dropped Diagnostics -->
+          <div id="recResultPane" class="result-col">
+            <div class="card empty-state">Đang tải cấu hình Demo Recommendation...</div>
           </div>
         </div>
       </section>

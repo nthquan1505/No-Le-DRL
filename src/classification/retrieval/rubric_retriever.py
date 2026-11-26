@@ -65,18 +65,26 @@ class RubricRetriever:
         self._embeddings = np.asarray(dataset.embeddings, dtype=np.float32)
         self._metadata = dataset.metadata.reset_index(drop=True)
 
-        # Stage 1: stage == "group" and event_matchable == True
-        s1_mask = (self._metadata["stage"].astype(str) == "group") & (
-            self._metadata["event_matchable"].astype(bool)
+        # Stage 1: stage == "group", event_matchable == True, and group in C1-C4
+        s1_mask = (
+            (self._metadata["stage"].astype(str) == "group")
+            & (self._metadata["event_matchable"].astype(bool))
+            & (self._metadata["group_id"].astype(str).isin({"C1", "C2", "C3", "C4"}))
         )
         self._stage1_df = self._metadata.loc[s1_mask].reset_index(drop=True)
         self._stage1_rows = self._stage1_df["embedding_row"].to_numpy(dtype=np.int64)
         self._stage1_matrix = self._embeddings[self._stage1_rows]
 
-        # Stage 2: stage == "criterion" and event_matchable == True
-        s2_mask = (self._metadata["stage"].astype(str) == "criterion") & (
-            self._metadata["event_matchable"].astype(bool)
+        # Stage 2: stage == "criterion", event_matchable == True, and eligible positive/conditional candidate
+        s2_mask = (
+            (self._metadata["stage"].astype(str) == "criterion")
+            & (self._metadata["event_matchable"].astype(bool))
+            & (self._metadata["group_id"].astype(str).isin({"C1", "C2", "C3", "C4"}))
         )
+        if "eligibility_class" in self._metadata.columns:
+            s2_mask = s2_mask & self._metadata["eligibility_class"].astype(str).isin(
+                {"positive_candidate", "conditional_candidate"}
+            )
         self._stage2_df = self._metadata.loc[s2_mask].reset_index(drop=True)
 
         self._stage2_group_to_positions: Dict[str, np.ndarray] = {}
@@ -173,11 +181,12 @@ class RubricRetriever:
             if "has_uncertain" in row.index and not pd.isna(row["has_uncertain"])
             else False
         )
-        crit_ast = (
-            self._opt_str(row["criterion_anchors_status"])
-            if "criterion_anchors_status" in row.index
-            else self._opt_str(row["anchor_status"])
-        )
+        if "criterion_anchor_status" in row.index:
+            crit_ast = self._opt_str(row["criterion_anchor_status"])
+        elif "criterion_anchors_status" in row.index:
+            crit_ast = self._opt_str(row["criterion_anchors_status"])
+        else:
+            crit_ast = self._opt_str(row["anchor_status"])
         return RubricPrototypeMatch(
             embedding_row=int(row["embedding_row"]),
             prototype_id=str(row["prototype_id"]),

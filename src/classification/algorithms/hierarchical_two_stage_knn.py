@@ -188,6 +188,8 @@ class HierarchicalTwoStageKNN(BaseClassificationAlgorithm):
         criterion_anchors_status: Optional[str],
     ) -> str:
         """Determine transparent verification tier without presenting draft evidence as verified."""
+        if criterion_anchors_status == "verified_partial":
+            return "verified_partial"
         if "verified_anchor" in by_type_best:
             return "verified_from_school_list"
         if "partial_anchor" in by_type_best:

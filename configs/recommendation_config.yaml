@@ -113,3 +113,57 @@ schedule:
     exam_week_offline_penalty: -0.25
     exam_week_hybrid_penalty: -0.10
     travel_over_max_penalty: -0.20
+
+# =============================================================================
+# Phase 5 Demo Extensions: Demo M4/M6, P5 Hard Filter & P6 Multi-Criteria Scoring
+# =============================================================================
+demo_module4:
+  default_max_travel_min: 45
+  comfort_slack_min: 30
+  default_pref_hours: [8.0, 21.0]
+  fit_weights:
+    travel: 0.45
+    slack: 0.25
+    pref_hours: 0.30
+  pref_hours_scores:
+    inside: 1.0
+    near_1h: 0.7
+    outside: 0.3
+    missing_time: 0.5
+  exam_week_multipliers:
+    online: 0.90
+    hybrid: 0.70
+    offline: 0.45
+
+filter:
+  require_predicted_status: true
+  strict_max_travel: true
+  allow_zero_gain_in_interest_mode: false
+  mandatory_bypass_zero_gain: true
+  mandatory_bypass_budget: true
+  mandatory_bypass_travel: true
+  mandatory_bypass_hidden: true
+
+scoring:
+  gain:
+    p_ref: 10.0
+    gap_floor: 0.5
+    source_reliability:
+      explicit: 1.00
+      rule: 0.90
+      rule_fallback: 0.80
+    fallback_min_weight: 0.7
+  interest:
+    calibration_mode: "per_user_samples_minmax"  # "per_user_samples_minmax" | "per_user_samples_p1_p99" | "fixed"
+    fixed_c_min: 0.72
+    fixed_c_max: 0.90
+    cold_start_default: 0.50
+  urgency:
+    tau_days: 5.0
+    missing_deadline_default: 0.20
+  penalty_mandatory:
+    penalty_ref_points: 20.0
+    max_boost: 1.00
+    default_mandatory_boost: 0.50
+    enable_item_2_2_penalty_link: false
+
