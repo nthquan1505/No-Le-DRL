@@ -2,13 +2,15 @@
 
 Flow per fanpage (see `analyze_fanpage_posts`):
   1. Take posts that have no cached analysis yet (cache table: `post_analyses`).
-  2. Keyword pre-filter: posts without any event-like keyword are marked "not event" with NO API call.
-  3. One Gemini call per remaining post -> JSON {is_event, title, start, end, ...}.
-  4. Results are merged into `feeds/<fanpage_slug>/events.json` (deduplicated by post_id).
+  2. Empirical content-reasoning pre-filter: non-event posts are marked "not event" with NO API call.
+  3. Batch up to 8 candidate posts per Gemini API call (`GEMINI_BATCH_SIZE = 8`) using a configured & cached
+     system prompt (`cachedContents` with automatic fallback to `system_instruction` implicit prefix caching).
+  4. Results are upserted into `events` (`webapp.db`) and distributed `feeds/**/events.json`.
 
 Env vars:
-  GEMINI_API_KEY   required (if missing, LLM step is skipped and nothing is cached)
-  GEMINI_MODEL     optional, default "gemini-2.5-flash"
+  GEMINI_API_KEY       required (supports pool via GEMINI_API_KEYS / GEMINI_API_KEY_1..10)
+  GEMINI_MODEL         optional, default "gemini-3.1-flash-lite"
+  GEMINI_BATCH_SIZE    optional, default 8
 """
 import difflib
 import hashlib
@@ -245,8 +247,8 @@ Step 2 — Entity & Activity Nature (Event vs. Non-Event Archetypes):
   *Nuance*: If a post uses a rubric tag like `[Tin tốt, chuyện đẹp]` or `[Hưởng ứng tuần lễ...]` but launches an active online quiz/minigame with a participation link and test window (e.g., "chính thức mở cổng", "Thời gian làm bài", "link Aloha/form"), it IS an active event (`is_event: true`).
 Step 3 — Actionable Schedule or Participation Evidence:
   Confirm that the post provides actionable participation cues (e.g., event date/time/venue, registration form/link, quiz portal link, application timeline, or competition round instructions) or is an official countdown/speaker reveal for an upcoming event.
-Step 4 — Concise Reasoning Justification (`reason`):
-  Write a 1-sentence explanation in `reason` stating why the post qualifies as an active/upcoming event (`is_event: true`) or which disqualification rule applies (`is_event: false`).
+Step 4 — Concise Reasoning Justification (`reason` — MUST BE IN VIETNAMESE):
+  Write a 1-sentence explanation strictly in VIETNAMESE (tiếng Việt) in `reason` stating why the post qualifies as an active/upcoming event (`is_event: true`) or which disqualification rule applies (`is_event: false`). NEVER write `reason` in English, even if the post contains English terms.
 
 WHAT COUNTS AS AN EVENT (`is_event: true`):
 1. Academic & skill sessions: Workshops, seminars, webinars, talkshows, academic talks (`báo cáo viên`, `chuyên đề`), summer schools (`trường hè`), mini-courses, orientations (`chào tân sinh viên`), mock exams (`thi thử TOEIC`), and company/campus tours (`tham quan doanh nghiệp`, `VNU Tour`).
@@ -264,9 +266,9 @@ WHAT DOES NOT COUNT (`is_event: false`) — Empirical Disqualification Rules:
 6. Corporate job postings & passive companion/storytelling posts: Full-time corporate job/trainee recruitment (`Engineering Development Program`, graduate job openings without a campus talk/workshop), passive storytelling rubrics (`[Tin tốt chuyện đẹp]` praising a student/story without an interactive quiz/challenge link), holiday/commemorative greetings (`20/10`, `10/10 Ngày Chuyển đổi số`), fundraising booth price menus (`gian hàng gây quỹ` listing drink prices without an event registration/schedule), or companion Q&A/handbook posts (`Cẩm nang... giải đáp thắc mắc trong từng bức ảnh`) that do not announce a distinct event session.
 
 EXTRACTION RULES:
-- `reason`: 1 concise sentence explaining the content reasoning decision (why `is_event` is true or which disqualification rule made it false).
+- `reason`: MUST be written strictly in VIETNAMESE (tiếng Việt) — 1 concise sentence explaining why `is_event` is true or which disqualification rule made it false (e.g., "Bài đăng mở đơn đăng ký tham gia buổi workshop..." or "Bài đăng tổng kết sự kiện đã kết thúc, không có hoạt động sắp tới."). NEVER output English in `reason`.
 - `title`: Extract the canonical name of the event/competition/program. KEEP any meaningful bracketed text intact (e.g., "[BUILD ON STELLAR] — FROM ZERO TO YOUR FIRST WEB3 APP", "[THI THỬ TOEIC – VƯƠN TẦM HỘI NHẬP]", "[TRAO YÊU THƯƠNG - ĐỔI HẠNH PHÚC]"). Read past any initial salutations (like "Thân chào các bạn") or meta tags (like "[HỖ TRỢ TRUYỀN THÔNG]", "[HTTT]", "[THÔNG BÁO]") to find the real event title in the content body. Do NOT use countdown hooks like "3 DAYS LEFT" or generic meta tags alone as the title.
-- `description`: Do NOT copy the raw intro or first 1-2 sentences of the post. Write a concise 2-3 sentence summary in the same language as the post summarizing what the event is about, its main activities, and what benefits/value students will get (skills, prizes, certificates, điểm rèn luyện, networking). Only state facts explicitly in the post; never invent details.
+- `description`: Do NOT copy the raw intro or first 1-2 sentences of the post. Write a concise 2-3 sentence summary in VIETNAMESE (tiếng Việt) summarizing what the event is about, its main activities, and what benefits/value students will get (skills, prizes, certificates, điểm rèn luyện, networking). Only state facts explicitly in the post; never invent details.
 - `event_start_datetime`: Time that the event occurs in ISO 8601 (+07:00), e.g. "2026-11-22T16:00:00+07:00". Look for specific date and time cues (including `XXh-YYh`, `XXhMM - YYhNN`, `XX:MM - YY:MM`, `từ XXh đến YYh`, `XXg - YYg`, `AM/PM`, resolving relative/DD-MM dates using `published_at`). Take `XXh` as the start time; if no time is mentioned, use `00:00:00+07:00` of the start day.
 - `event_end_datetime`: Time that the event ends in ISO 8601 (+07:00), e.g. "2026-11-22T20:30:00+07:00". Look for specific date and time cues (`YYh` from `XXh-YYh`). If no end time is mentioned, use `23:59:00+07:00` of the end day (or of the event day if single-day).
 - `reg_start_datetime`: Time that the event opens for registration in ISO 8601 (+07:00). Extract ONLY if explicitly stated in the post (e.g. "mở đơn từ 19/10/2026", "mở cổng đăng ký lúc 18h ngày 01/11"); otherwise return null.
@@ -279,7 +281,7 @@ OUTPUT JSON SCHEMA PER POST (use null when unknown, never invent data):
 {
   "post_id": string|null,             // echo back input post_id when provided in batch mode
   "is_event": boolean,
-  "reason": string,                   // 1-sentence content reasoning justification for why is_event is true or false
+  "reason": string,                   // BẮT BUỘC BẰNG TIẾNG VIỆT: 1 câu giải thích ngắn gọn lý do là sự kiện hoặc bị loại
   "title": string|null,               // event title
   "description": string|null,         // summary of what the event is about and what benefits students will get (NOT raw intro text)
   "event_start_datetime": string|null,// ISO 8601 (+07:00), time event starts (XXh from XXh-YYh, or 00:00:00+07:00 if no time mentioned)
@@ -297,6 +299,91 @@ OUTPUT JSON SCHEMA PER POST (use null when unknown, never invent data):
 }
 If given a single post, return a single JSON object. If given a JSON array of posts under `posts`, return a JSON array of objects in the exact same order, each including its `post_id`."""
 
+# Canonical batch & single-post reference examples appended to `SYSTEM_REGULATIONS` for Gemini API calls.
+# Ensures the static system prefix exceeds 4,096 tokens so BOTH explicit `cachedContents` (paid tier)
+# and automatic implicit prefix caching (free & paid tiers on Gemini 2.5 / 3.x) are active across 8-post batches.
+GEMINI_BATCH_FEWSHOT_REFERENCE = """CANONICAL BATCH EXTRACTION REFERENCE EXAMPLES (up to 8 posts per batch):
+
+Example Batch Input (2 posts):
+--- POST 1 (post_id: "pfbid02abcEvent1") ---
+Post published at: 2026-11-10T09:00:00+07:00
+Fanpage / Source: Đoàn Khoa - Liên Chi Hội Khoa CNTT - ĐH KHTN, ĐHQG-HCM
+Post text:
+\"\"\"
+[HỖ TRỢ TRUYỀN THÔNG]
+🚀 WORKSHOP "[BUILD ON STELLAR] — FROM ZERO TO YOUR FIRST WEB3 APP" 🚀
+Thân chào các bạn sinh viên,
+Nhằm giúp sinh viên tiếp cận thực tế với công nghệ Blockchain và xây dựng ứng dụng phi tập trung đầu tiên, CLB Học thuật phối hợp tổ chức buổi Workshop chuyên đề cùng diễn giả từ Stellar Development Foundation.
+🌟 Quyền lợi tham gia:
+- Thực hành viết Smart Contract trực tiếp cùng mentor và nhận giấy chứng nhận (Certificate).
+- Cộng điểm rèn luyện và cơ hội nhận phần quà tổng trị giá 5.000.000 VNĐ.
+⏰ Thời gian tổ chức: 08h30 - 11h30, Thứ Bảy ngày 22/11/2026
+📍 Địa điểm: Hội trường I, Trường ĐH Khoa học Tự nhiên, Cơ sở 1 (227 Nguyễn Văn Cừ, Q.5)
+💸 Lệ phí tham gia: Miễn phí
+⏳ Mở đơn từ 10/11/2026 - Hạn chót đăng ký: 23h59 ngày 19/11/2026
+🔗 Link đăng ký tham gia: https://forms.gle/BuildOnStellar2026
+📞 Fanpage liên hệ: https://www.facebook.com/DoanKhoaCNTT
+\"\"\"
+
+--- POST 2 (post_id: "pfbid02xyzRecap2") ---
+Post published at: 2026-11-23T20:00:00+07:00
+Fanpage / Source: Đoàn Khoa - Liên Chi Hội Khoa CNTT - ĐH KHTN, ĐHQG-HCM
+Post text:
+\"\"\"
+[RECAP] NHÌN LẠI HÀNH TRÌNH ĐÊM CHUNG KẾT CUỘC THI HỌC THUẬT BẢN LĨNH IT 2026 🎉
+Vậy là hành trình kéo dài hơn 1 tháng của Bản Lĩnh IT 2026 đã chính thức khép lại với những màn tranh tài bùng nổ tại Hội trường I.
+Xin chúc mừng Quán quân đội ByteBuilders cùng toàn thể các đội thi đã xuất sắc hoàn thành phần thi của mình! Ban Tổ chức xin trân trọng cảm ơn các Quý doanh nghiệp tài trợ và hẹn gặp lại các bạn ở mùa giải năm sau!
+\"\"\"
+
+Expected Batch JSON Array Output:
+[
+  {
+    "post_id": "pfbid02abcEvent1",
+    "is_event": true,
+    "reason": "Bài đăng mở đơn đăng ký tham gia buổi workshop thực hành Web3 sắp diễn ra với đầy đủ thời gian, địa điểm, hạn chót và link đăng ký.",
+    "title": "[BUILD ON STELLAR] — FROM ZERO TO YOUR FIRST WEB3 APP",
+    "description": "Buổi workshop thực hành giúp sinh viên tiếp cận công nghệ Blockchain và tự tay xây dựng ứng dụng Web3/Smart Contract đầu tiên cùng mentor từ Stellar. Người tham gia được miễn phí lệ phí, nhận giấy chứng nhận, cộng điểm rèn luyện và có cơ hội nhận quà tặng tổng trị giá 5.000.000 VNĐ.",
+    "event_start_datetime": "2026-11-22T08:30:00+07:00",
+    "event_end_datetime": "2026-11-22T11:30:00+07:00",
+    "reg_start_datetime": "2026-11-10T00:00:00+07:00",
+    "reg_end_datetime": "2026-11-19T23:59:00+07:00",
+    "location": "Hội trường I, Trường ĐH Khoa học Tự nhiên, Cơ sở 1 (227 Nguyễn Văn Cừ, Q.5)",
+    "organizer": "Đoàn Khoa - Liên Chi Hội Khoa CNTT - ĐH KHTN, ĐHQG-HCM",
+    "registration_url": "https://forms.gle/BuildOnStellar2026",
+    "fee": "miễn phí",
+    "is_online": false,
+    "target_audience": ["sinh viên"],
+    "category": ["workshop", "học thuật", "khoa học"],
+    "format": ["offline", "cá nhân"]
+  },
+  {
+    "post_id": "pfbid02xyzRecap2",
+    "is_event": false,
+    "reason": "Loại theo Quy tắc 1 & 2: bài đăng tổng kết (recap) chúc mừng các đội thi đạt giải và cảm ơn nhà tài trợ sau khi cuộc thi đã khép lại, không mở đăng ký mới.",
+    "title": null,
+    "description": null,
+    "event_start_datetime": null,
+    "event_end_datetime": null,
+    "reg_start_datetime": null,
+    "reg_end_datetime": null,
+    "location": null,
+    "organizer": null,
+    "registration_url": null,
+    "fee": null,
+    "is_online": null,
+    "target_audience": null,
+    "category": [],
+    "format": []
+  }
+]
+
+BATCH PROCESSING REMINDERS (up to 8 posts per call):
+- Evaluate each post strictly on its own content; never leak dates, venues, fees, or URLs from an adjacent post in the same batch.
+- Always write `reason` (and `description` when `is_event` is true) strictly in VIETNAMESE (tiếng Việt).
+- Echo the exact input `post_id` string on every output object and preserve the exact input ordering of all posts in the returned JSON array."""
+
+GEMINI_CACHED_SYSTEM_PROMPT = SYSTEM_REGULATIONS + "\n\n" + GEMINI_BATCH_FEWSHOT_REFERENCE
+
 USER_POST_TEMPLATE = """Post published at: {published_at}
 Fanpage / Source: {fanpage}
 Post text:
@@ -305,7 +392,7 @@ Post text:
 \"\"\""""
 
 USER_BATCH_POSTS_TEMPLATE = """Analyze each of the {count} posts below independently using the JSON schema in your system instructions.
-Return ONLY a JSON array with one object per post in the same order, adding `"post_id": "<post_id>"` to each object.
+Return ONLY a JSON array with one object per post in the same order, adding `"post_id": "<post_id>"` to each object (write `reason` strictly in Vietnamese / tiếng Việt).
 
 {posts_block}"""
 
@@ -316,9 +403,9 @@ DO NOT count finished event recaps (`[RECAP]`, `tổng kết`), honor rolls/awar
 Extraction schema (return ONLY valid JSON):
 {
   "is_event": boolean,
-  "reason": "1 concise sentence explaining the decision",
+  "reason": "1 câu giải thích ngắn gọn BẰNG TIẾNG VIỆT về quyết định phân loại",
   "title": "Canonical event name, keeping bracketed text (e.g. [BUILD ON STELLAR]) and stripping salutations/meta tags",
-  "description": "2-3 sentence summary of main activities, dates, and student benefits/prizes",
+  "description": "Tóm tắt 2-3 câu bằng tiếng Việt về hoạt động chính, thời gian và quyền lợi/giải thưởng cho sinh viên",
   "event_start_datetime": "ISO 8601 (+07:00) or null",
   "event_end_datetime": "ISO 8601 (+07:00) or null",
   "reg_start_datetime": "ISO 8601 (+07:00) or null",
@@ -505,6 +592,41 @@ def reason_about_post_content(content: str) -> Tuple[bool, str]:
     return False, f"disqualified:insufficient_event_signals (kw_count={kw_count})"
 
 
+def _format_reasoning_vietnamese(note: str) -> str:
+    """Convert internal content-reasoning diagnostic codes into concise Vietnamese explanations."""
+    raw = (note or "").strip()
+    if not raw:
+        return "Bài đăng không chứa thông tin sự kiện hoặc hoạt động mở đăng ký sắp tới."
+
+    m_arg = re.search(r"\((.+)\)\s*$", raw)
+    detail = m_arg.group(1).strip() if m_arg else ""
+    cue_suffix = f" ('{detail}')" if detail and not detail.startswith("kw_count=") else ""
+
+    if "empty_post" in raw:
+        return "Bài đăng trống, không có nội dung văn bản để phân tích sự kiện."
+    if "non_event_signal" in raw:
+        return f"Bài đăng mang tính tổng kết, chúc mừng, vinh danh hoặc thông báo hành chính{cue_suffix}, không mở đăng ký sự kiện mới."
+    if "internal_governance_congress" in raw:
+        return f"Bài đăng về hội nghị/công tác kiện toàn nội bộ Ban Chấp hành{cue_suffix}, không phải sự kiện mở rộng cho sinh viên đăng ký."
+    if "scholarship_dossier_notice" in raw:
+        return f"Bài đăng thông báo nộp hồ sơ xét học bổng thuần túy{cue_suffix}, không có buổi hội thảo hay sự kiện trực tiếp đi kèm."
+    if "corporate_job_posting" in raw:
+        return f"Bài đăng tuyển dụng việc làm/thực tập doanh nghiệp{cue_suffix}, không kèm hội thảo hay ngày hội việc làm tại trường."
+    if "retrospective_summary" in raw:
+        return f"Bài đăng cảm ơn/tổng kết hoạt động đã diễn ra{cue_suffix}, không có lịch trình hay đơn đăng ký mới."
+    if "companion_qa_handbook" in raw:
+        return f"Bài đăng cẩm nang/giải đáp thắc mắc phụ trợ{cue_suffix}, không công bố phiên sự kiện mới."
+    if "insufficient_event_signals" in raw:
+        return "Bài đăng không có đủ tín hiệu về thời gian, địa điểm hoặc lời mời đăng ký tham gia sự kiện."
+    if "strong_event_signal" in raw:
+        return f"Bài đăng chứa tín hiệu thông báo/mở đăng ký sự kiện rõ ràng{cue_suffix}."
+    if "keyword_density" in raw:
+        return "Bài đăng chứa nhiều từ khóa đặc trưng của hoạt động/sự kiện sinh viên sắp diễn ra."
+    if "keywords_with_schedule_or_link" in raw:
+        return "Bài đăng có từ khóa sự kiện đi kèm mốc thời gian hoặc đường dẫn đăng ký cụ thể."
+    return raw
+
+
 def looks_event_related(content: str) -> bool:
     """
     Empirical content-reasoning pre-filter before calling Gemini (validated on 100 labeled posts).
@@ -531,11 +653,80 @@ _CACHE_UNSUPPORTED_MODELS: set[str] = set()
 _CACHED_GEMINI_V2_MODELS: Dict[str, List[str]] = {}
 
 
+def _is_vertex_endpoint(model: str) -> bool:
+    """Return True if `model` is a Vertex AI tuned endpoint resource or aiplatform URL."""
+    m = (model or "").strip()
+    return m.startswith("projects/") or "aiplatform.googleapis.com" in m
+
+
+def _is_tuned_or_custom_gemini_model(model: str) -> bool:
+    """Return True if `model` is a fine-tuned Gemini model (`tunedModels/...` or Vertex endpoint)."""
+    m = (model or "").strip()
+    return m.startswith("tunedModels/") or _is_vertex_endpoint(m)
+
+
 def _gemini_generate_url(model: str) -> str:
-    """Build generateContent URL for standard `models/...` or fine-tuned `tunedModels/...`."""
-    if model.startswith("tunedModels/"):
-        return f"https://generativelanguage.googleapis.com/v1beta/{model}:generateContent"
-    return GEMINI_URL.format(model=model)
+    """Build `generateContent` URL for standard `models/...`, `tunedModels/...`, or Vertex AI tuned endpoints."""
+    m = (model or "").strip()
+    if m.startswith("https://"):
+        return m if ":generateContent" in m else f"{m.rstrip('/')}:generateContent"
+    if m.startswith("projects/"):
+        loc_match = re.match(r"^projects/[^/]+/locations/([^/]+)/", m)
+        location = loc_match.group(1) if loc_match else "us-central1"
+        host = "aiplatform.googleapis.com" if location == "global" else f"{location}-aiplatform.googleapis.com"
+        return f"https://{host}/v1beta1/{m}:generateContent"
+    if m.startswith("tunedModels/"):
+        return f"https://generativelanguage.googleapis.com/v1beta/{m}:generateContent"
+    return GEMINI_URL.format(model=m)
+
+
+_VERTEX_OAUTH_CACHE: Tuple[str, float] = ("", 0.0)
+
+
+def _get_vertex_bearer_token() -> Optional[str]:
+    """Obtain an OAuth2 Bearer token for Vertex AI tuned endpoints via env token or google-auth ADC."""
+    global _VERTEX_OAUTH_CACHE
+    explicit_tok = os.environ.get("VERTEX_ACCESS_TOKEN", "").strip()
+    if explicit_tok:
+        return explicit_tok
+
+    now = time.time()
+    if _VERTEX_OAUTH_CACHE[0] and _VERTEX_OAUTH_CACHE[1] - 60 > now:
+        return _VERTEX_OAUTH_CACHE[0]
+
+    try:
+        import google.auth
+        import google.auth.transport.requests
+
+        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+        creds.refresh(google.auth.transport.requests.Request())
+        if creds.token:
+            exp_ts = creds.expiry.timestamp() if getattr(creds, "expiry", None) else (now + 3000)
+            _VERTEX_OAUTH_CACHE = (creds.token, exp_ts)
+            return creds.token
+    except Exception:
+        return None
+    return None
+
+
+def _build_gemini_url_and_headers(model: str, api_key: str) -> Tuple[str, Dict[str, str]]:
+    """Build target URL and auth headers for either Gemini Developer API or Vertex AI tuned endpoints."""
+    url = _gemini_generate_url(model)
+    headers: Dict[str, str] = {"Content-Type": "application/json"}
+    if _is_vertex_endpoint(model):
+        bearer = _get_vertex_bearer_token()
+        if bearer:
+            headers["Authorization"] = f"Bearer {bearer}"
+            return url, headers
+        vertex_key = os.environ.get("VERTEX_API_KEY", "").strip() or api_key
+        if vertex_key:
+            sep = "&" if "?" in url else "?"
+            url = f"{url}{sep}key={vertex_key}"
+        return url, headers
+
+    if api_key:
+        headers["x-goog-api-key"] = api_key
+    return url, headers
 
 
 def _resolve_gemini_proxy_url() -> Optional[str]:
@@ -667,16 +858,22 @@ def _candidate_gemini_models(api_key: str = "") -> List[str]:
     global _WORKING_GEMINI_MODEL
     v2_models = _fetch_gemini_models_v2(api_key)
 
-    if _WORKING_GEMINI_MODEL:
-        return [_WORKING_GEMINI_MODEL] + [m for m in v2_models if m != _WORKING_GEMINI_MODEL]
-
+    tuned = (os.environ.get("GEMINI_TUNED_MODEL") or "").strip().strip("'\"")
     raw = (os.environ.get("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL or "").strip().strip("'\"")
     if raw.startswith("models/"):
         raw = raw[len("models/"):].strip()
 
+    if _WORKING_GEMINI_MODEL:
+        base_rest = [m for m in v2_models if m != _WORKING_GEMINI_MODEL]
+        if tuned and tuned != _WORKING_GEMINI_MODEL:
+            return [tuned, _WORKING_GEMINI_MODEL] + [m for m in base_rest if m != tuned]
+        return [_WORKING_GEMINI_MODEL] + base_rest
+
     retired_prefixes = ("gemini-1.0", "gemini-pro-vision")
     candidates: List[str] = []
-    if raw and not raw.lower().startswith(retired_prefixes):
+    if tuned:
+        candidates.append(tuned)
+    if raw and not raw.lower().startswith(retired_prefixes) and raw not in candidates:
         candidates.append(raw)
         if raw.lower() == "gemini-3.1-flash-lite" and "gemini-3.1-flash-lite-preview" not in candidates:
             candidates.append("gemini-3.1-flash-lite-preview")
@@ -700,16 +897,17 @@ def _cache_scope_key(model: str, api_key: str) -> str:
 
 def _get_or_create_cached_regulations(model: str, api_key: str) -> Optional[str]:
     """
-    Create or reuse a server-side Gemini `cachedContents` resource holding `SYSTEM_REGULATIONS`
-    for `(model, api_key)`. If the model/tier rejects explicit context caching (e.g., < minimum token threshold
-    or free-tier restriction), marks `cache_key` in `_CACHE_UNSUPPORTED_MODELS` and falls back to
-    `system_instruction` without extra round-trips.
+    Create or reuse a server-side Gemini `cachedContents` resource holding `GEMINI_CACHED_SYSTEM_PROMPT`
+    (>= 4,096 tokens) for `(model, api_key)`, shared across both 8-post batch calls and single-post calls.
+    If the model/tier rejects explicit context caching (e.g., free-tier storage limit=0), marks `cache_key`
+    in `_CACHE_UNSUPPORTED_MODELS` and falls back cleanly to `system_instruction` (where Gemini 2.5/3.x
+    implicit prefix caching still caches the >= 4,096-token static prompt).
     """
     cache_key = _cache_scope_key(model, api_key)
     if (
         not GEMINI_ENABLE_CONTEXT_CACHE
         or not api_key
-        or model.startswith("tunedModels/")
+        or _is_tuned_or_custom_gemini_model(model)
         or cache_key in _CACHE_UNSUPPORTED_MODELS
     ):
         return None
@@ -724,12 +922,13 @@ def _get_or_create_cached_regulations(model: str, api_key: str) -> Optional[str]
     payload_bytes = json.dumps(
         {
             "model": full_model,
-            "displayName": "fb_rss_event_extractor_regulations_v3",
+            "displayName": "fb_rss_event_extractor_regulations_v5",
             "systemInstruction": {
-                "parts": [{"text": SYSTEM_REGULATIONS}],
+                "parts": [{"text": GEMINI_CACHED_SYSTEM_PROMPT}],
             },
             "ttl": f"{ttl_s}s",
-        }
+        },
+        ensure_ascii=False,
     ).encode("utf-8")
 
     try:
@@ -743,12 +942,24 @@ def _get_or_create_cached_regulations(model: str, api_key: str) -> Optional[str]
         cache_name = data.get("name")
         if isinstance(cache_name, str) and cache_name.strip():
             _CACHED_SYSTEM_HANDLES[cache_key] = (cache_name.strip(), now + ttl_s)
-            print(f"[events] Cached regulations on Gemini ({model}, {_GLOBAL_KEY_POOL.key_label(api_key)}) -> {cache_name.strip()} (TTL {ttl_s}s)")
+            print(
+                f"[events] Cached prompt on Gemini ({model}, {_GLOBAL_KEY_POOL.key_label(api_key)}) "
+                f"-> {cache_name.strip()} (TTL {ttl_s}s)"
+            )
             return cache_name.strip()
     except urllib.error.HTTPError as exc:
-        # 400/403/404 usually means prompt < min token threshold (1024-4096) or free-tier caching disabled
         _CACHE_UNSUPPORTED_MODELS.add(cache_key)
-        if exc.code not in (400, 403, 404):
+        err_body = ""
+        try:
+            err_body = exc.read().decode("utf-8", errors="ignore")
+        except Exception:
+            pass
+        if exc.code == 429 and ("FreeTier" in err_body or "limit=0" in err_body):
+            print(
+                f"[events] Explicit cachedContents disabled on free tier for {model}; "
+                "using system_instruction (implicit prefix caching active)."
+            )
+        elif exc.code not in (400, 403, 404):
             print(f"[events] Gemini cachedContents unavailable on {model} (HTTP {exc.code}); using system_instruction.")
     except Exception:
         _CACHE_UNSUPPORTED_MODELS.add(cache_key)
@@ -760,9 +971,15 @@ GEMINI_RESPONSE_SCHEMA: Dict[str, Any] = {
     "required": ["is_event", "reason", "category", "format"],
     "properties": {
         "is_event": {"type": "BOOLEAN"},
-        "reason": {"type": "STRING"},
+        "reason": {
+            "type": "STRING",
+            "description": "Giải thích ngắn gọn 1 câu BẰNG TIẾNG VIỆT lý do bài đăng là sự kiện (is_event=true) hoặc lý do bị loại (is_event=false).",
+        },
         "title": {"type": "STRING"},
-        "description": {"type": "STRING"},
+        "description": {
+            "type": "STRING",
+            "description": "Tóm tắt 2-3 câu BẰNG TIẾNG VIỆT về nội dung chính và quyền lợi cho sinh viên.",
+        },
         "event_start_datetime": {"type": "STRING"},
         "event_end_datetime": {"type": "STRING"},
         "reg_start_datetime": {"type": "STRING"},
@@ -788,17 +1005,67 @@ GEMINI_RESPONSE_SCHEMA: Dict[str, Any] = {
 }
 
 
-def _build_gemini_request_body(user_text: str, model: str, api_key: str) -> bytes:
+GEMINI_BATCH_RESPONSE_SCHEMA: Dict[str, Any] = {
+    "type": "ARRAY",
+    "items": {
+        "type": "OBJECT",
+        "required": ["post_id", "is_event", "reason", "category", "format"],
+        "properties": {
+            "post_id": {"type": "STRING"},
+            **GEMINI_RESPONSE_SCHEMA["properties"],
+        },
+    },
+}
+
+
+_TUNED_COMPAT_PLAIN_MODELS: set[str] = set()
+
+
+def _parse_gemini_json_text(text: str) -> Any:
+    """Parse JSON from Gemini/tuned-model output, stripping markdown code fences if present."""
+    raw = (text or "").strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw)
+        if m:
+            return json.loads(m.group(1).strip())
+        first_brace = raw.find("{")
+        first_bracket = raw.find("[")
+        starts = [i for i in (first_brace, first_bracket) if i != -1]
+        end_idx = max(raw.rfind("}"), raw.rfind("]"))
+        if starts and end_idx > min(starts):
+            return json.loads(raw[min(starts) : end_idx + 1])
+        raise
+
+
+def _build_gemini_request_body(
+    user_text: str,
+    model: str,
+    api_key: str,
+    *,
+    is_batch: bool = False,
+    compat_plain: bool = False,
+) -> bytes:
     """
     Build the `generateContent` request body:
-      - Uses server-side `cachedContent` handle if available for `model` (sends ONLY raw post text).
-      - Otherwise uses `system_instruction` for `SYSTEM_REGULATIONS` (eligible for Gemini implicit
-        prefix caching) and sends ONLY the raw post text in `contents`.
+      - Standard / Vertex SFT models: uses `cachedContent` or `system_instruction` + `responseSchema`.
+      - Legacy `tunedModels/...` fallback (`compat_plain=True`): inlines `SYSTEM_REGULATIONS` into `contents`
+        and omits `system_instruction`/`responseSchema` when the tuned endpoint rejects structured config.
     """
+    if compat_plain or model in _TUNED_COMPAT_PLAIN_MODELS:
+        combined = f"{SYSTEM_REGULATIONS}\n\n{user_text}"
+        payload_compat: Dict[str, Any] = {
+            "contents": [{"role": "user", "parts": [{"text": combined}]}],
+            "generationConfig": {"temperature": 0},
+        }
+        return json.dumps(payload_compat, ensure_ascii=False).encode("utf-8")
+
     cached_name = _get_or_create_cached_regulations(model, api_key)
+    schema = GEMINI_BATCH_RESPONSE_SCHEMA if is_batch else GEMINI_RESPONSE_SCHEMA
     gen_config: Dict[str, Any] = {
         "responseMimeType": "application/json",
-        "responseSchema": GEMINI_RESPONSE_SCHEMA,
+        "responseSchema": schema,
         "temperature": 0,
     }
     payload: Dict[str, Any] = {
@@ -814,7 +1081,7 @@ def _build_gemini_request_body(user_text: str, model: str, api_key: str) -> byte
         payload["cachedContent"] = cached_name
     else:
         payload["system_instruction"] = {
-            "parts": [{"text": SYSTEM_REGULATIONS}],
+            "parts": [{"text": GEMINI_CACHED_SYSTEM_PROMPT}],
         }
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
@@ -1022,46 +1289,68 @@ def _call_groq_json(user_text: str, groq_key: str = "", max_output_tokens: int =
     return None
 
 
-def _execute_gemini_generate(user_text: str, api_key: str = "") -> Any:
-    """Execute a Gemini `generateContent` request with round-robin key rotation across pooled keys, model fallback, and retry."""
+def _execute_gemini_generate(user_text: str, api_key: str = "", *, is_batch: bool = False) -> Any:
+    """Execute a Gemini `generateContent` request supporting standard models, `tunedModels/...`, and Vertex AI tuned endpoints."""
     global _WORKING_GEMINI_MODEL, _GLOBAL_KEY_POOL
     pool = _GLOBAL_KEY_POOL
     pool.load_from_env()
     if api_key:
         pool.add_keys(api_key)
 
-    if not pool.has_keys():
-        raise ValueError("No Gemini API key configured.")
+    tuned_cfg = (os.environ.get("GEMINI_TUNED_MODEL") or os.environ.get("GEMINI_MODEL") or "").strip()
+    has_vertex_only_auth = _is_vertex_endpoint(tuned_cfg) and bool(
+        os.environ.get("VERTEX_API_KEY", "").strip()
+        or os.environ.get("VERTEX_ACCESS_TOKEN", "").strip()
+        or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+    )
+
+    if not pool.has_keys() and not has_vertex_only_auth:
+        raise ValueError("No Gemini API key or Vertex AI credentials configured.")
 
     last_exc: Optional[Exception] = None
     max_key_attempts = max(1, len(pool.keys))
     for key_attempt in range(max_key_attempts):
-        active_key = pool.get_active_key()
-        if not active_key:
+        active_key = pool.get_active_key() or ""
+        if not active_key and not has_vertex_only_auth:
             break
 
         for model in _candidate_gemini_models(active_key):
+            if not active_key and not _is_vertex_endpoint(model):
+                continue
             cache_key = _cache_scope_key(model, active_key)
+            tried_compat_plain = model in _TUNED_COMPAT_PLAIN_MODELS
             for attempt in range(GEMINI_MAX_RETRIES + 1):
-                body_bytes = _build_gemini_request_body(user_text, model, active_key)
+                body_bytes = _build_gemini_request_body(
+                    user_text,
+                    model,
+                    active_key,
+                    is_batch=is_batch,
+                    compat_plain=tried_compat_plain,
+                )
+                target_url, req_headers = _build_gemini_url_and_headers(model, active_key)
                 try:
                     payload = _gemini_urlopen_json(
-                        _gemini_generate_url(model),
+                        target_url,
                         method="POST",
-                        headers={"Content-Type": "application/json", "x-goog-api-key": active_key},
+                        headers=req_headers,
                         data=body_bytes,
                         timeout=GEMINI_REQUEST_TIMEOUT_SECONDS,
                     )
                     _WORKING_GEMINI_MODEL = model
-                    # Advance round-robin pointer so the next extraction uses the next key in the pool
-                    pool.advance()
+                    if active_key:
+                        pool.advance()
                     text = payload["candidates"][0]["content"]["parts"][0]["text"]
-                    return json.loads(text)
+                    return _parse_gemini_json_text(text)
                 except urllib.error.HTTPError as exc:
                     last_exc = exc
                     if exc.code in (400, 404) and cache_key in _CACHED_SYSTEM_HANDLES:
                         _CACHED_SYSTEM_HANDLES.pop(cache_key, None)
                         _CACHE_UNSUPPORTED_MODELS.add(cache_key)
+                        continue
+                    if exc.code == 400 and _is_tuned_or_custom_gemini_model(model) and not tried_compat_plain:
+                        _TUNED_COMPAT_PLAIN_MODELS.add(model)
+                        tried_compat_plain = True
+                        print(f"[events] Tuned model '{model}' rejected schema/system_instruction; retrying with inlined prompt...")
                         continue
                     if exc.code in (400, 404):
                         err_detail = ""
@@ -1105,18 +1394,106 @@ def _execute_gemini_generate(user_text: str, api_key: str = "") -> Any:
     return None
 
 
+def _normalize_custom_llm_url(raw_url: str) -> str:
+    """Normalize a Colab tunnel or Ollama base URL to its `/v1/chat/completions` endpoint."""
+    u = (raw_url or "").strip().rstrip("/")
+    if not u:
+        return ""
+    if u.endswith("/chat/completions"):
+        return u
+    if u.endswith("/v1"):
+        return f"{u}/chat/completions"
+    return f"{u}/v1/chat/completions"
+
+
+def _has_custom_llm() -> bool:
+    return bool(os.environ.get("CUSTOM_LLM_URL", "").strip())
+
+
+def _has_llm_backend() -> bool:
+    """Return True if a custom Colab/Ollama endpoint, Gemini API key, or Vertex endpoint is configured."""
+    if _has_custom_llm():
+        return True
+    _GLOBAL_KEY_POOL.load_from_env()
+    if _GLOBAL_KEY_POOL.has_keys():
+        return True
+    tuned_cfg = (os.environ.get("GEMINI_TUNED_MODEL") or os.environ.get("GEMINI_MODEL") or "").strip()
+    return _is_vertex_endpoint(tuned_cfg) and bool(
+        os.environ.get("VERTEX_API_KEY", "").strip()
+        or os.environ.get("VERTEX_ACCESS_TOKEN", "").strip()
+        or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+    )
+
+
+def _call_custom_llm_json(user_text: str, max_output_tokens: int = 1536) -> Optional[Dict[str, Any]]:
+    """Call a fine-tuned model hosted on Google Colab (Cloudflare/ngrok tunnel) or local Ollama."""
+    endpoint = _normalize_custom_llm_url(os.environ.get("CUSTOM_LLM_URL", ""))
+    if not endpoint:
+        return None
+
+    model_name = (os.environ.get("CUSTOM_LLM_MODEL") or "event-extractor").strip()
+    api_key = (os.environ.get("CUSTOM_LLM_API_KEY") or "").strip()
+    timeout_s = float(os.environ.get("CUSTOM_LLM_TIMEOUT_SECONDS") or 75.0)
+
+    payload: Dict[str, Any] = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": SYSTEM_REGULATIONS},
+            {"role": "user", "content": user_text},
+        ],
+        "temperature": 0.0,
+        "max_tokens": max_output_tokens,
+        "stream": False,
+    }
+    headers: Dict[str, str] = {
+        "Content-Type": "application/json",
+        "User-Agent": "EventExtractor/2.1",
+        "ngrok-skip-browser-warning": "true",
+    }
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    req = urllib.request.Request(
+        endpoint,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        resp_data = json.loads(resp.read().decode("utf-8"))
+
+    content_str = (
+        resp_data.get("choices", [{}])[0].get("message", {}).get("content")
+        or resp_data.get("message", {}).get("content")
+        or resp_data.get("response")
+        or ""
+    )
+    parsed = _parse_gemini_json_text(content_str)
+    if isinstance(parsed, list):
+        parsed = parsed[0] if parsed else {}
+    return parsed if isinstance(parsed, dict) else None
+
+
 def call_gemini_text(
     content: str,
     published_at_str: str,
     source_name: str,
     api_key: str = "",
 ) -> Optional[Dict[str, Any]]:
-    """Send text to Gemini (with key rotation and dynamic Gemini-2 model discovery)."""
+    """Send text to Custom Colab/Ollama model first (if configured), falling back to Gemini pool."""
     user_text = USER_POST_TEMPLATE.format(
         published_at=published_at_str,
         fanpage=source_name,
         content=(content or "")[:6000],
     )
+    if _has_custom_llm():
+        try:
+            custom_data = _call_custom_llm_json(user_text)
+            if isinstance(custom_data, dict) and "is_event" in custom_data:
+                return custom_data
+        except Exception as custom_exc:
+            print(f"[events] Custom Colab/Ollama LLM unavailable ({custom_exc}); falling back to Gemini...")
+
     try:
         data = _execute_gemini_generate(user_text, api_key)
         if isinstance(data, list):
@@ -1183,24 +1560,39 @@ def call_gemini_batch(
                 result_map[posts[idx].post_id] = item
         return result_map or None
 
-    # 1. Try Gemini
+    # 0. If a fine-tuned Colab/Ollama endpoint is configured, run per-post in its exact single-post training format
+    if _has_custom_llm():
+        custom_mapped: Dict[str, Dict[str, Any]] = {}
+        custom_ok = True
+        for p in posts:
+            pub_str = p.published_at.isoformat() if p.published_at else "unknown"
+            single_prompt = USER_POST_TEMPLATE.format(
+                published_at=pub_str,
+                fanpage=fanpage_name,
+                content=(p.content or "")[:6000],
+            )
+            try:
+                res_item = _call_custom_llm_json(single_prompt)
+                if isinstance(res_item, dict) and "is_event" in res_item:
+                    custom_mapped[p.post_id] = res_item
+                else:
+                    custom_ok = False
+                    break
+            except Exception as custom_exc:
+                print(f"[events] Custom Colab/Ollama LLM error during batch ({custom_exc}); falling back to Gemini...")
+                custom_ok = False
+                break
+        if custom_ok and custom_mapped:
+            return custom_mapped
+
+    # 1. Try Gemini batch call (single-post fallback for partial/failed batches is handled by caller)
     try:
-        data = _execute_gemini_generate(user_text, api_key)
+        data = _execute_gemini_generate(user_text, api_key, is_batch=True)
         mapped = _unpack_batch(data)
         if mapped:
             return mapped
     except Exception as exc:
-        print(f"[events] Gemini batch error ({exc}); retrying batch posts individually via Gemini...")
-        single_mapped: Dict[str, Dict[str, Any]] = {}
-        for p in posts:
-            try:
-                single = call_gemini(p, fanpage_name, api_key)
-                if isinstance(single, dict) and single:
-                    single_mapped[p.post_id] = single
-            except Exception as single_exc:
-                print(f"[events] Individual fallback failed for post '{p.post_id}': {single_exc}")
-        if single_mapped:
-            return single_mapped
+        print(f"[events] Gemini batch error ({exc}); caller will retry missing posts if quota remains.")
 
     return None
 
@@ -1621,7 +2013,7 @@ def _enrich_extracted_event_fields(
 
     is_candidate, reasoning_note = reason_about_post_content(content)
     if not raw_data.get("reason"):
-        raw_data["reason"] = reasoning_note
+        raw_data["reason"] = _format_reasoning_vietnamese(reasoning_note)
 
     if not raw_data.get("is_event"):
         return raw_data
@@ -1633,7 +2025,7 @@ def _enrich_extracted_event_fields(
         "disqualified:insufficient_event_signals"
     ):
         raw_data["is_event"] = False
-        raw_data["reason"] = f"guardrail_override ({reasoning_note})"
+        raw_data["reason"] = _format_reasoning_vietnamese(reasoning_note)
         return raw_data
 
     # 0. Clean title & fill missing description
@@ -1727,7 +2119,7 @@ def heuristic_extract_event(
     stripped = _strip_accents(combined).lower()
     is_candidate, reasoning_note = reason_about_post_content(combined)
     if not is_candidate:
-        return {"is_event": False, "reason": reasoning_note}
+        return {"is_event": False, "reason": _format_reasoning_vietnamese(reasoning_note)}
 
     # Title: prefer subject if non-generic, else extract from content preserving brackets
     title = ""
@@ -1793,7 +2185,7 @@ def heuristic_extract_event(
 
     return {
         "is_event": True,
-        "reason": reasoning_note,
+        "reason": _format_reasoning_vietnamese(reasoning_note),
         "title": title,
         "description": description or None,
         "event_start_datetime": event_start_datetime,
@@ -2106,7 +2498,8 @@ def _merge_registration_and_null_fields(
 def _format_source_type(session, source_type: str, fanpage_id: Optional[int]) -> str:
     raw = (source_type or "facebook").strip()
     if raw.lower() == "facebook" and fanpage_id:
-        fp = session.get(Fanpage, fanpage_id)
+        with get_webapp_session() as wsession:
+            fp = wsession.get(Fanpage, fanpage_id)
         if fp:
             label = (fp.name or fp.slug or "").strip()
             if label:
@@ -2335,7 +2728,8 @@ def sync_all_event_folders(session=None) -> Dict[str, int]:
         now_iso = datetime.now(LOCAL_TIMEZONE).isoformat()
 
         # 1. Sync per-fanpage events.json files
-        fanpages = session.scalars(select(Fanpage)).all()
+        with get_webapp_session() as wsession:
+            fanpages = list(wsession.scalars(select(Fanpage).order_by(Fanpage.fanpage_id.asc())).all())
         for fp in fanpages:
             _write_events_json(fp, session)
 
@@ -2517,7 +2911,7 @@ def ingest_email_message(
 
         # 2. Extract event candidate via Gemini LLM pool (or heuristic fallback if no keys configured)
         _GLOBAL_KEY_POOL.load_from_env()
-        has_gemini = _GLOBAL_KEY_POOL.has_keys()
+        has_gemini = _has_llm_backend()
         full_email_text = (
             f"Subject: {clean_subject}\n"
             f"From: {sender or 'unknown'}\n"
@@ -2643,12 +3037,13 @@ def analyze_fanpage_posts(
         "updated_events": [],
     }
     _GLOBAL_KEY_POOL.load_from_env()
-    has_gemini = _GLOBAL_KEY_POOL.has_keys()
+    has_gemini = _has_llm_backend()
     max_llm_calls = max(MAX_LLM_CALLS_PER_FANPAGE, limit) if (limit and limit > 0) else MAX_LLM_CALLS_PER_FANPAGE
+    with get_webapp_session() as wsession:
+        fanpage = wsession.get(Fanpage, fanpage_id)
+    if not fanpage:
+        return stats
     with get_session() as session:
-        fanpage = session.get(Fanpage, fanpage_id)
-        if not fanpage:
-            return stats
         existing_analyses = {
             pa.post_id: pa
             for pa in session.scalars(
@@ -2684,7 +3079,10 @@ def analyze_fanpage_posts(
                         post_id=post.post_id,
                         fanpage_id=fanpage_id,
                         is_event=False,
-                        event_json=json.dumps({"reason": f"prefilter:{prefilter_reason}"}, ensure_ascii=False),
+                        event_json=json.dumps(
+                            {"reason": _format_reasoning_vietnamese(prefilter_reason)},
+                            ensure_ascii=False,
+                        ),
                     )
                 )
                 stats["analyzed"] += 1
@@ -2696,7 +3094,9 @@ def analyze_fanpage_posts(
             data.pop("post_id", None)
             data = _enrich_extracted_event_fields(data, post.content or "", published_at=post.published_at)
             is_event = bool(data.pop("is_event", False))
-            non_event_reason = str(data.get("reason") or "llm_not_event").strip()
+            non_event_reason = str(
+                data.get("reason") or "Bài đăng không thông báo sự kiện hoặc hoạt động mở đăng ký sắp tới."
+            ).strip()
             if is_event:
                 upsert_status, ev_record, changes = upsert_unified_event(
                     session=session,
@@ -2788,15 +3188,17 @@ def analyze_fanpage_posts(
     return stats
 
 
-def purge_fanpage_events(fanpage_id: int, slug: str) -> None:
+def purge_fanpage_events(fanpage_id: int, slug: str, fanpage_name: Optional[str] = None) -> None:
     """Delete cached analyses and the events folder of a removed fanpage."""
     import shutil
 
-    fp_name = None
+    fp_name = (fanpage_name or "").strip() or None
+    if not fp_name:
+        with get_webapp_session() as wsession:
+            fp = wsession.get(Fanpage, fanpage_id)
+            if fp:
+                fp_name = (fp.name or fp.slug or "").strip()
     with get_session() as session:
-        fp = session.get(Fanpage, fanpage_id)
-        if fp:
-            fp_name = (fp.name or fp.slug or "").strip()
         for row in session.scalars(select(PostAnalysis).where(PostAnalysis.fanpage_id == fanpage_id)).all():
             session.delete(row)
         session.commit()
@@ -2843,7 +3245,7 @@ def _process_single_post_extraction(post_data: Dict[str, Any]) -> Dict[str, Any]
         }
 
     _GLOBAL_KEY_POOL.load_from_env()
-    has_gemini = _GLOBAL_KEY_POOL.has_keys()
+    has_gemini = _has_llm_backend()
     source_label = fanpage_name or fanpage_url or "Facebook Post"
     raw_data: Optional[Dict[str, Any]] = None
     if has_gemini and content:

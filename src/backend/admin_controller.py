@@ -10,7 +10,7 @@ from events import analyze_fanpage_posts, purge_fanpage_events, reclassify_all_e
 from rss import generate_all_rss, generate_fanpage_rss
 from scheduler import backup_state_to_git
 from scraper import is_facebook_post_url, scrape_fanpage
-from src.control.runtime import manager, process_single_post_url, trigger_unified_scrape
+from src.backend.runtime import manager, process_single_post_url, trigger_unified_scrape
 from src.model import (
     AddFanpageRequest,
     AdminLoginRequest,
@@ -326,7 +326,7 @@ async def admin_remove_fanpage(identifier: str = Query(..., description="Fanpage
     if not removed:
         raise HTTPException(status_code=404, detail="Fanpage not found.")
     (FEEDS_DIR / f"{removed.slug}.xml").unlink(missing_ok=True)
-    purge_fanpage_events(removed.id, removed.slug)
+    purge_fanpage_events(removed.id, removed.slug, fanpage_name=removed.name)
     generate_all_rss()
     await manager.broadcast_to_all(
         {"event": "status", "message": f"Removed fanpage: {removed.name or removed.slug}", "refresh_tree": True}

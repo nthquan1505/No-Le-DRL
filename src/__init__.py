@@ -1,1 +1,1 @@
-"""MVC Web Application package (`src.model`, `src.view`, `src.control`)."""
+"""MVC Web Application package (`src.model`, `src.frontend`, `src.backend`)."""

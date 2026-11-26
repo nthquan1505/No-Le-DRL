@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, parse_qs
 
-from sqlalchemy import create_engine, event, select, func, text
-from sqlalchemy.orm import Session, sessionmaker, joinedload
+from sqlalchemy import create_engine, delete, event, select, func, text
+from sqlalchemy.orm import Session, sessionmaker
 
 from config import DATABASE_URL, LOCAL_TIMEZONE, WEBAPP_DATABASE_URL
 from .models import (
@@ -324,13 +324,59 @@ def _migrate_sqlite_schema() -> None:
                 conn.execute(text("DROP TABLE events_legacy_backup"))
 
 
+def _seed_webapp_fanpages_from_legacy() -> None:
+    """Seed `webapp.db.fanpages` from legacy `rss_bot.db.fanpages` when first creating the table."""
+    with webapp_engine.begin() as wconn:
+        cnt = wconn.execute(text("SELECT COUNT(*) FROM fanpages")).scalar() or 0
+        if cnt > 0:
+            return
+
+        legacy_rows = []
+        try:
+            with engine.connect() as iconn:
+                has_legacy = iconn.execute(
+                    text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='fanpages'")
+                ).fetchone()
+                if has_legacy:
+                    legacy_rows = iconn.execute(
+                        text("SELECT id, name, slug, url FROM fanpages WHERE is_active = 1 ORDER BY id ASC")
+                    ).fetchall()
+        except Exception:
+            legacy_rows = []
+
+        for fid, fname, fslug, furl in legacy_rows:
+            if not furl:
+                continue
+            wconn.execute(
+                text(
+                    "INSERT OR IGNORE INTO fanpages (fanpage_id, fanpage_name, facebook_url) "
+                    "VALUES (:fid, :fname, :furl)"
+                ),
+                {
+                    "fid": int(fid),
+                    "fname": (str(fname).strip() if fname else "") or (str(fslug).strip() if fslug else ""),
+                    "furl": str(furl).strip(),
+                },
+            )
+
+
 def init_db() -> None:
-    """Create database tables in rss_bot.db (ingestion) and webapp.db (events, users, event_subscriptions)."""
+    """Create database tables in rss_bot.db (ingestion) and webapp.db (events, users, event_subscriptions, fanpages)."""
     global _DB_INITIALIZED
+    had_webapp_fanpages = True
     if not _DB_INITIALIZED:
-        _DB_INITIALIZED = True
+        with webapp_engine.connect() as wconn:
+            had_webapp_fanpages = bool(
+                wconn.execute(
+                    text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='fanpages'")
+                ).fetchone()
+            )
     Base.metadata.create_all(bind=engine)
     WebAppBase.metadata.create_all(bind=webapp_engine)
+    if not _DB_INITIALIZED:
+        _DB_INITIALIZED = True
+        if not had_webapp_fanpages:
+            _seed_webapp_fanpages_from_legacy()
 
 
 def get_session() -> Session:
@@ -339,6 +385,49 @@ def get_session() -> Session:
 
 def get_webapp_session() -> Session:
     return WebAppSessionLocal()
+
+
+def _find_fanpage_in_session(wsession: Session, identifier: str) -> Optional[Fanpage]:
+    """Locate a `Fanpage` row in `webapp.db` by `fanpage_id`, `facebook_url`, or derived `slug`."""
+    ident = (identifier or "").strip()
+    if not ident:
+        return None
+    if ident.isdigit():
+        found = wsession.get(Fanpage, int(ident))
+        if found:
+            return found
+
+    try:
+        canonical_url, target_slug = normalize_fb_url(ident)
+        found = wsession.scalar(select(Fanpage).where(Fanpage.facebook_url == canonical_url))
+        if found:
+            return found
+    except ValueError:
+        target_slug = ident
+
+    ident_low = ident.lower()
+    slug_low = target_slug.lower()
+    for fp in wsession.scalars(select(Fanpage).order_by(Fanpage.fanpage_id.asc())).all():
+        if fp.slug.lower() in (ident_low, slug_low):
+            return fp
+    return None
+
+
+def _attach_fanpages_to_posts(posts: List[Post]) -> List[Post]:
+    """Attach transient `Fanpage` objects from `webapp.db` onto `Post` instances loaded from `rss_bot.db`."""
+    if not posts:
+        return posts
+    fp_ids = list({p.fanpage_id for p in posts if p.fanpage_id is not None})
+    if not fp_ids:
+        return posts
+    with get_webapp_session() as wsession:
+        fp_map = {
+            fp.fanpage_id: fp
+            for fp in wsession.scalars(select(Fanpage).where(Fanpage.fanpage_id.in_(fp_ids))).all()
+        }
+    for p in posts:
+        p.fanpage = fp_map.get(p.fanpage_id)
+    return posts
 
 
 def normalize_fb_url(raw_url: str) -> Tuple[str, str]:
@@ -385,103 +474,104 @@ def normalize_fb_url(raw_url: str) -> Tuple[str, str]:
 
 def add_fanpage(raw_url: str, name: Optional[str] = None) -> Tuple[Fanpage, bool]:
     """
-    Add a fanpage to the database.
+    Add a fanpage to the `fanpages` table in `webapp.db`.
     Returns (Fanpage, created_bool).
     """
     init_db()
     canonical_url, slug = normalize_fb_url(raw_url)
     cleaned_name = clean_fanpage_name(name)
-    with get_session() as session:
-        existing = session.scalar(select(Fanpage).where(Fanpage.url == canonical_url))
+    with get_webapp_session() as wsession:
+        existing = wsession.scalar(select(Fanpage).where(Fanpage.facebook_url == canonical_url))
         if existing:
             changed = False
-            if not existing.is_active:
-                existing.is_active = True
+            if cleaned_name and (
+                not is_valid_fanpage_name(existing.fanpage_name) or existing.fanpage_name == existing.slug
+            ):
+                existing.fanpage_name = cleaned_name
                 changed = True
-            if cleaned_name and (not is_valid_fanpage_name(existing.name) or existing.name == existing.slug):
-                existing.name = cleaned_name
-                changed = True
-            elif not is_valid_fanpage_name(existing.name):
-                existing.name = existing.slug
+            elif not is_valid_fanpage_name(existing.fanpage_name):
+                existing.fanpage_name = existing.slug
                 changed = True
             if changed:
-                session.commit()
+                wsession.commit()
+                wsession.refresh(existing)
             return existing, False
 
         fanpage = Fanpage(
-            url=canonical_url,
-            slug=slug,
-            name=cleaned_name or slug,
-            is_active=True,
+            fanpage_name=cleaned_name or slug,
+            facebook_url=canonical_url,
         )
-        session.add(fanpage)
-        session.commit()
-        session.refresh(fanpage)
+        wsession.add(fanpage)
+        wsession.commit()
+        wsession.refresh(fanpage)
         return fanpage, True
 
 
 def list_fanpages(active_only: bool = False) -> List[Tuple[Fanpage, int]]:
-    """Return list of (Fanpage, post_count)."""
+    """Return list of `(Fanpage, post_count)` from `webapp.db` paired with post stats from `rss_bot.db`."""
     init_db()
+    with get_webapp_session() as wsession:
+        fanpages = list(wsession.scalars(select(Fanpage).order_by(Fanpage.fanpage_id.asc())).all())
+    if not fanpages:
+        return []
+
+    post_stats: Dict[int, Tuple[int, Optional[datetime]]] = {}
     with get_session() as session:
-        stmt = (
-            select(Fanpage, func.count(Post.id))
-            .outerjoin(Post, Post.fanpage_id == Fanpage.id)
-            .group_by(Fanpage.id)
-            .order_by(Fanpage.id.asc())
-        )
-        if active_only:
-            stmt = stmt.where(Fanpage.is_active.is_(True))
-        rows = session.execute(stmt).all()
-        return [(row[0], row[1]) for row in rows]
+        stmt = select(Post.fanpage_id, func.count(Post.id), func.max(Post.scraped_at)).group_by(Post.fanpage_id)
+        for fp_id, cnt, last_scr in session.execute(stmt).all():
+            post_stats[int(fp_id)] = (int(cnt or 0), last_scr)
+
+    result: List[Tuple[Fanpage, int]] = []
+    for fp in fanpages:
+        cnt, last_scr = post_stats.get(fp.fanpage_id, (0, None))
+        fp.last_checked_at = last_scr
+        result.append((fp, cnt))
+    return result
 
 
 def remove_fanpage(identifier: str) -> Optional[Fanpage]:
-    """Remove a fanpage by ID, slug, or URL."""
+    """Remove a fanpage by ID, slug, or URL from `webapp.db` and purge its cached posts in `rss_bot.db`."""
     init_db()
-    with get_session() as session:
-        fanpage = None
-        if identifier.isdigit():
-            fanpage = session.get(Fanpage, int(identifier))
-        if not fanpage:
-            fanpage = session.scalar(select(Fanpage).where(Fanpage.slug == identifier))
-        if not fanpage:
-            try:
-                canonical_url, _ = normalize_fb_url(identifier)
-                fanpage = session.scalar(select(Fanpage).where(Fanpage.url == canonical_url))
-            except ValueError:
-                pass
-
+    removed: Optional[Fanpage] = None
+    with get_webapp_session() as wsession:
+        fanpage = _find_fanpage_in_session(wsession, identifier)
         if fanpage:
-            session.delete(fanpage)
+            removed = fanpage
+            wsession.delete(fanpage)
+            wsession.commit()
+
+    if removed is not None:
+        with get_session() as session:
+            session.execute(delete(Post).where(Post.fanpage_id == removed.fanpage_id))
+            session.execute(delete(PostAnalysis).where(PostAnalysis.fanpage_id == removed.fanpage_id))
+            session.execute(delete(UserSubscription).where(UserSubscription.fanpage_id == removed.fanpage_id))
             session.commit()
-            return fanpage
-        return None
+    return removed
 
 
 def update_fanpage_metadata(fanpage_id: int, name: Optional[str] = None) -> Optional[str]:
-    """Update last_checked_at and optionally page name when valid (healing bad names to slug).
+    """Update `fanpage_name` in `webapp.db` when valid (healing bad names to slug).
     Returns the resulting stored name, or None if the fanpage does not exist.
     """
     cleaned_name = clean_fanpage_name(name)
-    with get_session() as session:
-        fanpage = session.get(Fanpage, fanpage_id)
+    with get_webapp_session() as wsession:
+        fanpage = wsession.get(Fanpage, fanpage_id)
         if not fanpage:
             return None
         fanpage.last_checked_at = datetime.now(LOCAL_TIMEZONE)
         if cleaned_name:
-            fanpage.name = cleaned_name
-        elif not is_valid_fanpage_name(fanpage.name):
-            fanpage.name = fanpage.slug
-        resolved = fanpage.name
-        session.commit()
+            fanpage.fanpage_name = cleaned_name
+        elif not is_valid_fanpage_name(fanpage.fanpage_name):
+            fanpage.fanpage_name = fanpage.slug
+        resolved = fanpage.fanpage_name
+        wsession.commit()
         return resolved
 
 
 def save_posts(fanpage_id: int, scraped_items: List[Dict]) -> List[Post]:
     """
     Save newly scraped posts for a fanpage, skipping any whose post_id already exists.
-    Returns list of newly inserted Post records (with fanpage relationship loaded).
+    Returns list of newly inserted Post records (with fanpage attached).
     """
     if not scraped_items:
         return []
@@ -527,11 +617,11 @@ def save_posts(fanpage_id: int, scraped_items: List[Dict]) -> List[Post]:
 
         stmt = (
             select(Post)
-            .options(joinedload(Post.fanpage))
             .where(Post.id.in_(new_post_ids))
             .order_by(Post.published_at.desc(), Post.id.desc())
         )
-        return list(session.scalars(stmt).all())
+        posts = list(session.scalars(stmt).all())
+    return _attach_fanpages_to_posts(posts)
 
 
 def get_posts_for_fanpage(fanpage_id: int, limit: int = 50) -> List[Post]:
@@ -540,12 +630,12 @@ def get_posts_for_fanpage(fanpage_id: int, limit: int = 50) -> List[Post]:
     with get_session() as session:
         stmt = (
             select(Post)
-            .options(joinedload(Post.fanpage))
             .where(Post.fanpage_id == fanpage_id)
             .order_by(Post.published_at.desc(), Post.id.desc())
             .limit(limit)
         )
-        return list(session.scalars(stmt).all())
+        posts = list(session.scalars(stmt).all())
+    return _attach_fanpages_to_posts(posts)
 
 
 def get_all_recent_posts(limit: int = 100) -> List[Post]:
@@ -554,11 +644,11 @@ def get_all_recent_posts(limit: int = 100) -> List[Post]:
     with get_session() as session:
         stmt = (
             select(Post)
-            .options(joinedload(Post.fanpage))
             .order_by(Post.published_at.desc(), Post.id.desc())
             .limit(limit)
         )
-        return list(session.scalars(stmt).all())
+        posts = list(session.scalars(stmt).all())
+    return _attach_fanpages_to_posts(posts)
 
 
 # --- User & Subscription Management ---
@@ -662,18 +752,19 @@ def subscribe_user_to_fanpages(
 
     for raw_url in raw_urls:
         fp, created = add_fanpage(raw_url)
-        if created or fp.last_checked_at is None:
-            needs_scrape.append(fp)
-
         with get_session() as session:
+            has_posts = session.scalar(select(Post.id).where(Post.fanpage_id == fp.fanpage_id).limit(1))
+            if created or has_posts is None:
+                needs_scrape.append(fp)
+
             existing_sub = session.scalar(
                 select(UserSubscription).where(
                     UserSubscription.client_id == clean_client,
-                    UserSubscription.fanpage_id == fp.id,
+                    UserSubscription.fanpage_id == fp.fanpage_id,
                 )
             )
             if not existing_sub:
-                sub = UserSubscription(client_id=clean_client, fanpage_id=fp.id)
+                sub = UserSubscription(client_id=clean_client, fanpage_id=fp.fanpage_id)
                 session.add(sub)
                 session.commit()
 
@@ -684,26 +775,16 @@ def unsubscribe_user_from_fanpage(client_id: str, identifier: str) -> Optional[F
     """Unsubscribe `client_id` from a fanpage by ID, slug, or URL."""
     init_db()
     clean_client = client_id.strip()
+    with get_webapp_session() as wsession:
+        fanpage = _find_fanpage_in_session(wsession, identifier)
+    if not fanpage:
+        return None
+
     with get_session() as session:
-        fanpage = None
-        if identifier.isdigit():
-            fanpage = session.get(Fanpage, int(identifier))
-        if not fanpage:
-            fanpage = session.scalar(select(Fanpage).where(Fanpage.slug == identifier))
-        if not fanpage:
-            try:
-                canonical_url, _ = normalize_fb_url(identifier)
-                fanpage = session.scalar(select(Fanpage).where(Fanpage.url == canonical_url))
-            except ValueError:
-                pass
-
-        if not fanpage:
-            return None
-
         sub = session.scalar(
             select(UserSubscription).where(
                 UserSubscription.client_id == clean_client,
-                UserSubscription.fanpage_id == fanpage.id,
+                UserSubscription.fanpage_id == fanpage.fanpage_id,
             )
         )
         if sub:
@@ -717,13 +798,20 @@ def get_user_subscriptions(client_id: str) -> List[Fanpage]:
     """Return all Fanpages that `client_id` is currently subscribed to."""
     init_db()
     with get_session() as session:
+        sub_ids = list(
+            session.scalars(
+                select(UserSubscription.fanpage_id).where(UserSubscription.client_id == client_id.strip())
+            ).all()
+        )
+    if not sub_ids:
+        return []
+    with get_webapp_session() as wsession:
         stmt = (
             select(Fanpage)
-            .join(UserSubscription, UserSubscription.fanpage_id == Fanpage.id)
-            .where(UserSubscription.client_id == client_id.strip())
-            .order_by(Fanpage.id.asc())
+            .where(Fanpage.fanpage_id.in_(sub_ids))
+            .order_by(Fanpage.fanpage_id.asc())
         )
-        return list(session.scalars(stmt).all())
+        return list(wsession.scalars(stmt).all())
 
 
 def get_posts_for_user(client_id: str, limit: int = 50) -> List[Post]:
@@ -741,12 +829,12 @@ def get_posts_for_user(client_id: str, limit: int = 50) -> List[Post]:
 
         stmt = (
             select(Post)
-            .options(joinedload(Post.fanpage))
             .where(Post.fanpage_id.in_(sub_fanpage_ids))
             .order_by(Post.published_at.desc(), Post.id.desc())
             .limit(limit)
         )
-        return list(session.scalars(stmt).all())
+        posts = list(session.scalars(stmt).all())
+    return _attach_fanpages_to_posts(posts)
 
 
 def get_subscribers_for_fanpage(fanpage_id: int) -> List[str]:

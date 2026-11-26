@@ -10,7 +10,7 @@ from config import FEEDS_DIR, SCRAPE_TIMEZONE
 from events import ingest_email_message
 from rss import generate_user_rss_xml
 from scheduler import backup_state_to_git, parse_scrape_hours, run_scrape_cycle
-from src.control.runtime import (
+from src.backend.runtime import (
     manager,
     process_single_post_url,
     scheduler,

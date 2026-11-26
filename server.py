@@ -1,4 +1,4 @@
-"""FastAPI MVC Web Server entrypoint (`src.model`, `src.view`, `src.control`)."""
+"""FastAPI MVC Web Server entrypoint (`src.model`, `src.frontend`, `src.backend`)."""
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -14,7 +14,7 @@ from config import (
 )
 from events import sync_all_event_folders
 from scheduler import build_daily_cron_trigger
-from src.control import (
+from src.backend import (
     admin_router,
     auth_router,
     event_router,

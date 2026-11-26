@@ -37,7 +37,7 @@ LOCAL_TIMEZONE = datetime.now().astimezone().tzinfo or SCRAPE_TIMEZONE
 DB_PATH = BASE_DIR / "rss_bot.db"
 DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
 
-# Web App Database (strictly 3 tables: events, users, event_subscriptions)
+# Web App Database (tables: events, users, event_subscriptions, fanpages)
 WEBAPP_DB_PATH = BASE_DIR / "webapp.db"
 WEBAPP_DATABASE_URL = f"sqlite:///{WEBAPP_DB_PATH.as_posix()}"
 

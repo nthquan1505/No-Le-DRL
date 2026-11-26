@@ -1,5 +1,7 @@
 from datetime import datetime
 import json
+import re
+from urllib.parse import parse_qs, urlparse
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -80,8 +82,36 @@ class Base(DeclarativeBase):
 
 
 class WebAppBase(DeclarativeBase):
-    """Web app tables (events, users, event_subscriptions) stored in webapp.db."""
+    """Web app tables (events, users, event_subscriptions, fanpages) stored in webapp.db."""
     pass
+
+
+def _derive_slug_from_fb_url(raw_url: str) -> str:
+    """Derive a deterministic file-safe slug from a Facebook fanpage URL."""
+    u = (raw_url or "").strip()
+    if not u:
+        return "unknown"
+    if not u.startswith(("http://", "https://")):
+        if "facebook.com" in u or "fb.com" in u:
+            u = "https://" + u
+        else:
+            return re.sub(r"[^a-zA-Z0-9._-]", "", u.strip("/")) or "unknown"
+
+    parsed = urlparse(u)
+    path = parsed.path.strip("/")
+    if path == "profile.php":
+        qs = parse_qs(parsed.query)
+        page_id = qs.get("id", ["unknown"])[0]
+        return f"profile_{page_id}"
+
+    parts = [p for p in path.split("/") if p]
+    if not parts:
+        return "unknown"
+    if parts[0] in ("pages", "people") and len(parts) >= 3:
+        slug = f"{parts[1]}_{parts[2]}"
+    else:
+        slug = parts[0]
+    return re.sub(r"[^a-zA-Z0-9._-]", "_", slug) or "unknown"
 
 
 class User(WebAppBase):
@@ -235,6 +265,54 @@ class EventSubscription(WebAppBase):
         return data
 
 
+class Fanpage(WebAppBase):
+    """Tracked Facebook fanpage list table (`fanpages` in webapp.db) for the crawler."""
+
+    __tablename__ = "fanpages"
+
+    fanpage_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fanpage_name: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    facebook_url: Mapped[str] = mapped_column(String(512), unique=True, nullable=False, index=True)
+
+    # Compatibility aliases for scraper, RSS generator, and controllers
+    id = synonym("fanpage_id")
+    name = synonym("fanpage_name")
+    url = synonym("facebook_url")
+
+    @property
+    def slug(self) -> str:
+        return _derive_slug_from_fb_url(self.facebook_url)
+
+    @property
+    def is_active(self) -> bool:
+        return True
+
+    @property
+    def last_checked_at(self) -> Optional[datetime]:
+        return getattr(self, "_last_checked_at", None)
+
+    @last_checked_at.setter
+    def last_checked_at(self, value: Optional[datetime]) -> None:
+        self._last_checked_at = value
+
+    def to_dict(self) -> Dict[str, Any]:
+        last_checked = ensure_local_tz(self.last_checked_at)
+        slug = self.slug
+        display_name = self.fanpage_name or slug
+        return {
+            "fanpage_id": self.fanpage_id,
+            "fanpage_name": display_name,
+            "facebook_url": self.facebook_url,
+            "id": self.fanpage_id,
+            "url": self.facebook_url,
+            "slug": slug,
+            "name": display_name,
+            "is_active": True,
+            "last_checked_at": last_checked.isoformat() if last_checked else None,
+            "rss_file": f"feeds/{slug}.xml",
+        }
+
+
 class UserSubscription(Base):
     """Fanpage RSS feed subscription per client_id (stored in rss_bot.db)."""
 
@@ -245,43 +323,8 @@ class UserSubscription(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     client_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
-    fanpage_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fanpages.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    fanpage_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=local_now)
-
-    fanpage: Mapped["Fanpage"] = relationship("Fanpage", back_populates="subscribers")
-
-
-class Fanpage(Base):
-    __tablename__ = "fanpages"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    url: Mapped[str] = mapped_column(String(512), unique=True, nullable=False, index=True)
-    slug: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=local_now)
-    last_checked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    posts: Mapped[List["Post"]] = relationship(
-        "Post", back_populates="fanpage", cascade="all, delete-orphan"
-    )
-    subscribers: Mapped[List["UserSubscription"]] = relationship(
-        "UserSubscription", back_populates="fanpage", cascade="all, delete-orphan"
-    )
-
-    def to_dict(self) -> Dict[str, Any]:
-        last_checked = ensure_local_tz(self.last_checked_at)
-        return {
-            "id": self.id,
-            "url": self.url,
-            "slug": self.slug,
-            "name": self.name or self.slug,
-            "is_active": self.is_active,
-            "last_checked_at": last_checked.isoformat() if last_checked else None,
-            "rss_file": f"feeds/{self.slug}.xml",
-        }
 
 
 class Post(Base):
@@ -289,16 +332,20 @@ class Post(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     post_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    fanpage_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fanpages.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    fanpage_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     post_url: Mapped[str] = mapped_column(String(1024), nullable=False)
     content: Mapped[str] = mapped_column(Text, default="", nullable=False)
     media_urls_json: Mapped[str] = mapped_column(Text, default="[]", nullable=False)
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=local_now, index=True)
     scraped_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=local_now)
 
-    fanpage: Mapped["Fanpage"] = relationship("Fanpage", back_populates="posts")
+    @property
+    def fanpage(self) -> Optional["Fanpage"]:
+        return getattr(self, "_fanpage", None)
+
+    @fanpage.setter
+    def fanpage(self, value: Optional["Fanpage"]) -> None:
+        self._fanpage = value
 
     @property
     def media_urls(self) -> List[str]:
@@ -314,12 +361,13 @@ class Post(Base):
     def to_dict(self) -> Dict[str, Any]:
         pub_dt = ensure_local_tz(self.published_at)
         scr_dt = ensure_local_tz(self.scraped_at)
+        fp = self.fanpage
         return {
             "id": self.id,
             "post_id": self.post_id,
             "fanpage_id": self.fanpage_id,
-            "fanpage_name": (self.fanpage.name or self.fanpage.slug) if self.fanpage else None,
-            "fanpage_url": self.fanpage.url if self.fanpage else None,
+            "fanpage_name": (fp.name or fp.slug) if fp else None,
+            "fanpage_url": fp.url if fp else None,
             "post_url": self.post_url,
             "content": self.content,
             "media_urls": self.media_urls,
@@ -335,9 +383,7 @@ class PostAnalysis(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     post_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    fanpage_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fanpages.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    fanpage_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     is_event: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     event_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
     analyzed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=local_now)

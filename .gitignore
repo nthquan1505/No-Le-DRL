@@ -9,3 +9,4 @@ env/
 .vscode/
 .idea/
 /feeds
+/events/tuning_data/

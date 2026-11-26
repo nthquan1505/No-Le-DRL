@@ -71,7 +71,7 @@ def backup_state_to_git(reason: str = "scheduled crawl") -> bool:
             if inside.returncode != 0 or inside.stdout.strip() != "true":
                 return False
 
-            add_res = _run_git("add", "rss_bot.db", "feeds/")
+            add_res = _run_git("add", "rss_bot.db", "webapp.db", "feeds/")
             if add_res.returncode != 0:
                 print(f"[git-backup] git add failed: {add_res.stderr.strip()}")
                 return False

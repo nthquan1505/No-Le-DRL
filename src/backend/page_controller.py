@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from src.model import get_current_user_optional, is_admin_authenticated
-from src.view import render_view
+from src.frontend import render_view
 
 router = APIRouter(tags=["pages"])
 
