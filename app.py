@@ -30,16 +30,25 @@ from src.classification.algorithms.algorithm_registry import build_default_regis
 from src.classification.data.loaders import load_all_assets
 from src.classification.data.validators import validate_loaded_assets
 from src.classification.decision.confidence_handler import ConfidenceAndDecisionHandler
-from src.classification.embeddings.event_text_builder import build_event_query_text
+from src.classification.embeddings.event_text_builder import (
+    CLASSIFICATION_VECTOR_PROFILES,
+    build_all_classification_profile_texts,
+    build_event_query_text,
+    normalize_string_list_field,
+)
 from src.classification.pipeline.classification_pipeline import ClassificationPipeline
 from src.classification.retrieval.rubric_retriever import RubricRetriever
 from src.classification.retrieval.sample_retriever import SampleRetriever
+from src.db_event_adapter import fetch_events_from_db
 from src.embedder import create_embedder
 from src.recommendation import (
+    REC_EMBEDDING_FIELDS,
     DemoCreditProvider,
     DemoScheduleProvider,
+    MMRConfig,
     available_demo_personas,
     load_recommendation_candidate_pool,
+    load_recommendation_candidate_pool_from_db,
     load_recommendation_config,
     run_recommendation_demo,
 )
@@ -103,7 +112,10 @@ class PrototypeService:
             enable_item_2_2_penalty_link=bool(pen_cfg.get("enable_item_2_2_penalty_link", False)),
         )
         self.rec_chip_vec_cache: Dict[str, List[float]] = {}
-        self.rec_candidates = load_recommendation_candidate_pool()
+        self.rec_candidates = load_recommendation_candidate_pool(
+            embedder=self.embedder,
+            use_rec_4field_embeddings=True,
+        )
 
     def _load_dual_branch_batch_outputs(self) -> None:
         """Load precomputed dual-branch classification_events.json and shared query vectors."""
@@ -154,6 +166,8 @@ class PrototypeService:
             st = str((rec.get("classification") or {}).get("status") or "")
             if st in status_counts:
                 status_counts[st] += 1
+        emb_cfg = self.dual_assets.config.get("embedding") or {}
+        bvs = emb_cfg.get("branch_vector_selection") or {}
         return {
             "enabled": True,
             "algorithm": self.dual_algorithm_name,
@@ -164,12 +178,15 @@ class PrototypeService:
             "rubric_total_prototypes": int(len(self.dual_assets.rubric_branch.metadata)),
             "batch_events_count": len(self.dual_batch_events),
             "status_counts": status_counts,
+            "classification_vector_profiles": list(CLASSIFICATION_VECTOR_PROFILES),
             "default_params": {
                 "stage1_top_k": int(self.dual_default_params.get("candidate_group_count", 2)),
                 "k1": int(self.dual_default_params.get("k1", 10)),
                 "k2": int(self.dual_default_params.get("k2", 10)),
                 "beta": float(self.dual_default_params.get("stage1_fusion_beta", 0.5)),
                 "alpha": float(self.dual_default_params.get("stage2_fusion_alpha", 0.5)),
+                "sample_branch_vector": str(bvs.get("sample_branch", "title_description")),
+                "rubric_branch_vector": str(bvs.get("rubric_branch", "title_description")),
             },
         }
 
@@ -184,6 +201,7 @@ class PrototypeService:
                     "post_id": rec.get("post_id"),
                     "title": rec.get("title") or "",
                     "description": rec.get("description") or "",
+                    "format": rec.get("format") or [],
                     "organizer": rec.get("organizer") or "",
                     "date": rec.get("date"),
                     "status": cls.get("status"),
@@ -208,7 +226,10 @@ class PrototypeService:
         pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
         run_summary = pipeline.run()
         self._load_dual_branch_batch_outputs()
-        self.rec_candidates = load_recommendation_candidate_pool()
+        self.rec_candidates = load_recommendation_candidate_pool(
+            embedder=self.embedder,
+            use_rec_4field_embeddings=True,
+        )
         return {
             "status": "ok",
             "algorithm": run_summary.algorithm_name,
@@ -231,9 +252,45 @@ class PrototypeService:
         organizer = str(payload.get("organizer") or "").strip()
         role = str(payload.get("role") or "participant").strip()
         post_id = str(payload.get("post_id") or "").strip()
+        formats = normalize_string_list_field(payload.get("format"))
 
         if not title and not description:
             raise ValueError("Vui lòng nhập ít nhất tên hoạt động hoặc mô tả ngắn.")
+
+        emb_cfg = self.dual_assets.config.get("embedding") or {}
+        default_bvs = emb_cfg.get("branch_vector_selection") or {}
+        sample_branch_vector = str(
+            payload.get("sample_branch_vector")
+            or default_bvs.get("sample_branch", "title_description")
+        ).strip()
+        rubric_branch_vector = str(
+            payload.get("rubric_branch_vector")
+            or default_bvs.get("rubric_branch", "title_description")
+        ).strip()
+        for bname, pval in (
+            ("sample_branch_vector", sample_branch_vector),
+            ("rubric_branch_vector", rubric_branch_vector),
+        ):
+            if pval not in CLASSIFICATION_VECTOR_PROFILES:
+                raise ValueError(
+                    f"Invalid {bname}={pval!r}. Expected one of {CLASSIFICATION_VECTOR_PROFILES}."
+                )
+
+        stage_overrides: Dict[str, str] = {}
+        for skey in (
+            "sample_stage1_vector",
+            "sample_stage2_vector",
+            "rubric_stage1_vector",
+            "rubric_stage2_vector",
+        ):
+            sval = payload.get(skey)
+            if sval not in (None, ""):
+                sval_clean = str(sval).strip()
+                if sval_clean not in CLASSIFICATION_VECTOR_PROFILES:
+                    raise ValueError(
+                        f"Invalid {skey}={sval_clean!r}. Expected one of {CLASSIFICATION_VECTOR_PROFILES}."
+                    )
+                stage_overrides[skey] = sval_clean
 
         stage1_top_k = max(
             1,
@@ -297,21 +354,38 @@ class PrototypeService:
             "title": title,
             "description": description,
             "organizer": organizer,
+            "format": formats,
         }
-        query_text = build_event_query_text(raw_event, query_prefix="query: ")
-        query_body = query_text[len("query: ") :] if query_text.startswith("query: ") else query_text
+        profile_texts = build_all_classification_profile_texts(raw_event, query_prefix="query: ")
+        query_text = profile_texts["title_description"]
 
         t0 = time.perf_counter()
         reused_query_vec = False
-        if (
-            post_id
-            and post_id in self.dual_query_vectors_by_post_id
-            and payload.get("use_cached_query") is True
-        ):
-            vec = self.dual_query_vectors_by_post_id[post_id]
-            reused_query_vec = True
-        else:
-            vec = l2_normalize(self.embedder.encode_query(query_body))
+        vectors_by_profile: Dict[str, np.ndarray] = {}
+        needed_profiles = sorted(
+            {
+                sample_branch_vector,
+                rubric_branch_vector,
+                *stage_overrides.values(),
+                "title_description",
+            }
+        )
+        for prof in needed_profiles:
+            if (
+                prof == "title_description"
+                and post_id
+                and post_id in self.dual_query_vectors_by_post_id
+                and payload.get("use_cached_query") is True
+            ):
+                p_vec = self.dual_query_vectors_by_post_id[post_id]
+                reused_query_vec = True
+            else:
+                ptxt = profile_texts[prof]
+                pbody = ptxt[len("query: ") :] if ptxt.startswith("query: ") else ptxt
+                p_vec = l2_normalize(self.embedder.encode_query(pbody))
+            vectors_by_profile[prof] = np.asarray(p_vec, dtype=np.float32)
+
+        vec = vectors_by_profile["title_description"].tolist()
 
         runtime_params = dict(self.dual_default_params)
         runtime_params["candidate_group_count"] = stage1_top_k
@@ -319,6 +393,10 @@ class PrototypeService:
         runtime_params["k2"] = k2
         runtime_params["stage1_fusion_beta"] = beta
         runtime_params["stage2_fusion_alpha"] = alpha
+        runtime_params["sample_branch_vector"] = sample_branch_vector
+        runtime_params["rubric_branch_vector"] = rubric_branch_vector
+        for skey, sval in stage_overrides.items():
+            runtime_params[skey] = sval
 
         algorithm = self.dual_registry.create(
             self.dual_algorithm_name,
@@ -327,8 +405,12 @@ class PrototypeService:
             rubric_data=self.dual_assets.rubric,
             params=runtime_params,
         )
-        shared_q_np = np.asarray(vec, dtype=np.float32)
-        prediction = algorithm.classify(shared_q_np, event_context=raw_event)
+        shared_q_np = vectors_by_profile["title_description"]
+        prediction = algorithm.classify(
+            shared_q_np,
+            event_context=raw_event,
+            query_vectors_by_profile=vectors_by_profile,
+        )
         dual_cls = self.dual_decision_handler.decide(prediction=prediction, event=raw_event)
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -372,6 +454,7 @@ class PrototypeService:
         return {
             "embedder_status": asdict(self.embedder_status),
             "formatted_query_text": query_text,
+            "profile_query_texts": profile_texts,
             "reused_cached_query": reused_query_vec,
             "vector_dimension": len(vec),
             "vector_l2_norm": round(l2_norm(vec), 6),
@@ -384,6 +467,8 @@ class PrototypeService:
                 "k2": k2,
                 "beta": beta,
                 "alpha": alpha,
+                "sample_branch_vector": sample_branch_vector,
+                "rubric_branch_vector": rubric_branch_vector,
             },
             "reference_pool_sizes": {
                 "sample_stage1_total": self.dual_sample_retriever.eligible_count,
@@ -414,6 +499,7 @@ class PrototypeService:
         ]
         summary = self._dual_branch_summary()
         status_counts = summary.get("status_counts") or {}
+        db_rows = fetch_events_from_db(db_path=PROJECT_ROOT / "drl_database.db", exclude_cancelled=True)
         return {
             "interest_chips": interest_chips,
             "personas": available_demo_personas(),
@@ -426,25 +512,82 @@ class PrototypeService:
                 {"value": "2026-11-01T08:00:00+07:00", "label": "01/11/2026 (11 PREDICTED)"},
                 {"value": "2026-04-01T08:00:00+07:00", "label": "01/04/2026 (36 PREDICTED)"},
             ],
+            "rec_embedding_fields": list(REC_EMBEDDING_FIELDS),
+            "mmr_defaults": MMRConfig.from_config(self.rec_config).to_dict(),
             "pool_stats": {
                 "total_events": len(self.rec_candidates),
                 "predicted_count": int(status_counts.get("PREDICTED", 0)),
                 "needs_review_count": int(status_counts.get("NEEDS_REVIEW", 0)),
                 "sample_embeddings_count": int(self.dual_assets.sample_branch.embeddings.shape[0]),
+                "db_active_events_count": len(db_rows),
             },
         }
 
+    def run_dual_branch_pipeline_from_db(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Run ClassificationPipeline directly from `drl_database.db` with 3-vector branch routing."""
+        req = dict(payload or {})
+        bvs: Dict[str, Any] = {}
+        for k in (
+            "sample_branch",
+            "rubric_branch",
+            "sample_stage1",
+            "sample_stage2",
+            "rubric_stage1",
+            "rubric_stage2",
+        ):
+            if req.get(k) not in (None, ""):
+                bvs[k] = str(req[k]).strip()
+
+        pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+        result = pipeline.run_from_database(
+            db_path=PROJECT_ROOT / "drl_database.db",
+            only_unclassified=bool(req.get("only_unclassified", False)),
+            exclude_cancelled=bool(req.get("exclude_cancelled", True)),
+            branch_vector_selection=bvs or None,
+            write_back_db=bool(req.get("write_back_db", True)),
+            write_output_files=bool(req.get("write_output_files", False)),
+            embedder=self.embedder,
+        )
+        return {
+            "status": "ok",
+            "source_mode": result["source_mode"],
+            "db_path": result["db_path"],
+            "algorithm": result["algorithm"],
+            "profiles_computed": result["profiles_computed"],
+            "branch_vector_selection": result["branch_vector_selection"],
+            "total_input_events": result["total_input_events"],
+            "embedded_events_count": result["embedded_events_count"],
+            "skipped_events_count": result["skipped_events_count"],
+            "status_counts": result["status_counts"],
+            "db_categories_updated": result["db_categories_updated"],
+            "asset_validation_passed": result["asset_validation_passed"],
+            "events": result["events"],
+        }
+
     def run_recommendation(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute Demo P4 + Demo M4/M6 -> P5 Hard Filter -> P6 Scoring on PREDICTED events."""
-        return run_recommendation_demo(
-            payload or {},
-            candidates=self.rec_candidates,
+        """Execute Recommendation pipeline on DB (`drl_database.db`) or JSON fixture pool."""
+        req = dict(payload or {})
+        data_source = str(req.get("data_source") or "json").strip().lower()
+        if data_source == "database":
+            active_pool = load_recommendation_candidate_pool_from_db(
+                db_path=PROJECT_ROOT / "drl_database.db",
+                embedder=self.embedder,
+                exclude_cancelled=True,
+            )
+        else:
+            active_pool = self.rec_candidates
+
+        result = run_recommendation_demo(
+            req,
+            candidates=active_pool,
             sample_embeddings=self.dual_assets.sample_branch.embeddings,
             embedder=self.embedder,
             credit_provider=self.demo_credit_provider,
             config=self.rec_config,
             chip_vec_cache=self.rec_chip_vec_cache,
         )
+        result["pipeline_summary"]["data_source"] = data_source
+        return result
 
 
 def make_handler(service: PrototypeService):
@@ -504,6 +647,8 @@ def make_handler(service: PrototypeService):
                     self._send_json(service.inspect_classify(body))
                 elif path == "/api/dual-branch/run":
                     self._send_json(service.run_dual_branch_pipeline())
+                elif path == "/api/dual-branch/run-db":
+                    self._send_json(service.run_dual_branch_pipeline_from_db(body))
                 elif path == "/api/recommendation/run":
                     self._send_json(service.run_recommendation(body))
                 else:

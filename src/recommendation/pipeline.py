@@ -1,4 +1,4 @@
-"""End-to-end Demo Recommendation Orchestrator (P4 + Demo M4/M6 -> P5 -> P6).
+"""End-to-end Demo Recommendation Orchestrator (P4 + Demo M4/M6 -> P5 -> P6 -> P7 MMR).
 
 Consumes ONLY `PREDICTED` events from `outputs/classification_events.json` merged
 with normalized event contracts (`data/processed/test_fixtures_events.json`) and
@@ -11,11 +11,20 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 
 from configs.model_config import PROJECT_ROOT
+from src.db_event_adapter import (
+    DB_CATEGORY_TO_GROUP_ID,
+    compute_events_fingerprint,
+    db_row_to_event_normalized,
+    fetch_events_from_db,
+    fetch_school_rubric_from_db,
+    fetch_user_from_db,
+    fetch_user_subscriptions_from_db,
+)
 from src.embedder import BaseEmbedder
 from src.recommendation.config import load_recommendation_config
 from src.recommendation.demo_module4 import DemoScheduleProvider
@@ -32,7 +41,14 @@ from src.recommendation.filter import (
     RecommendationCandidateInput,
     parse_reference_now,
 )
+from src.recommendation.rec_embedder import (
+    DEFAULT_REC_PASSAGE_PREFIX,
+    REC_EMBEDDING_FIELDS,
+    build_recommendation_event_text,
+    generate_or_load_recommendation_embeddings,
+)
 from src.recommendation.scoring import MultiCriteriaScorer
+from src.recommendation.selector import MMRSelector
 from src.schemas import EventNormalized
 from src.vector_ops import l2_normalize
 
@@ -40,7 +56,165 @@ DEFAULT_FIXTURES_PATH = PROJECT_ROOT / "data" / "processed" / "test_fixtures_eve
 DEFAULT_CLASSIFICATION_PATH = PROJECT_ROOT / "outputs" / "classification_events.json"
 DEFAULT_QUERY_EMB_PATH = PROJECT_ROOT / "data" / "generated" / "events_query_embeddings.npy"
 DEFAULT_QUERY_META_PATH = PROJECT_ROOT / "data" / "generated" / "events_query_metadata.json"
+DEFAULT_REC_EMB_PATH = PROJECT_ROOT / "data" / "generated" / "events_rec_embeddings.npy"
+DEFAULT_REC_META_PATH = PROJECT_ROOT / "data" / "generated" / "events_rec_metadata.json"
 DEFAULT_SAMPLE_EMB_PATH = PROJECT_ROOT / "data" / "processed" / "cls_index" / "sample_embeddings.npy"
+DEFAULT_DB_PATH = PROJECT_ROOT / "drl_database.db"
+
+
+def load_recommendation_candidate_pool_from_db(
+    *,
+    db: Any = None,
+    db_path: Optional[Union[str, Path]] = None,
+    embedder: Optional[BaseEmbedder] = None,
+    classification_by_event_id: Optional[Dict[int, Dict[str, Any]]] = None,
+    exclude_cancelled: bool = True,
+    only_classified_in_db: bool = False,
+    rec_embeddings_path: Optional[Path] = None,
+    rec_metadata_path: Optional[Path] = None,
+    reuse_existing_embeddings: bool = True,
+) -> List[RecommendationCandidateInput]:
+    """Load Recommendation candidates directly from `drl_database.db` (`events` table).
+
+    Embeds each event from the 4 required fields (`title + description + topic + format`)
+    using `passage: ` prefix for `Interest` matching against `user_vec`.
+    Returns `[]` cleanly when the database is empty.
+    """
+    rows = fetch_events_from_db(
+        db=db,
+        db_path=db_path or DEFAULT_DB_PATH,
+        only_classified=only_classified_in_db,
+        exclude_cancelled=exclude_cancelled,
+    )
+    if not rows:
+        return []
+
+    normalized_events: List[EventNormalized] = [db_row_to_event_normalized(r) for r in rows]
+    rec_vecs_by_id: Dict[str, List[float]] = {}
+    if embedder is not None:
+        fp = compute_events_fingerprint(rows)
+        rec_emb_set = generate_or_load_recommendation_embeddings(
+            normalized_events,
+            embedder=embedder,
+            source_fingerprint=fp,
+            embeddings_path=rec_embeddings_path,
+            metadata_path=rec_metadata_path,
+            reuse_existing=reuse_existing_embeddings,
+        )
+        for ev in normalized_events:
+            vec = rec_emb_set.get_vector(ev.event_id)
+            if vec is not None:
+                rec_vecs_by_id[ev.event_id] = vec
+
+    cls_lookup = classification_by_event_id or {}
+    pool: List[RecommendationCandidateInput] = []
+    for row, ev in zip(rows, normalized_events):
+        db_eid = int(row["event_id"])
+        cls_payload = cls_lookup.get(db_eid)
+        if cls_payload is None:
+            db_cat = row.get("category")
+            if db_cat is not None and int(db_cat) in DB_CATEGORY_TO_GROUP_ID:
+                grp = DB_CATEGORY_TO_GROUP_ID[int(db_cat)]
+                cls_payload = {
+                    "status": "PREDICTED",
+                    "predicted_group_id": grp,
+                    "predicted_criterion_ref": None,
+                    "source": "db_category_column",
+                }
+            else:
+                cls_payload = {
+                    "status": "UNCLASSIFIED",
+                    "predicted_group_id": None,
+                    "predicted_criterion_ref": None,
+                }
+
+        ev.metadata["rec_embedding_text"] = build_recommendation_event_text(
+            ev, include_prefix=True, passage_prefix=DEFAULT_REC_PASSAGE_PREFIX
+        )
+        pool.append(
+            RecommendationCandidateInput(
+                event=ev,
+                classification=dict(cls_payload),
+                event_vec=rec_vecs_by_id.get(ev.event_id),
+            )
+        )
+    return pool
+
+
+def build_demo_profile_from_db_user(
+    user_id: str,
+    *,
+    db: Any = None,
+    db_path: Optional[Union[str, Path]] = None,
+    embedder: Optional[BaseEmbedder] = None,
+    config: Optional[Dict[str, Any]] = None,
+) -> Optional[DemoUserProfile]:
+    """Hydrate a `DemoUserProfile` from `users` + `event_subscription` + `rubric` tables."""
+    user_row = fetch_user_from_db(user_id, db=db, db_path=db_path or DEFAULT_DB_PATH)
+    if user_row is None:
+        return None
+
+    subs = fetch_user_subscriptions_from_db(user_id, db=db, db_path=db_path or DEFAULT_DB_PATH)
+    participated = [f"db_{s['event_id']}" for s in subs if s.get("status") == "done"]
+
+    credits_list = user_row.get("credits") or [0, 0, 0, 0, 0]
+    current_by_group = {
+        f"C{i + 1}": float(credits_list[i]) if i < len(credits_list) else 0.0
+        for i in range(5)
+    }
+
+    target_by_group: Dict[str, float] = {}
+    if user_row.get("school_id") is not None:
+        rubric_row = fetch_school_rubric_from_db(
+            int(user_row["school_id"]), db=db, db_path=db_path or DEFAULT_DB_PATH
+        )
+        if rubric_row and isinstance(rubric_row.get("max_credit"), list):
+            mc = rubric_row["max_credit"]
+            target_by_group = {
+                f"C{i + 1}": float(mc[i]) if i < len(mc) else 20.0
+                for i in range(5)
+            }
+
+    pref_topics = [str(t) for t in (user_row.get("preferred_topics") or []) if str(t).strip()]
+    pref_formats = [str(f) for f in (user_row.get("preferred_formats") or []) if str(f).strip()]
+    pref_parts: List[str] = []
+    if pref_topics:
+        pref_parts.append(f"Chủ đề yêu thích: {', '.join(pref_topics)}")
+    if pref_formats:
+        pref_parts.append(f"Hình thức yêu thích: {', '.join(pref_formats)}")
+    free_text = ". ".join(pref_parts) if pref_parts else None
+
+    user_vec = (
+        l2_normalize(embedder.encode_query(free_text))
+        if (embedder is not None and free_text)
+        else None
+    )
+
+    w_raw = user_row.get("weights") or [0.40, 0.25, 0.20, 0.15]
+    # Note: SYSTEM_ARCHITECTURE users.weights order is [w1_gain, w2_fit, w3_interested, w4_urgency]
+    custom_w = {
+        "w1_gain": float(w_raw[0]) if len(w_raw) > 0 else 0.40,
+        "w2_interest": float(w_raw[2]) if len(w_raw) > 2 else 0.25,
+        "w3_fit": float(w_raw[1]) if len(w_raw) > 1 else 0.20,
+        "w4_urgency": float(w_raw[3]) if len(w_raw) > 3 else 0.15,
+    }
+    preset_name, resolved_w = resolve_demo_weights("custom", custom_w, config=config)
+
+    start_year = user_row.get("start_year")
+    cohort = f"K{str(start_year)[-2:]}" if start_year else None
+
+    return DemoUserProfile(
+        user_id=str(user_row["user_id"]),
+        cohort=cohort,
+        interest_chips=[],
+        free_text=free_text,
+        user_vec=user_vec,
+        participated_event_ids=participated,
+        current_by_group=current_by_group,
+        target_by_group=target_by_group,
+        weight_preset=preset_name,
+        weights=resolved_w,
+    )
 
 
 def load_recommendation_candidate_pool(
@@ -49,8 +223,12 @@ def load_recommendation_candidate_pool(
     classification_path: Path = DEFAULT_CLASSIFICATION_PATH,
     query_embeddings_path: Path = DEFAULT_QUERY_EMB_PATH,
     query_metadata_path: Path = DEFAULT_QUERY_META_PATH,
+    embedder: Optional[BaseEmbedder] = None,
+    use_rec_4field_embeddings: bool = False,
+    rec_embeddings_path: Path = DEFAULT_REC_EMB_PATH,
+    rec_metadata_path: Path = DEFAULT_REC_META_PATH,
 ) -> List[RecommendationCandidateInput]:
-    """Load all batch events merged with normalized fixtures, P2 classifications, and E5 query vectors."""
+    """Load batch events from legacy JSON fixtures (optionally computing 4-field Rec embeddings)."""
     fix_raw = json.loads(fixtures_path.read_text(encoding="utf-8"))
     fix_map: Dict[str, EventNormalized] = {
         str(rec["event_id"]): EventNormalized.from_dict(rec)
@@ -59,17 +237,9 @@ def load_recommendation_candidate_pool(
 
     cls_records = json.loads(classification_path.read_text(encoding="utf-8"))
 
-    q_vecs_by_id: Dict[str, List[float]] = {}
-    if query_embeddings_path.is_file() and query_metadata_path.is_file():
-        q_arr = np.load(query_embeddings_path, mmap_mode="r")
-        q_meta = json.loads(query_metadata_path.read_text(encoding="utf-8"))
-        for row in q_meta.get("records") or []:
-            pid = str(row.get("post_id") or "").strip()
-            idx = int(row["embedding_row"])
-            if pid and 0 <= idx < q_arr.shape[0]:
-                q_vecs_by_id[pid] = [float(v) for v in q_arr[idx].tolist()]
-
-    pool: List[RecommendationCandidateInput] = []
+    # Hydrate `format` & `topic` into EventNormalized.metadata from raw classification records
+    ordered_events: List[EventNormalized] = []
+    ordered_cls: List[Dict[str, Any]] = []
     for rec in cls_records:
         pid = str(rec.get("post_id") or "").strip()
         if not pid:
@@ -88,14 +258,48 @@ def load_recommendation_candidate_pool(
                 is_online=rec.get("is_online"),
                 location=rec.get("location"),
             )
-        pool.append(
-            RecommendationCandidateInput(
-                event=ev,
-                classification=dict(rec.get("classification") or {}),
-                event_vec=q_vecs_by_id.get(pid),
-            )
+        if "topic" not in ev.metadata:
+            ev.metadata["topic"] = list(rec.get("topic") or rec.get("category") or ev.categories or [])
+        if "format" not in ev.metadata:
+            ev.metadata["format"] = list(rec.get("format") or [])
+        ev.metadata["rec_embedding_text"] = build_recommendation_event_text(
+            ev, include_prefix=True, passage_prefix=DEFAULT_REC_PASSAGE_PREFIX
         )
-    return pool
+        ordered_events.append(ev)
+        ordered_cls.append(dict(rec.get("classification") or {}))
+
+    vecs_by_id: Dict[str, List[float]] = {}
+    if use_rec_4field_embeddings and embedder is not None:
+        fp = compute_events_fingerprint(cls_records)
+        rec_set = generate_or_load_recommendation_embeddings(
+            ordered_events,
+            embedder=embedder,
+            source_fingerprint=fp,
+            embeddings_path=rec_embeddings_path,
+            metadata_path=rec_metadata_path,
+            reuse_existing=True,
+        )
+        for ev in ordered_events:
+            v = rec_set.get_vector(ev.event_id)
+            if v is not None:
+                vecs_by_id[ev.event_id] = v
+    elif query_embeddings_path.is_file() and query_metadata_path.is_file():
+        q_arr = np.load(query_embeddings_path, mmap_mode="r")
+        q_meta = json.loads(query_metadata_path.read_text(encoding="utf-8"))
+        for row in q_meta.get("records") or []:
+            pid = str(row.get("post_id") or "").strip()
+            idx = int(row["embedding_row"])
+            if pid and 0 <= idx < q_arr.shape[0]:
+                vecs_by_id[pid] = [float(v) for v in q_arr[idx].tolist()]
+
+    return [
+        RecommendationCandidateInput(
+            event=ev,
+            classification=cls_obj,
+            event_vec=vecs_by_id.get(ev.event_id),
+        )
+        for ev, cls_obj in zip(ordered_events, ordered_cls)
+    ]
 
 
 def run_recommendation_demo(
@@ -217,7 +421,11 @@ def run_recommendation_demo(
     include_mandatory = bool(_pick("include_mandatory_demo", False))
     if include_mandatory:
         shcd_ev, shcd_cls = create_mandatory_shcd_demo_event(ref_now_dt)
-        shcd_vec = l2_normalize(embedder.encode_query(f"{shcd_ev.title} {shcd_ev.description}"))
+        shcd_ev.metadata["topic"] = ["Orientation", "Mandatory"]
+        shcd_ev.metadata["format"] = ["Sinh hoạt công dân"]
+        shcd_body = build_recommendation_event_text(shcd_ev, include_prefix=False)
+        shcd_ev.metadata["rec_embedding_text"] = f"{DEFAULT_REC_PASSAGE_PREFIX}{shcd_body}"
+        shcd_vec = l2_normalize(embedder.encode_passage(shcd_body))
         active_candidates.append(
             RecommendationCandidateInput(
                 event=shcd_ev,
@@ -251,6 +459,27 @@ def run_recommendation_demo(
         interest_mode_override=interest_mode_override,
     )
 
+    # 7. Run P7 List Selection via MMR (+ 1 Exploration Slot; CP-SAT deferred)
+    mmr_overrides: Dict[str, Any] = {}
+    if isinstance(payload.get("mmr"), dict):
+        mmr_overrides.update(payload["mmr"])
+    flat_mmr_map = {
+        "mmr_enabled": "enabled",
+        "top_n": "top_n",
+        "mmr_top_n": "top_n",
+        "mmr_lambda": "lambda_param",
+        "mmr_alpha_semantic": "alpha_semantic",
+        "mmr_cosine_rescale_mode": "cosine_rescale_mode",
+        "mmr_enable_exploration_slot": "enable_exploration_slot",
+        "mmr_pin_mandatory": "pin_mandatory",
+    }
+    for flat_k, target_k in flat_mmr_map.items():
+        if flat_k in payload and payload[flat_k] is not None:
+            mmr_overrides[target_k] = payload[flat_k]
+
+    selector = MMRSelector(config=cfg)
+    mmr_result = selector.select(scored_candidates, overrides=mmr_overrides or None)
+
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
     ranked_dicts = []
@@ -258,6 +487,8 @@ def run_recommendation_demo(
         d = sc.to_dict()
         d["rank"] = idx
         ranked_dicts.append(d)
+
+    selected_dicts = [sc.to_dict() for sc in mmr_result.selected]
 
     return {
         "elapsed_ms": round(elapsed_ms, 2),
@@ -268,6 +499,7 @@ def run_recommendation_demo(
             "excluded_status_counts": filter_report.excluded_status_counts,
             "eligible_after_p5": len(filter_report.eligible),
             "dropped_by_p5": len(filter_report.dropped),
+            "selected_by_p7_mmr": len(selected_dicts),
             "drop_reason_counts": filter_report.reason_counts,
             "include_mandatory_demo": include_mandatory,
             "reference_now": ref_now_dt.isoformat(),
@@ -288,7 +520,13 @@ def run_recommendation_demo(
             "exam_weeks": [list(p) for p in sched_provider.get_schedule_context().exam_weeks],
             "default_travel_buffer_min": sched_provider.get_schedule_context().default_travel_buffer_min,
         },
-        "interest_calibration": cal_range.to_dict(),
+        "interest_calibration": {
+            **cal_range.to_dict(),
+            "event_embedding_fields": list(REC_EMBEDDING_FIELDS),
+            "event_embedding_prefix": DEFAULT_REC_PASSAGE_PREFIX,
+        },
+        "mmr_selection": mmr_result.to_summary_dict(),
+        "selected_events": selected_dicts,
         "ranked_events": ranked_dicts,
         "dropped_events": [d.to_dict() for d in filter_report.dropped],
     }

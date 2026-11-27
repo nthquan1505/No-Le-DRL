@@ -128,6 +128,7 @@ class ScoredCandidate:
             "interest_cos_raw": (
                 round(self.interest_cos_raw, 6) if self.interest_cos_raw is not None else None
             ),
+            "rec_embedding_text": (ev.metadata or {}).get("rec_embedding_text"),
             "fit_assessment": fit_dict,
             "days_to_deadline": (
                 round(self.days_to_deadline, 3) if self.days_to_deadline is not None else None

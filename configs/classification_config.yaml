@@ -9,6 +9,7 @@ config_status: provisional_not_evaluated
 
 paths:
   events_json: data/events.json
+  db_path: drl_database.db
   rubric_yaml: data/raw/rubric.yaml
   sample_embeddings: data/processed/cls_index/sample_embeddings.npy
   sample_metadata: data/processed/cls_index/sample_metadata.parquet
@@ -17,14 +18,33 @@ paths:
   embedding_config: data/processed/cls_index/embedding_config.json
   query_embeddings: data/generated/events_query_embeddings.npy
   query_metadata: data/generated/events_query_metadata.json
+  multi_profile_query_embeddings: data/generated/events_cls_multivector_embeddings.npz
+  multi_profile_query_metadata: data/generated/events_cls_multivector_metadata.json
   output_classification_json: outputs/classification_events.json
   output_run_report_md: outputs/classification_run_report.md
+
+input_source:
+  mode: json                         # "database" (drl_database.db) | "json" (offline fixture)
+  only_unclassified: false           # when mode=database: true -> WHERE category IS NULL
+  exclude_cancelled: true            # when mode=database: WHERE is_cancelled = 0
+  write_back_category: true          # when mode=database: update events.category (1..5) for PREDICTED
 
 embedding:
   reuse_existing_query_embeddings: true
   batch_size: 32
   device: cpu
   l2_tolerance: 1.0e-4
+  classification_profiles:
+    - title
+    - title_description
+    - title_description_format
+  branch_vector_selection:
+    sample_branch: title_description          # selectable: title | title_description | title_description_format
+    rubric_branch: title_description          # selectable: title | title_description | title_description_format
+    sample_stage1: null                       # optional stage override; null inherits sample_branch
+    sample_stage2: null
+    rubric_stage1: null                       # optional stage override; null inherits rubric_branch
+    rubric_stage2: null
 
 algorithm:
   name: hierarchical_two_stage_knn

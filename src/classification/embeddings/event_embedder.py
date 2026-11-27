@@ -16,6 +16,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from src.classification.embeddings.event_text_builder import (
+    CLASSIFICATION_VECTOR_PROFILES,
+    build_all_classification_profile_texts,
     build_event_query_text,
     check_event_classifiable,
     normalize_event_text,
@@ -285,6 +287,240 @@ def generate_or_load_shared_query_embeddings(
         metadata=metadata,
         embeddings_path=query_embeddings_path,
         metadata_path=query_metadata_path,
+        reused_from_cache=False,
+        event_index_to_row=idx_to_row,
+        skipped_by_event_index=skipped_map,
+    )
+
+
+@dataclass(frozen=True)
+class MultiProfileQueryEmbeddingSet:
+    """Three-vector classification query embedding bundle (`title`, `title_description`, `title_description_format`)."""
+
+    vectors_by_profile: Dict[str, np.ndarray]
+    metadata: Dict[str, Any]
+    embeddings_path: Optional[Path]
+    metadata_path: Optional[Path]
+    reused_from_cache: bool
+    event_index_to_row: Dict[int, int]
+    skipped_by_event_index: Dict[int, Dict[str, Any]]
+
+    def get_vectors_for_row(self, row_idx: int) -> Dict[str, np.ndarray]:
+        return {
+            profile: mat[row_idx]
+            for profile, mat in self.vectors_by_profile.items()
+        }
+
+
+def _can_reuse_multi_profile_cache(
+    embeddings_path: Path,
+    metadata_path: Path,
+    events_sha256: str,
+    expected_event_count: int,
+    profiles: Tuple[str, ...],
+    embedding_config: Dict[str, Any],
+    l2_tolerance: float,
+) -> Optional[Tuple[Dict[str, np.ndarray], Dict[str, Any]]]:
+    if not embeddings_path.is_file() or not metadata_path.is_file():
+        return None
+    try:
+        meta = json.loads(metadata_path.read_text(encoding="utf-8"))
+        npz = np.load(embeddings_path)
+    except Exception:
+        return None
+
+    expected_model = embedding_config.get("model_name")
+    expected_dim = int(embedding_config.get("embedding_dimension", 384))
+    expected_prefix = (embedding_config.get("prefixes") or {}).get("query", "query: ")
+
+    if (
+        meta.get("schema_version") != "events-cls-multivector-v1"
+        or meta.get("source_events_sha256") != events_sha256
+        or meta.get("total_input_events") != expected_event_count
+        or tuple(meta.get("profiles") or ()) != profiles
+        or meta.get("embedding_model") != expected_model
+        or meta.get("embedding_dimension") != expected_dim
+        or meta.get("query_prefix") != expected_prefix
+    ):
+        return None
+
+    n_rec = len(meta.get("records") or [])
+    out: Dict[str, np.ndarray] = {}
+    for prof in profiles:
+        if prof not in npz:
+            return None
+        arr = np.asarray(npz[prof], dtype=np.float32)
+        if arr.ndim != 2 or arr.shape != (n_rec, expected_dim) or not np.isfinite(arr).all():
+            return None
+        if n_rec > 0:
+            norms = np.linalg.norm(arr.astype(np.float64), axis=1)
+            if float(np.max(np.abs(norms - 1.0))) > l2_tolerance:
+                return None
+        out[prof] = arr
+
+    return out, meta
+
+
+def generate_or_load_multi_profile_query_embeddings(
+    *,
+    events: List[Dict[str, Any]],
+    events_path: Path,
+    events_sha256: str,
+    embedding_config: Dict[str, Any],
+    profiles: Tuple[str, ...] = CLASSIFICATION_VECTOR_PROFILES,
+    embeddings_path: Optional[Path] = None,
+    metadata_path: Optional[Path] = None,
+    reuse_existing: bool = True,
+    batch_size: int = 32,
+    device: str = "cpu",
+    l2_tolerance: float = 1e-4,
+    embedder: Any = None,
+) -> MultiProfileQueryEmbeddingSet:
+    """Generate (or reuse cached) 3 classification query vectors per classifiable event.
+
+    Handles empty DB (`len(events) == 0`) cleanly by returning `(0, 384)` arrays for all profiles.
+    """
+    profiles_tuple = tuple(profiles)
+    if (
+        reuse_existing
+        and embeddings_path is not None
+        and metadata_path is not None
+    ):
+        reused = _can_reuse_multi_profile_cache(
+            embeddings_path=embeddings_path,
+            metadata_path=metadata_path,
+            events_sha256=events_sha256,
+            expected_event_count=len(events),
+            profiles=profiles_tuple,
+            embedding_config=embedding_config,
+            l2_tolerance=l2_tolerance,
+        )
+        if reused is not None:
+            vecs_map, meta = reused
+            idx_to_row, skipped_map = _build_index_maps(meta)
+            return MultiProfileQueryEmbeddingSet(
+                vectors_by_profile=vecs_map,
+                metadata=meta,
+                embeddings_path=embeddings_path,
+                metadata_path=metadata_path,
+                reused_from_cache=True,
+                event_index_to_row=idx_to_row,
+                skipped_by_event_index=skipped_map,
+            )
+
+    model_name = str(embedding_config["model_name"])
+    model_revision = embedding_config.get("model_revision")
+    expected_dim = int(embedding_config["embedding_dimension"])
+    query_prefix = str((embedding_config.get("prefixes") or {}).get("query", "query: "))
+
+    records: List[Dict[str, Any]] = []
+    skipped_records: List[Dict[str, Any]] = []
+    texts_by_profile: Dict[str, List[str]] = {p: [] for p in profiles_tuple}
+
+    for source_idx, ev in enumerate(events):
+        post_id = ev.get("post_id")
+        event_title = normalize_event_text(ev.get("title"))
+        classifiable, skip_reason = check_event_classifiable(ev)
+        if not classifiable:
+            skipped_records.append(
+                {
+                    "source_event_index": source_idx,
+                    "post_id": post_id,
+                    "event_id": ev.get("event_id"),
+                    "event_title": event_title,
+                    "skip_reason": skip_reason,
+                }
+            )
+            continue
+
+        prof_texts = build_all_classification_profile_texts(
+            ev,
+            profiles=profiles_tuple,
+            query_prefix=query_prefix,
+        )
+        emb_row = len(records)
+        records.append(
+            {
+                "embedding_row": emb_row,
+                "post_id": post_id,
+                "event_id": ev.get("event_id"),
+                "source_event_index": source_idx,
+                "event_title": event_title,
+                "embedding_texts": prof_texts,
+                "embedding_model": model_name,
+                "embedding_dimension": expected_dim,
+                "normalization": "l2",
+            }
+        )
+        for p in profiles_tuple:
+            texts_by_profile[p].append(prof_texts[p])
+
+    vectors_by_profile: Dict[str, np.ndarray] = {}
+    if records:
+        if embedder is not None:
+            for p in profiles_tuple:
+                bodies = [
+                    t[len(query_prefix):] if t.startswith(query_prefix) else t
+                    for t in texts_by_profile[p]
+                ]
+                raw = np.asarray(embedder.encode_queries(bodies), dtype=np.float32)
+                norms = np.linalg.norm(raw, axis=1, keepdims=True)
+                if np.any(norms == 0):
+                    raise ValueError(f"Zero-norm embedding in profile '{p}'.")
+                vectors_by_profile[p] = (raw / norms).astype(np.float32)
+        else:
+            model = _load_matching_e5_model(embedding_config, device=device)
+            for p in profiles_tuple:
+                raw = model.encode(
+                    texts_by_profile[p],
+                    batch_size=batch_size,
+                    show_progress_bar=False,
+                    convert_to_numpy=True,
+                    normalize_embeddings=True,
+                )
+                arr = np.asarray(raw, dtype=np.float32)
+                norms = np.linalg.norm(arr, axis=1, keepdims=True)
+                if np.any(norms == 0):
+                    raise ValueError(f"Zero-norm embedding in profile '{p}'.")
+                vectors_by_profile[p] = (arr / norms).astype(np.float32)
+    else:
+        for p in profiles_tuple:
+            vectors_by_profile[p] = np.zeros((0, expected_dim), dtype=np.float32)
+
+    metadata: Dict[str, Any] = {
+        "schema_version": "events-cls-multivector-v1",
+        "source_events_path": events_path.as_posix(),
+        "source_events_sha256": events_sha256,
+        "profiles": list(profiles_tuple),
+        "embedding_model": model_name,
+        "model_revision": model_revision,
+        "embedding_dimension": expected_dim,
+        "dtype": "float32",
+        "normalization": "l2",
+        "query_prefix": query_prefix,
+        "total_input_events": len(events),
+        "embedded_events_count": len(records),
+        "skipped_events_count": len(skipped_records),
+        "generation_timestamp_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "records": records,
+        "skipped_records": skipped_records,
+    }
+
+    if embeddings_path is not None and metadata_path is not None:
+        embeddings_path.parent.mkdir(parents=True, exist_ok=True)
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(embeddings_path, **vectors_by_profile)
+        metadata_path.write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+            encoding="utf-8",
+        )
+
+    idx_to_row, skipped_map = _build_index_maps(metadata)
+    return MultiProfileQueryEmbeddingSet(
+        vectors_by_profile=vectors_by_profile,
+        metadata=metadata,
+        embeddings_path=embeddings_path,
+        metadata_path=metadata_path,
         reused_from_cache=False,
         event_index_to_row=idx_to_row,
         skipped_by_event_index=skipped_map,

@@ -251,14 +251,16 @@ def validate_loaded_assets(assets: LoadedAssets) -> ValidationReport:
         f"Stage 1={s1_count}, Stage 2={s2_count}, reminder={reminder_count}, special={special_count}; errors={len(rubric_ref_errors)}",
     )
 
-    # Verify input events.json basic integrity
-    events_ok = len(assets.events) > 0
+    # Verify input events integrity (database mode permits empty table gracefully)
+    allow_empty = getattr(assets, "source_mode", "json") == "database"
+    events_ok = True if allow_empty else len(assets.events) > 0
     post_ids = [ev.get("post_id") for ev in assets.events if ev.get("post_id") is not None]
     unique_pids = len(post_ids) == len(set(post_ids))
     report.add(
         "input_events_integrity",
         events_ok and unique_pids,
-        f"total_events={len(assets.events)}, non_null_post_ids={len(post_ids)}, unique_post_ids={unique_pids}",
+        f"source={getattr(assets, 'source_mode', 'json')}, total_events={len(assets.events)}, "
+        f"non_null_post_ids={len(post_ids)}, unique_post_ids={unique_pids}",
     )
 
     if not report.all_passed:

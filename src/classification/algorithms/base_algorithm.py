@@ -71,5 +71,6 @@ class BaseClassificationAlgorithm(ABC):
         self,
         query_vector: np.ndarray,
         event_context: Optional[Dict[str, Any]] = None,
+        query_vectors_by_profile: Optional[Dict[str, np.ndarray]] = None,
     ) -> AlgorithmPrediction:
-        """Classify one event using its shared L2-normalized query vector."""
+        """Classify one event using its shared query vector or per-profile query vectors."""

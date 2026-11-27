@@ -112,6 +112,17 @@
                 >Cuộc thi học thuật cấp Khoa dành cho sinh viên yêu thích bảo mật và lập trình.</textarea>
               </div>
 
+              <div class="form-field">
+                <label for="clsFormat">Hình thức hoạt động (<code class="mono">format</code>) <span class="label-hint">(dùng cho vector title+desc+format)</span></label>
+                <input
+                  id="clsFormat"
+                  type="text"
+                  class="input-text"
+                  value="contest"
+                  placeholder="Vd: contest, seminar, workshop, volunteer, training (cách nhau dấu phẩy)..."
+                />
+              </div>
+
               <div class="form-row-2">
                 <div class="form-field">
                   <label for="clsOrg">Đơn vị tổ chức <span class="label-hint">(cho Module 6)</span></label>
@@ -127,13 +138,31 @@
                 </div>
               </div>
 
-              <details id="paramsDetails" class="collapsible-box">
+              <details id="paramsDetails" class="collapsible-box" open>
                 <summary class="collapsible-summary">
-                  <span>Tham số phân loại (tạm thời)</span>
-                  <span class="badge badge-orange mono">provisional</span>
+                  <span>Chọn Vector 2 nhánh &amp; Tham số phân loại</span>
+                  <span class="badge badge-orange mono">3 vectors</span>
                 </summary>
                 <div class="collapsible-body">
-                  <div class="form-row-3">
+                  <div class="form-row-2">
+                    <div class="form-field">
+                      <label for="paramSampleVec">Vector Nhánh Sample</label>
+                      <select id="paramSampleVec" class="input-text mono">
+                        <option value="title">title</option>
+                        <option value="title_description" selected>title + description</option>
+                        <option value="title_description_format">title + description + format</option>
+                      </select>
+                    </div>
+                    <div class="form-field">
+                      <label for="paramRubricVec">Vector Nhánh Rubric</label>
+                      <select id="paramRubricVec" class="input-text mono">
+                        <option value="title">title</option>
+                        <option value="title_description" selected>title + description</option>
+                        <option value="title_description_format">title + description + format</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row-3" style="margin-top:8px">
                     <div class="form-field">
                       <label for="paramTopK">Top-k nhóm</label>
                       <input id="paramTopK" type="number" min="1" max="4" value="2" class="input-text mono" />
@@ -147,7 +176,7 @@
                       <input id="paramK2" type="number" min="1" max="30" value="10" class="input-text mono" />
                     </div>
                   </div>
-                  <div class="form-row-2">
+                  <div class="form-row-2" style="margin-top:8px">
                     <div class="form-field">
                       <label for="paramBeta">β Stage 1 (Sample)</label>
                       <input id="paramBeta" type="number" min="0" max="1" step="0.05" value="0.5" class="input-text mono" />
@@ -222,7 +251,7 @@
               </div>
               <p class="helper-text">
                 Kiểm thử <strong>P4</strong> (User Profile gọn), <strong>Demo M4</strong> (lịch &amp; di chuyển),
-                <strong>Demo M6</strong> (điểm &amp; trần), <strong>P5</strong> (lọc cứng) và <strong>P6</strong> (chấm điểm).
+                <strong>Demo M6</strong> (điểm &amp; trần), <strong>P5</strong> (lọc cứng), <strong>P6</strong> (chấm điểm) và <strong>P7</strong> (chọn danh sách MMR).
               </p>
             </div>
 
@@ -233,6 +262,21 @@
             </div>
 
             <form id="recForm" class="form-stack">
+              <!-- Input Data Source -->
+              <div class="rec-section">
+                <div class="rec-section-title">0. Nguồn sự kiện &amp; Embedding (4 trường)</div>
+                <div class="form-field">
+                  <label for="recDataSource">Nguồn dữ liệu đầu vào</label>
+                  <select id="recDataSource" class="input-text">
+                    <option value="json" selected>Fixture JSON (events.json + classification_events.json)</option>
+                    <option value="database">Database SQLite (drl_database.db · bảng events)</option>
+                  </select>
+                </div>
+                <div id="recEmbeddingHint" class="helper-text mono" style="margin-top:6px;font-size:11.5px">
+                  Event vector: passage: title + description + topic + format
+                </div>
+              </div>
+
               <!-- P4 Interests -->
               <div class="rec-section">
                 <div class="rec-section-title">1. Sở thích đơn giản (P4 · e5-small)</div>
@@ -428,8 +472,54 @@
                 </div>
               </details>
 
+              <!-- P7 MMR List Selection -->
+              <details class="collapsible-box" open>
+                <summary class="collapsible-summary">
+                  <span>6. Chọn danh sách P7 (<code class="mono">MMR + 1 slot khám phá</code>)</span>
+                  <span id="recMmrSummaryBadge" class="badge badge-teal mono">Top-5 · λ=0.70</span>
+                </summary>
+                <div class="collapsible-body">
+                  <label class="checkbox-row">
+                    <input id="recMmrEnabled" type="checkbox" checked />
+                    <span>Bật chọn danh sách đa dạng <strong>MMR</strong> (thay cho Top-N thuần P6)</span>
+                  </label>
+                  <div class="form-row-3">
+                    <div class="form-field">
+                      <label for="recMmrTopN" class="mono">Top-N</label>
+                      <input id="recMmrTopN" type="number" min="1" max="30" step="1" value="5" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recMmrLambda" class="mono">λ (Liên quan)</label>
+                      <input id="recMmrLambda" type="number" min="0" max="1" step="0.05" value="0.70" class="input-text mono" />
+                    </div>
+                    <div class="form-field">
+                      <label for="recMmrAlpha" class="mono">α (Ngữ nghĩa)</label>
+                      <input id="recMmrAlpha" type="number" min="0" max="1" step="0.05" value="0.70" class="input-text mono" />
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label for="recMmrCosineMode">Kéo dải cosine cặp E5 (chống nén vector)</label>
+                    <select id="recMmrCosineMode" class="input-text">
+                      <option value="pool_minmax" selected>Min-Max theo tập ứng viên (pool_minmax)</option>
+                      <option value="fixed">Dải cố định [0.72, 0.92] (fixed)</option>
+                      <option value="none">Không kéo dải — cosine thô (none)</option>
+                    </select>
+                  </div>
+                  <div class="checkbox-stack">
+                    <label class="checkbox-row">
+                      <input id="recMmrExplore" type="checkbox" checked />
+                      <span>Dành <strong>1 slot cuối cho Khám phá</strong> (<code>SEL_EXPLORATION</code>, khi N ≥ 3)</span>
+                    </label>
+                    <label class="checkbox-row">
+                      <input id="recMmrPinMandatory" type="checkbox" checked />
+                      <span>Ghim hoạt động bắt buộc (<code>6.4</code>) lên đầu danh sách</span>
+                    </label>
+                  </div>
+                </div>
+              </details>
+
               <div class="form-row-2">
-                <button id="btnRecRun" type="submit" class="btn btn-primary btn-full">Chạy Đề Xuất (P5 + P6)</button>
+                <button id="btnRecRun" type="submit" class="btn btn-primary btn-full">Chạy Đề Xuất (P5–P7 MMR)</button>
                 <button id="btnRecReset" type="button" class="btn btn-ghost btn-full">Đặt lại mặc định</button>
               </div>
             </form>

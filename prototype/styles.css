@@ -247,6 +247,11 @@ html, body {
   color: #334155;
 }
 
+.badge-purple {
+  background: #EDE9FE;
+  color: #5B21B6;
+}
+
 /* Form Elements */
 .quick-samples {
   display: flex;
@@ -946,6 +951,58 @@ details[open] > .tech-details-summary::before {
   background: #FEF2F2;
 }
 
+.rec-card.exploration-card {
+  border: 1.5px solid #8B5CF6;
+  background: #F5F3FF;
+}
+
+.rec-card.exploration-card .rec-rank-pill {
+  background: #6D28D9;
+}
+
+.rec-mmr-banner {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rec-mmr-trace-box {
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  background: #EEF2FF;
+  border-left: 3px solid #6366F1;
+  font-size: 12px;
+  color: #312E81;
+  line-height: 1.45;
+}
+
+.rec-mmr-trace-box.exploration-trace {
+  background: #EDE9FE;
+  border-left-color: #7C3AED;
+  color: #4C1D95;
+}
+
+.rec-mmr-trace-box.mandatory-trace {
+  background: #FEE2E2;
+  border-left-color: var(--color-danger);
+  color: #991B1B;
+}
+
+.rank-shift-up {
+  background: #CCFBF1;
+  color: #115E59;
+}
+
+.rank-shift-down {
+  background: #FFEDD5;
+  color: #9A3412;
+}
+
 .rec-card-top {
   display: flex;
   align-items: flex-start;
@@ -1216,6 +1273,7 @@ details[open] > .tech-details-summary::before {
 @media (max-width: 960px) {
   .rec-split-layout,
   .rec-kpi-grid,
+  .rec-mmr-banner,
   .component-pills,
   .group-pts-grid,
   .weights-4-grid {

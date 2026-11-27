@@ -276,12 +276,29 @@ class HierarchicalTwoStageKNN(BaseClassificationAlgorithm):
     # Main Classification Entrypoint
     # ------------------------------------------------------------------
 
+    def _resolve_branch_vector(
+        self,
+        profile_name: str,
+        fallback_vec: np.ndarray,
+        query_vectors_by_profile: Optional[Dict[str, np.ndarray]],
+    ) -> Tuple[np.ndarray, str]:
+        if query_vectors_by_profile and profile_name in query_vectors_by_profile:
+            vec = np.asarray(query_vectors_by_profile[profile_name], dtype=np.float32).reshape(-1)
+            return vec, profile_name
+        return fallback_vec, "shared_default"
+
     def classify(
         self,
         query_vector: np.ndarray,
         event_context: Optional[Dict[str, Any]] = None,
+        query_vectors_by_profile: Optional[Dict[str, np.ndarray]] = None,
     ) -> AlgorithmPrediction:
-        """Run independent dual-branch Stage 1 + Fusion -> shared Top-2 -> Stage 2 + Fusion."""
+        """Run independent dual-branch Stage 1 + Fusion -> shared Top-2 -> Stage 2 + Fusion.
+
+        Supports configurable vector profile selection per branch (and optional per-stage
+        override) across the 3 classification profiles: `title`, `title_description`, and
+        `title_description_format`.
+        """
         k1 = int(self._require_param("k1"))
         k2 = int(self._require_param("k2"))
         candidate_group_count = int(self._require_param("candidate_group_count"))
@@ -303,13 +320,33 @@ class HierarchicalTwoStageKNN(BaseClassificationAlgorithm):
         top_sample_out = int(self.params.get("top_sample_neighbors_in_output", 5))
         top_rubric_out = int(self.params.get("top_rubric_prototypes_in_output", 5))
 
-        # Shared query vector (passed unchanged to BOTH branches & BOTH stages)
+        # Resolve per-branch / per-stage vector routing (falls back cleanly to `query_vector`)
         shared_q = np.asarray(query_vector, dtype=np.float32).reshape(-1)
+        sample_branch_pref = str(self.params.get("sample_branch_vector") or "title_description")
+        rubric_branch_pref = str(self.params.get("rubric_branch_vector") or "title_description")
+
+        sample_s1_pref = str(self.params.get("sample_stage1_vector") or sample_branch_pref)
+        sample_s2_pref = str(self.params.get("sample_stage2_vector") or sample_branch_pref)
+        rubric_s1_pref = str(self.params.get("rubric_stage1_vector") or rubric_branch_pref)
+        rubric_s2_pref = str(self.params.get("rubric_stage2_vector") or rubric_branch_pref)
+
+        q_sample_s1, used_sample_s1 = self._resolve_branch_vector(
+            sample_s1_pref, shared_q, query_vectors_by_profile
+        )
+        q_sample_s2, used_sample_s2 = self._resolve_branch_vector(
+            sample_s2_pref, shared_q, query_vectors_by_profile
+        )
+        q_rubric_s1, used_rubric_s1 = self._resolve_branch_vector(
+            rubric_s1_pref, shared_q, query_vectors_by_profile
+        )
+        q_rubric_s2, used_rubric_s2 = self._resolve_branch_vector(
+            rubric_s2_pref, shared_q, query_vectors_by_profile
+        )
 
         # ==============================================================
         # STAGE 1: Independent Sample & Rubric Group Retrieval + Fusion
         # ==============================================================
-        s1_sample_neighbors = self.sample_retriever.retrieve_stage1(shared_q, top_k=k1)
+        s1_sample_neighbors = self.sample_retriever.retrieve_stage1(q_sample_s1, top_k=k1)
         s1_sample_raw, s1_sample_ranked = self._aggregate_stage1_sample(
             s1_sample_neighbors,
             weighting_mode=s1_weight_mode,
@@ -317,7 +354,7 @@ class HierarchicalTwoStageKNN(BaseClassificationAlgorithm):
             power=s1_power,
         )
 
-        s1_rubric_matches = self.rubric_retriever.retrieve_stage1_groups(shared_q)
+        s1_rubric_matches = self.rubric_retriever.retrieve_stage1_groups(q_rubric_s1)
         s1_rubric_raw, s1_rubric_ranked = self._aggregate_stage1_rubric(s1_rubric_matches)
 
         eligible_groups = sorted(
@@ -347,7 +384,7 @@ class HierarchicalTwoStageKNN(BaseClassificationAlgorithm):
         # STAGE 2: Independent Sample & Rubric Criterion Retrieval + Fusion
         # ==============================================================
         s2_sample_neighbors = self.sample_retriever.retrieve_stage2(
-            shared_q,
+            q_sample_s2,
             candidate_groups=selected_groups,
             top_k=k2,
         )
@@ -359,7 +396,7 @@ class HierarchicalTwoStageKNN(BaseClassificationAlgorithm):
         )
 
         s2_rubric_matches = self.rubric_retriever.retrieve_stage2_criteria(
-            shared_q,
+            q_rubric_s2,
             candidate_groups=selected_groups,
         )
         s2_rubric_raw, s2_rubric_ranked, rubric_details_by_ref = self._aggregate_stage2_rubric(
@@ -447,5 +484,11 @@ class HierarchicalTwoStageKNN(BaseClassificationAlgorithm):
                 "alpha": alpha,
                 "candidate_group_count": candidate_group_count,
                 "missing_branch_reference_policy": missing_policy,
+                "vector_routing_used": {
+                    "sample_stage1": used_sample_s1,
+                    "sample_stage2": used_sample_s2,
+                    "rubric_stage1": used_rubric_s1,
+                    "rubric_stage2": used_rubric_s2,
+                },
             },
         )

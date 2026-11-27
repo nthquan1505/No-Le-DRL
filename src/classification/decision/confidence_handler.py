@@ -211,6 +211,7 @@ class ConfidenceAndDecisionHandler:
                 "predicted_criterion_ref": None,
                 "predicted_criterion_key": None,
                 "predicted_criterion_name": None,
+                "vector_routing_used": (prediction.algorithm_metadata or {}).get("vector_routing_used"),
                 "suggested_candidates": suggested,
                 "scores": scores_block,
                 "confidence": {
@@ -333,8 +334,10 @@ class ConfidenceAndDecisionHandler:
             "rubric_context": rubric_context,
         }
 
+        vector_routing = (prediction.algorithm_metadata or {}).get("vector_routing_used")
+
         if review_reasons:
-            return {
+            res = {
                 "status": "NEEDS_REVIEW",
                 "algorithm": prediction.algorithm_name,
                 "predicted_group_id": None,
@@ -347,8 +350,11 @@ class ConfidenceAndDecisionHandler:
                 "evidence": evidence_block,
                 "review_reasons": review_reasons,
             }
+            if vector_routing:
+                res["vector_routing_used"] = vector_routing
+            return res
 
-        return {
+        res = {
             "status": "PREDICTED",
             "algorithm": prediction.algorithm_name,
             "predicted_group_id": top_info["group_id"],
@@ -361,3 +367,6 @@ class ConfidenceAndDecisionHandler:
             "evidence": evidence_block,
             "review_reasons": [],
         }
+        if vector_routing:
+            res["vector_routing_used"] = vector_routing
+        return res

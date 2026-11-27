@@ -117,6 +117,18 @@ schedule:
 # =============================================================================
 # Phase 5 Demo Extensions: Demo M4/M6, P5 Hard Filter & P6 Multi-Criteria Scoring
 # =============================================================================
+input_source:
+  mode: database                      # "database" (drl_database.db) | "json" (offline fixture)
+  db_path: drl_database.db
+  exclude_cancelled: true
+
+rec_embedding:
+  fields: [title, description, topic, format]
+  passage_prefix: "passage: "
+  embeddings_path: data/generated/events_rec_embeddings.npy
+  metadata_path: data/generated/events_rec_metadata.json
+  reuse_existing: true
+
 demo_module4:
   default_max_travel_min: 45
   comfort_slack_min: 30
@@ -158,6 +170,14 @@ scoring:
     fixed_c_min: 0.72
     fixed_c_max: 0.90
     cold_start_default: 0.50
+    event_embedding_fields: ["title", "description", "topic", "format"]
+    event_embedding_prefix: "passage: "
+    rec_embeddings_path: "data/generated/events_rec_embeddings.npy"
+    rec_metadata_path: "data/generated/events_rec_metadata.json"
+  input_source:
+    default_mode: "database"                     # "database" (drl_database.db) | "json" (offline fixture)
+    db_path: "drl_database.db"
+    exclude_cancelled: true
   urgency:
     tau_days: 5.0
     missing_deadline_default: 0.20
@@ -166,4 +186,25 @@ scoring:
     max_boost: 1.00
     default_mandatory_boost: 0.50
     enable_item_2_2_penalty_link: false
+
+# =============================================================================
+# Phase 6: P7 List Selection via MMR (+ 1 Exploration Slot; CP-SAT deferred)
+# =============================================================================
+selection:
+  mmr:
+    enabled: true
+    top_n: 5
+    lambda_param: 0.70                  # Relevance vs Diversity trade-off in [0, 1]
+    alpha_semantic: 0.70                # Hybrid Sim = alpha * sim_sem + (1 - alpha) * sim_rubric
+    same_item_similarity: 1.00          # sim_rubric when same rubric_item_id
+    same_group_similarity: 0.50         # sim_rubric when different item but same parent_group_id
+    cosine_rescale_mode: "pool_minmax"  # "pool_minmax" | "fixed" | "none"
+    fixed_cos_min: 0.72                 # Empirical e5-small floor when rescaling
+    fixed_cos_max: 0.92                 # Empirical e5-small ceiling when rescaling
+    min_pool_cosine_span: 0.05          # Minimum pool spread before falling back to fixed range
+    enable_exploration_slot: true       # Reserve last slot (when N >= 3 & pool >= N) for Exploration
+    exploration_gain_weight: 0.60       # ExploreScore = (w_g*Gain + w_f*Fit) * (1 - max_sim)
+    exploration_fit_weight: 0.40
+    pin_mandatory: true                 # Pin mandatory events (e.g. 6.4 SHCD) at top of list
+
 

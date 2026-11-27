@@ -6,11 +6,17 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import yaml
+
+from src.db_event_adapter import (
+    compute_events_fingerprint,
+    db_row_to_classification_event,
+    fetch_events_from_db,
+)
 
 
 @dataclass(frozen=True)
@@ -38,6 +44,7 @@ class LoadedAssets:
     embedding_config_path: Path
     sample_branch: ReferenceBranchDataset
     rubric_branch: ReferenceBranchDataset
+    source_mode: str = "json"
 
 
 def sha256_file(path: Path) -> str:
@@ -105,20 +112,57 @@ def load_reference_branch(
     )
 
 
-def load_all_assets(config_path: Path, project_root: Path | None = None) -> LoadedAssets:
-    """Load all required input files using paths configured in classification_config.yaml."""
+def load_events_from_database(
+    *,
+    db: Any = None,
+    db_path: Optional[Path] = None,
+    only_unclassified: bool = False,
+    exclude_cancelled: bool = True,
+) -> Tuple[List[Dict[str, Any]], str, Path]:
+    """Load scraped events from `drl_database.db` (`events` table) via `DRLDatabaseManager`."""
+    rows = fetch_events_from_db(
+        db=db,
+        db_path=db_path,
+        only_unclassified=only_unclassified,
+        exclude_cancelled=exclude_cancelled,
+    )
+    events = [db_row_to_classification_event(r) for r in rows]
+    fingerprint = compute_events_fingerprint(events)
+    resolved_db_path = (
+        Path(db.db_path)
+        if db is not None and hasattr(db, "db_path")
+        else (Path(db_path) if db_path is not None else Path("drl_database.db"))
+    )
+    return events, fingerprint, resolved_db_path
+
+
+def load_all_assets(
+    config_path: Path,
+    project_root: Path | None = None,
+    *,
+    input_source_override: Optional[str] = None,
+    db: Any = None,
+    db_path_override: Optional[Path] = None,
+    only_unclassified: Optional[bool] = None,
+    exclude_cancelled: Optional[bool] = None,
+) -> LoadedAssets:
+    """Load all required input files (or SQLite DB events) using classification_config.yaml."""
     root = project_root if project_root is not None else Path.cwd()
     config = load_classification_config(config_path)
     paths_cfg = config.get("paths") or {}
+    source_cfg = config.get("input_source") or {}
 
-    def resolve(key: str) -> Path:
-        raw = paths_cfg.get(key)
+    def resolve(key: str, default: Optional[str] = None) -> Path:
+        raw = paths_cfg.get(key, default)
         if not raw:
             raise ValueError(f"Missing required path key 'paths.{key}' in {config_path}")
         p = Path(raw)
         return p if p.is_absolute() else root / p
 
-    events_path = resolve("events_json")
+    source_mode = str(input_source_override or source_cfg.get("mode", "json")).strip().lower()
+    if source_mode not in ("json", "database"):
+        raise ValueError(f"Unsupported input_source mode {source_mode!r}. Expected 'database' or 'json'.")
+
     rubric_path = resolve("rubric_yaml")
     emb_cfg_path = resolve("embedding_config")
     sample_emb_path = resolve("sample_embeddings")
@@ -126,8 +170,33 @@ def load_all_assets(config_path: Path, project_root: Path | None = None) -> Load
     rubric_emb_path = resolve("rubric_embeddings")
     rubric_meta_path = resolve("rubric_metadata")
 
-    events = load_events(events_path)
-    events_sha256 = sha256_file(events_path)
+    if source_mode == "database":
+        resolved_db_path = (
+            Path(db_path_override)
+            if db_path_override is not None
+            else resolve("db_path", default="drl_database.db")
+        )
+        only_uncls = (
+            bool(only_unclassified)
+            if only_unclassified is not None
+            else bool(source_cfg.get("only_unclassified", False))
+        )
+        excl_cancel = (
+            bool(exclude_cancelled)
+            if exclude_cancelled is not None
+            else bool(source_cfg.get("exclude_cancelled", True))
+        )
+        events, events_sha256, events_path = load_events_from_database(
+            db=db,
+            db_path=resolved_db_path,
+            only_unclassified=only_uncls,
+            exclude_cancelled=excl_cancel,
+        )
+    else:
+        events_path = resolve("events_json")
+        events = load_events(events_path)
+        events_sha256 = sha256_file(events_path)
+
     rubric = load_yaml_file(rubric_path)
     embedding_config = load_json_file(emb_cfg_path)
     if not isinstance(embedding_config, dict):
@@ -147,4 +216,5 @@ def load_all_assets(config_path: Path, project_root: Path | None = None) -> Load
         embedding_config_path=emb_cfg_path,
         sample_branch=sample_branch,
         rubric_branch=rubric_branch,
+        source_mode=source_mode,
     )

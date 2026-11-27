@@ -6,30 +6,35 @@ const QUICK_SAMPLES = {
   ctf: {
     title: "Cuộc thi An toàn thông tin HCMUS CTF 2026",
     description: "Cuộc thi học thuật cấp Khoa dành cho sinh viên yêu thích bảo mật và lập trình.",
+    format: "contest",
     organizer: "Khoa CNTT",
     role: "participant",
   },
   seminar: {
     title: "Seminar Học thuật về Nghiên cứu AI và Machine Learning",
     description: "Buổi chia sẻ chuyên đề nghiên cứu khoa học sinh viên và định hướng khóa luận tốt nghiệp.",
+    format: "seminar, workshop",
     organizer: "Khoa CNTT",
     role: "participant",
   },
   volunteer: {
     title: "Chiến dịch Tình nguyện Mùa Hè Xanh 2026 (3 ngày)",
     description: "Hoạt động tình nguyện vì cộng đồng kéo dài 3 ngày tại xã vùng ven.",
+    format: "volunteer, campaign",
     organizer: "Đoàn Thanh niên - Hội Sinh viên HCMUS",
     role: "participant",
   },
   blood: {
     title: "Ngày hội Hiến máu tình nguyện Giọt hồng HCMUS",
     description: "Chương trình hiến máu nhân đạo vì cộng đồng do Hội Sinh viên Trường tổ chức.",
+    format: "volunteer, donation",
     organizer: "HSV",
     role: "participant",
   },
   mobilize: {
     title: "Huy động lực lượng cổ vũ Giải Bóng đá Futsal sinh viên ĐHQG-HCM",
     description: "Thông báo huy động sinh viên tham gia cổ vũ trận đấu cấp Trường.",
+    format: "sports, cheering",
     organizer: "CTSV",
     role: "participant",
   },
@@ -56,7 +61,7 @@ const state = {
   recBootstrap: null,
   recLastResult: null,
   recActivePersonaId: "balanced_cs1",
-  recSubTab: "ranked", // "ranked" | "dropped"
+  recSubTab: "selected", // "selected" | "ranked" | "dropped"
   recDropReasonFilter: "ALL",
   recParticipatedIds: [],
   recHiddenIds: [],
@@ -237,10 +242,28 @@ function renderClassificationResult(res) {
       <div class="tech-details-body">
         <div class="tech-section">
           <div class="card-title-row">
-            <h3 class="card-subtitle">Shared Query Vector (${escapeHtml(res.embedder_status?.active_model || "e5-small")})</h3>
+            <h3 class="card-subtitle">Query Vectors (3 profiles · ${escapeHtml(res.embedder_status?.active_model || "e5-small")})</h3>
             <span class="mono text-muted" style="font-size:11.5px">${res.vector_dimension}d · ||v||₂ = ${res.vector_l2_norm} · ${res.reused_cached_query ? "cached" : "live"}</span>
           </div>
-          <div class="query-preview mono">${escapeHtml(res.formatted_query_text)}</div>
+          <div class="badge-row" style="margin:6px 0 8px">
+            <span class="badge badge-teal mono">Sample → ${escapeHtml((db.vector_routing_used && db.vector_routing_used.sample_stage1) || params.sample_branch_vector || "title_description")}</span>
+            <span class="badge badge-orange mono">Rubric → ${escapeHtml((db.vector_routing_used && db.vector_routing_used.rubric_stage1) || params.rubric_branch_vector || "title_description")}</span>
+          </div>
+          ${
+            res.profile_query_texts
+              ? ["title", "title_description", "title_description_format"]
+                  .map((pname) => {
+                    const sProf = (db.vector_routing_used && db.vector_routing_used.sample_stage1) || params.sample_branch_vector || "title_description";
+                    const rProf = (db.vector_routing_used && db.vector_routing_used.rubric_stage1) || params.rubric_branch_vector || "title_description";
+                    const tags = [];
+                    if (sProf === pname) tags.push("Sample");
+                    if (rProf === pname) tags.push("Rubric");
+                    const activeTag = tags.length ? ` [${tags.join(" + ")}]` : "";
+                    return `<div class="query-preview mono" style="margin-top:4px"><strong>${escapeHtml(pname)}${escapeHtml(activeTag)}:</strong> ${escapeHtml(res.profile_query_texts[pname] || "")}</div>`;
+                  })
+                  .join("")
+              : `<div class="query-preview mono">${escapeHtml(res.formatted_query_text)}</div>`
+          }
         </div>
 
         <div class="tech-section">
@@ -416,6 +439,12 @@ function syncDefaultParams() {
   $("#paramK2").value = dp.k2;
   $("#paramBeta").value = dp.beta;
   $("#paramAlpha").value = dp.alpha;
+  if ($("#paramSampleVec")) {
+    $("#paramSampleVec").value = dp.sample_branch_vector || "title_description";
+  }
+  if ($("#paramRubricVec")) {
+    $("#paramRubricVec").value = dp.rubric_branch_vector || "title_description";
+  }
 }
 
 async function runLiveClassify(options = {}) {
@@ -427,8 +456,11 @@ async function runLiveClassify(options = {}) {
       use_cached_query: Boolean(options.useCachedQuery),
       title: $("#clsTitle").value,
       description: $("#clsDesc").value,
+      format: $("#clsFormat") ? $("#clsFormat").value : "",
       organizer: $("#clsOrg").value,
       role: $("#clsRole").value,
+      sample_branch_vector: $("#paramSampleVec") ? $("#paramSampleVec").value : "title_description",
+      rubric_branch_vector: $("#paramRubricVec") ? $("#paramRubricVec").value : "title_description",
       stage1_top_k: Number($("#paramTopK").value || 2),
       k1: Number($("#paramK1").value || 10),
       k2: Number($("#paramK2").value || 10),
@@ -543,6 +575,7 @@ async function selectBatchEvent(postId) {
       use_cached_query: true,
       title: ev.title || "",
       description: ev.description || "",
+      format: ev.format || [],
       organizer: ev.organizer || "",
       role: "participant",
     });
@@ -723,6 +756,33 @@ function applyRecPersona(personaId) {
   renderRecUserActionState();
 }
 
+function updateRecMmrSummaryBadge() {
+  const badge = $("#recMmrSummaryBadge");
+  if (!badge) return;
+  const enabled = $("#recMmrEnabled") ? $("#recMmrEnabled").checked : true;
+  const topN = Number($("#recMmrTopN")?.value || 5);
+  const lam = Number($("#recMmrLambda")?.value ?? 0.7);
+  if (!enabled) {
+    badge.textContent = `Tắt (Top-${topN} P6)`;
+    badge.className = "badge badge-muted mono";
+  } else {
+    badge.textContent = `Top-${topN} · λ=${lam.toFixed(2)}`;
+    badge.className = "badge badge-teal mono";
+  }
+}
+
+function applyMmrDefaultsToForm(defaults) {
+  const d = defaults || (state.recBootstrap && state.recBootstrap.mmr_defaults) || {};
+  if ($("#recMmrEnabled")) $("#recMmrEnabled").checked = d.enabled !== false;
+  if ($("#recMmrTopN")) $("#recMmrTopN").value = d.top_n ?? 5;
+  if ($("#recMmrLambda")) $("#recMmrLambda").value = d.lambda_param ?? 0.7;
+  if ($("#recMmrAlpha")) $("#recMmrAlpha").value = d.alpha_semantic ?? 0.7;
+  if ($("#recMmrCosineMode")) $("#recMmrCosineMode").value = d.cosine_rescale_mode || "pool_minmax";
+  if ($("#recMmrExplore")) $("#recMmrExplore").checked = d.enable_exploration_slot !== false;
+  if ($("#recMmrPinMandatory")) $("#recMmrPinMandatory").checked = d.pin_mandatory !== false;
+  updateRecMmrSummaryBadge();
+}
+
 function buildRecPayloadFromForm() {
   const chips = Array.from(document.querySelectorAll("#recChipsGrid input:checked")).map(
     (inp) => inp.value
@@ -743,6 +803,7 @@ function buildRecPayloadFromForm() {
   const travelRaw = $("#recMaxTravel").value.trim();
 
   return {
+    data_source: $("#recDataSource") ? $("#recDataSource").value : "json",
     user_id: state.recActivePersonaId || "demo_user",
     cohort: $("#recCohort").value.trim() || null,
     interest_chips: chips,
@@ -776,29 +837,317 @@ function buildRecPayloadFromForm() {
     weight_preset: weightPreset,
     custom_weights: customWeights,
     interest_calibration_mode: $("#recInterestMode").value,
+    mmr: {
+      enabled: $("#recMmrEnabled") ? $("#recMmrEnabled").checked : true,
+      top_n: Math.max(1, Number($("#recMmrTopN")?.value || 5)),
+      lambda_param: Number($("#recMmrLambda")?.value ?? 0.7),
+      alpha_semantic: Number($("#recMmrAlpha")?.value ?? 0.7),
+      cosine_rescale_mode: $("#recMmrCosineMode") ? $("#recMmrCosineMode").value : "pool_minmax",
+      enable_exploration_slot: $("#recMmrExplore") ? $("#recMmrExplore").checked : true,
+      pin_mandatory: $("#recMmrPinMandatory") ? $("#recMmrPinMandatory").checked : true,
+    },
   };
+}
+
+function renderRecEventCard(ev, { cal, isMmrView }) {
+  const c = ev.components || {};
+  const wc = ev.weighted_contributions || {};
+  const ce = ev.credit_estimate || {};
+  const fa = ev.fit_assessment || {};
+  const sub = fa.sub_scores || {};
+  const gd = ev.gain_details || {};
+  const st = ev.selection_trace || null;
+  const isExplore = Boolean(isMmrView && (ev.is_exploration_slot || st?.slot_type === "exploration"));
+  const barDenom = Math.max(1.0, Number(ev.score_total || 1.0));
+  const pct = (v) => Math.max(0, Math.min(100, (Number(v || 0) / barDenom) * 100)).toFixed(1);
+
+  const ptsBadge = ev.is_mandatory
+    ? `<span class="badge badge-danger mono">BẮT BUỘC · ${escapeHtml(ev.rubric_item_id || "6.4")} (tránh trừ ${Math.abs(ev.mandatory_info?.penalty_if_missed || 20)}đ)</span>`
+    : `<span class="badge badge-teal mono">${escapeHtml(ev.rubric_item_id || "?")} (${escapeHtml(ev.parent_group_id || "?")}) · +${ce.effective_points ?? 0}đ</span>`;
+
+  let slotBadgesHtml = "";
+  if (isMmrView && st) {
+    if (st.slot_type === "exploration") {
+      slotBadgesHtml += `<span class="badge badge-purple mono">KHÁM PHÁ · SEL_EXPLORATION</span>`;
+    } else if (st.slot_type === "mandatory") {
+      slotBadgesHtml += `<span class="badge badge-danger mono">GHIM BẮT BUỘC</span>`;
+    } else {
+      slotBadgesHtml += `<span class="badge badge-teal mono">MMR</span>`;
+    }
+    const delta = Number(st.rank_delta || 0);
+    if (delta > 0) {
+      slotBadgesHtml += `<span class="badge rank-shift-up mono">↑ +${delta} bậc (P6 #${st.p6_rank})</span>`;
+    } else if (delta < 0) {
+      slotBadgesHtml += `<span class="badge rank-shift-down mono">↓ ${delta} bậc (P6 #${st.p6_rank})</span>`;
+    } else {
+      slotBadgesHtml += `<span class="badge badge-muted mono">P6 #${st.p6_rank}</span>`;
+    }
+  }
+
+  const modeLabel =
+    ev.online_mode === "online"
+      ? "Online · 0p"
+      : `${ev.online_mode || "offline"} · ~${fa.estimated_travel_min ?? "?"}p`;
+
+  const feeLabel =
+    ev.fee_vnd === 0
+      ? "Miễn phí"
+      : ev.fee_vnd != null
+        ? `${Number(ev.fee_vnd).toLocaleString("vi-VN")}đ`
+        : "Không rõ phí";
+
+  const deadlineLabel =
+    ev.days_to_deadline != null ? `Còn ${fmtOptNum(ev.days_to_deadline, 1)} ngày` : "Không rõ hạn";
+
+  const reasoning = ev.reasoning || {};
+  const rCriteria = reasoning.criteria || [];
+  const verdictClass = (v) => {
+    if (v === "bắt buộc") return "verdict-danger";
+    if (v === "cao") return "verdict-high";
+    if (v === "khá") return "verdict-good";
+    if (v === "trung bình" || v === "trung tính") return "verdict-mid";
+    return "verdict-low";
+  };
+
+  const reasoningRowsHtml = rCriteria
+    .map((rc) => {
+      const barPct = Math.max(0, Math.min(100, Number(rc.raw_score || 0) * 100)).toFixed(0);
+      const mathExpr =
+        rc.weight !== null && rc.weight !== undefined
+          ? `${fmtOptNum(rc.weight, 2)} × ${fmtOptNum(rc.raw_score, 3)} = +${fmtOptNum(rc.weighted_score, 3)}`
+          : `+${fmtOptNum(rc.weighted_score, 3)} (trực tiếp)`;
+      return `
+        <div class="reasoning-row">
+          <div class="reasoning-crit">
+            <div class="reasoning-crit-head">
+              <span class="comp-dot seg-${escapeHtml(rc.key)}"></span>
+              <strong>${escapeHtml(rc.label)}</strong>
+              <span class="verdict-tag ${verdictClass(rc.verdict)}">${escapeHtml(rc.verdict)}</span>
+            </div>
+            <div class="mini-bar-row">
+              <div class="mini-bar-track"><div class="mini-bar-fill seg-${escapeHtml(rc.key)}" style="width:${barPct}%"></div></div>
+              <span class="mono reasoning-math">${escapeHtml(mathExpr)} <span class="text-muted">(${fmtOptNum(rc.share_pct, 0)}%)</span></span>
+            </div>
+          </div>
+          <div class="reasoning-text">${escapeHtml(rc.reason)}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  const mmrTraceHtml =
+    isMmrView && st && st.selection_reason
+      ? `
+        <div class="rec-mmr-trace-box ${st.slot_type === "exploration" ? "exploration-trace" : st.slot_type === "mandatory" ? "mandatory-trace" : ""}">
+          <strong>P7 · ${st.slot_type === "exploration" ? "Khám phá" : st.slot_type === "mandatory" ? "Ghim bắt buộc" : "MMR"}:</strong>
+          ${escapeHtml(st.selection_reason)}
+        </div>
+      `
+      : "";
+
+  const scoreSubLine =
+    isMmrView && st
+      ? st.mmr_score !== null && st.mmr_score !== undefined
+        ? `<div class="mono text-muted" style="font-size:11px">MMR ${fmtOptNum(st.mmr_score, 3)} · Sim ${fmtOptNum(st.max_redundancy, 2)}</div>`
+        : st.explore_score !== null && st.explore_score !== undefined
+          ? `<div class="mono text-muted" style="font-size:11px">Exp ${fmtOptNum(st.explore_score, 3)} · Sim ${fmtOptNum(st.max_redundancy, 2)}</div>`
+          : ""
+      : "";
+
+  const cardClasses = [
+    "rec-card",
+    ev.is_mandatory ? "mandatory-card" : "",
+    isExplore ? "exploration-card" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return `
+    <div class="${cardClasses}">
+      <div class="rec-card-top">
+        <div>
+          <div class="badge-row" style="margin-bottom:6px">
+            <span class="rec-rank-pill mono">#${ev.rank}</span>
+            ${slotBadgesHtml}
+            ${ptsBadge}
+            ${fa.in_exam_week ? `<span class="badge badge-orange">Tuần thi</span>` : ""}
+            <span class="badge badge-muted mono">${escapeHtml(ev.event_id)}</span>
+          </div>
+          <div style="font-size:15px;font-weight:700;color:var(--color-fg)">${escapeHtml(ev.title)}</div>
+          <div class="rec-meta-line" style="margin-top:4px">
+            <span>${fmtShortDateTime(ev.start_datetime)}</span>
+            <span>• ${escapeHtml(modeLabel)}</span>
+            <span>• ${escapeHtml(feeLabel)}</span>
+            <span>• ${escapeHtml(deadlineLabel)}</span>
+          </div>
+          ${ev.description ? `<p class="rec-event-desc">${escapeHtml(ev.description)}</p>` : ""}
+        </div>
+        <div class="rec-score-box">
+          <div class="kpi-label">P6 Score</div>
+          <div class="rec-score-total mono">${fmtOptNum(ev.score_total, 3)}</div>
+          ${scoreSubLine}
+        </div>
+      </div>
+
+      ${mmrTraceHtml}
+
+      ${
+        reasoning.headline
+          ? `<div class="rec-reasoning-headline ${ev.is_mandatory ? "mandatory-headline" : ""}">${escapeHtml(reasoning.headline)}</div>`
+          : ""
+      }
+
+      <div class="score-bar-track" title="Đóng góp theo trọng số: Gain / Interest / Fit / Urgency / Penalty">
+        <div class="seg-gain" style="width:${pct(wc.gain)}%"></div>
+        <div class="seg-interest" style="width:${pct(wc.interest)}%"></div>
+        <div class="seg-fit" style="width:${pct(wc.fit)}%"></div>
+        <div class="seg-urgency" style="width:${pct(wc.urgency)}%"></div>
+        <div class="seg-penalty" style="width:${pct(wc.penalty)}%"></div>
+      </div>
+
+      <div class="component-pills">
+        <div class="comp-pill">
+          <div class="comp-pill-label"><span class="comp-dot seg-gain"></span>Gain</div>
+          <div class="comp-pill-val mono">${fmtOptNum(c.gain, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.gain, 3)})</span></div>
+        </div>
+        <div class="comp-pill">
+          <div class="comp-pill-label"><span class="comp-dot seg-interest"></span>Interest</div>
+          <div class="comp-pill-val mono">${fmtOptNum(c.interest, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.interest, 3)})</span></div>
+        </div>
+        <div class="comp-pill">
+          <div class="comp-pill-label"><span class="comp-dot seg-fit"></span>Fit</div>
+          <div class="comp-pill-val mono">${fmtOptNum(c.fit, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.fit, 3)})</span></div>
+        </div>
+        <div class="comp-pill">
+          <div class="comp-pill-label"><span class="comp-dot seg-urgency"></span>Urgency</div>
+          <div class="comp-pill-val mono">${fmtOptNum(c.urgency, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.urgency, 3)})</span></div>
+        </div>
+        <div class="comp-pill">
+          <div class="comp-pill-label"><span class="comp-dot seg-penalty"></span>Penalty</div>
+          <div class="comp-pill-val mono">${Number(c.penalty) > 0 ? "+" : ""}${fmtOptNum(c.penalty, 3)}</div>
+        </div>
+      </div>
+
+      <div class="rec-card-actions">
+        <details style="flex:1 1 100%" ${ev.rank === 1 ? "open" : ""}>
+          <summary class="helper-text" style="cursor:pointer;font-weight:600">Chi tiết tính toán &amp; Giải thích tiêu chí (Reasoning · Kiểm chứng trọng số)</summary>
+          <div class="reasoning-panel">
+            ${reasoningRowsHtml}
+            ${
+              reasoning.formula_check
+                ? `<div class="formula-audit-bar mono"><strong>Kiểm chứng tổng:</strong> ${escapeHtml(reasoning.formula_check)}</div>`
+                : ""
+            }
+            <div class="raw-params-strip mono">
+              <span><strong>M6:</strong> P_eff=${ce.effective_points}, P_use=${gd.p_use ?? 0}, m_gap=${fmtOptNum(gd.m_gap, 3)}, src=${escapeHtml(ce.source)}</span>
+              <span><strong>E5:</strong> cos=${fmtOptNum(ev.interest_cos_raw, 4)} trong [${fmtOptNum(cal.c_min, 3)}, ${fmtOptNum(cal.c_max, 3)}]</span>
+              <span><strong>M4:</strong> f_tr=${fmtOptNum(sub.f_travel, 2)}, f_sl=${fmtOptNum(sub.f_slack, 2)}, f_pr=${fmtOptNum(sub.f_pref, 2)}, f_ex=${fmtOptNum(sub.f_exam, 2)}</span>
+              ${
+                st && st.most_similar_selected_id
+                  ? `<span><strong>P7 Sim:</strong> max_red=${fmtOptNum(st.max_redundancy, 3)} vs ${escapeHtml(st.most_similar_selected_id)} (cos=${fmtOptNum(st.raw_cosine_with_most_similar, 3)}, sem=${fmtOptNum(st.semantic_sim_with_most_similar, 3)}, rub=${fmtOptNum(st.rubric_sim_with_most_similar, 2)})</span>`
+                  : ""
+              }
+              <span><strong>Địa điểm:</strong> ${escapeHtml(ev.location || "Chưa rõ")}</span>
+              ${
+                ev.rec_embedding_text
+                  ? `<span style="flex:1 1 100%;word-break:break-word"><strong>4-Field Event Text:</strong> ${escapeHtml(ev.rec_embedding_text)}</span>`
+                  : ""
+              }
+            </div>
+          </div>
+        </details>
+        <div class="badge-row" style="margin-top:4px">
+          <button type="button" class="btn btn-ghost btn-sm" data-rec-join="${escapeHtml(ev.event_id)}">Đã tham gia</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-rec-hide="${escapeHtml(ev.event_id)}">Ẩn</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderRecommendationResults() {
   const res = state.recLastResult;
   const pane = $("#recResultPane");
   if (!res) {
-    pane.innerHTML = `<div class="card empty-state">Bấm <strong>Chạy Đề Xuất (P5 + P6)</strong> để xem kết quả.</div>`;
+    pane.innerHTML = `<div class="card empty-state">Bấm <strong>Chạy Đề Xuất (P5–P7 MMR)</strong> để xem kết quả.</div>`;
     return;
   }
 
   const sum = res.pipeline_summary || {};
   const cal = res.interest_calibration || {};
   const m6 = res.demo_module6_state || {};
+  const mmr = res.mmr_selection || null;
+  const mmrCfg = (mmr && mmr.config) || {};
+  const mmrMetrics = (mmr && mmr.metrics) || {};
+  const simCal = (mmr && mmr.similarity_calibration) || {};
+  const selected = res.selected_events || [];
   const ranked = res.ranked_events || [];
   const dropped = res.dropped_events || [];
   const reasonCounts = sum.drop_reason_counts || {};
 
+  const dataSourceLabel =
+    sum.data_source === "database" ? "drl_database.db (events)" : "Fixture JSON (108 sự kiện)";
+  const embFields = (cal.event_embedding_fields || ["title", "description", "topic", "format"]).join(" + ");
+
+  const ildGain = Number(mmrMetrics.ild_gain || 0);
+  const ildGainTxt = `${ildGain >= 0 ? "+" : ""}${fmtOptNum(ildGain, 3)}`;
+  const mmrGroupsTxt = (mmrMetrics.mmr_groups || []).join(", ") || "—";
+  const p6GroupsTxt = (mmrMetrics.p6_topn_groups || []).join(", ") || "—";
+  const simRangeTxt =
+    simCal.raw_cos_min != null && simCal.raw_cos_max != null
+      ? `[${fmtOptNum(simCal.raw_cos_min, 3)}, ${fmtOptNum(simCal.raw_cos_max, 3)}]`
+      : "—";
+
+  const mmrBannerHtml = mmr
+    ? `
+      <div class="rec-mmr-banner">
+        <div>
+          <div class="kpi-label">P7 · Chọn danh sách MMR</div>
+          <div class="kpi-val mono text-teal" style="font-size:13.5px">
+            Top-${selected.length} ${mmr.enabled ? `(λ=${fmtOptNum(mmrCfg.lambda_param, 2)}, α=${fmtOptNum(mmrCfg.alpha_semantic, 2)})` : "(đang tắt)"}
+          </div>
+          <div class="helper-text" style="font-size:11px">
+            Ghim: ${mmr.mandatory_count} · MMR: ${mmr.relevance_count} · Khám phá: ${mmr.exploration_count}
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">Đa dạng ILD (MMR vs P6)</div>
+          <div class="kpi-val mono" style="font-size:13.5px">
+            ${fmtOptNum(mmrMetrics.mmr_ild, 3)} <span class="text-muted" style="font-size:11.5px">vs ${fmtOptNum(mmrMetrics.p6_topn_ild, 3)}</span>
+          </div>
+          <div class="helper-text mono" style="font-size:11px;color:${ildGain >= 0 ? "var(--color-primary-hover)" : "#9A3412"}">
+            ΔILD = ${ildGainTxt} · Sem ILD = ${fmtOptNum(mmrMetrics.mmr_semantic_ild, 3)}
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">Phủ nhóm ĐRL (MMR vs P6)</div>
+          <div class="kpi-val mono" style="font-size:13.5px">
+            ${mmrMetrics.mmr_group_coverage ?? 0} nhóm <span class="text-muted" style="font-size:11.5px">vs ${mmrMetrics.p6_topn_group_coverage ?? 0}</span>
+          </div>
+          <div class="helper-text mono" style="font-size:11px">
+            [${escapeHtml(mmrGroupsTxt)}] vs [${escapeHtml(p6GroupsTxt)}]
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">Cosine cặp E5 (${escapeHtml(simCal.mode_applied || "raw")})</div>
+          <div class="kpi-val mono" style="font-size:13.5px">${simRangeTxt}</div>
+          <div class="helper-text mono" style="font-size:11px">
+            Avg P6: ${fmtOptNum(mmrMetrics.mmr_avg_score, 3)} vs ${fmtOptNum(mmrMetrics.p6_topn_avg_score, 3)}
+          </div>
+        </div>
+      </div>
+    `
+    : "";
+
   const kpiHtml = `
     <div class="card">
       <div class="card-title-row">
-        <h2 class="card-title">Tổng quan Pipeline (P4 → M4/M6 → P5 → P6)</h2>
+        <h2 class="card-title">Tổng quan Pipeline (P4 → M4/M6 → P5 → P6 → P7 MMR)</h2>
         <span class="mono text-muted" style="font-size:12px">${escapeHtml(res.elapsed_ms)} ms · mốc ${fmtShortDateTime(sum.reference_now)}</span>
+      </div>
+      <div class="badge-row" style="margin-top:8px">
+        <span class="badge ${sum.data_source === "database" ? "badge-orange" : "badge-teal"} mono">Nguồn: ${escapeHtml(dataSourceLabel)}</span>
+        <span class="badge badge-muted mono">Event vec (${escapeHtml((cal.event_embedding_prefix || "passage: ").trim())}): ${escapeHtml(embFields)}</span>
       </div>
       <div class="rec-kpi-grid" style="margin-top:12px">
         <div class="kpi-box">
@@ -807,8 +1156,8 @@ function renderRecommendationResults() {
           <div class="helper-text" style="font-size:11px">Bỏ ${sum.excluded_not_predicted} chưa PREDICTED</div>
         </div>
         <div class="kpi-box">
-          <div class="kpi-label">Đạt P5 (Xếp hạng P6)</div>
-          <div class="kpi-val mono text-teal">${sum.eligible_after_p5}</div>
+          <div class="kpi-label">Đạt P5 → Chọn P7</div>
+          <div class="kpi-val mono text-teal">${selected.length} <span class="text-muted" style="font-size:12px">/ ${sum.eligible_after_p5}</span></div>
           <div class="helper-text" style="font-size:11px">Bị lọc cứng P5: ${sum.dropped_by_p5}</div>
         </div>
         <div class="kpi-box">
@@ -823,10 +1172,15 @@ function renderRecommendationResults() {
         </div>
       </div>
 
+      ${mmrBannerHtml}
+
       <div class="rec-subtabs" style="margin-top:14px">
         <div class="status-filter-pills">
+          <button type="button" class="filter-pill ${state.recSubTab === "selected" ? "active" : ""}" data-rec-subtab="selected">
+            Danh sách P7 · MMR (${selected.length})
+          </button>
           <button type="button" class="filter-pill ${state.recSubTab === "ranked" ? "active" : ""}" data-rec-subtab="ranked">
-            Xếp hạng Đề xuất P6 (${ranked.length})
+            Xếp hạng thuần P6 (${ranked.length})
           </button>
           <button type="button" class="filter-pill ${state.recSubTab === "dropped" ? "active" : ""}" data-rec-subtab="dropped">
             Bị lọc cứng P5 · Vì sao bị loại? (${dropped.length})
@@ -840,169 +1194,16 @@ function renderRecommendationResults() {
   `;
 
   let bodyHtml = "";
-  if (state.recSubTab === "ranked") {
-    if (!ranked.length) {
-      bodyHtml = `<div class="card empty-state">Không có sự kiện nào vượt qua bộ lọc cứng P5. Hãy xem tab <strong>Bị lọc cứng P5</strong> hoặc nới lỏng ràng buộc (mốc ngày, ngân sách, trần C1, lịch học).</div>`;
+  if (state.recSubTab === "selected" || state.recSubTab === "ranked") {
+    const isMmrView = state.recSubTab === "selected";
+    const list = isMmrView ? selected : ranked;
+    if (!list.length) {
+      bodyHtml =
+        sum.data_source === "database" && Number(sum.total_batch_events || 0) === 0
+          ? `<div class="card empty-state"><strong>Database <code>drl_database.db</code> hiện đang trống (0 sự kiện trong bảng <code>events</code>).</strong><br/>Pipeline đã sẵn sàng: ngay khi scraper ghi sự kiện vào bảng <code>events</code> và chạy phân loại, hệ thống sẽ tự động embed 4 trường (<code>title + description + topic + format</code>), lọc P5, chấm điểm P6 và chọn đa dạng P7 MMR tại đây.</div>`
+          : `<div class="card empty-state">Không có sự kiện nào vượt qua bộ lọc cứng P5. Hãy xem tab <strong>Bị lọc cứng P5</strong> hoặc nới lỏng ràng buộc (mốc ngày, ngân sách, trần C1, lịch học).</div>`;
     } else {
-      bodyHtml = ranked
-        .map((ev) => {
-          const c = ev.components || {};
-          const wc = ev.weighted_contributions || {};
-          const ce = ev.credit_estimate || {};
-          const fa = ev.fit_assessment || {};
-          const sub = fa.sub_scores || {};
-          const gd = ev.gain_details || {};
-          const barDenom = Math.max(1.0, Number(ev.score_total || 1.0));
-          const pct = (v) => Math.max(0, Math.min(100, (Number(v || 0) / barDenom) * 100)).toFixed(1);
-
-          const ptsBadge = ev.is_mandatory
-            ? `<span class="badge badge-danger mono">BẮT BUỘC · ${escapeHtml(ev.rubric_item_id || "6.4")} (tránh trừ ${Math.abs(ev.mandatory_info?.penalty_if_missed || 20)}đ)</span>`
-            : `<span class="badge badge-teal mono">${escapeHtml(ev.rubric_item_id || "?")} (${escapeHtml(ev.parent_group_id || "?")}) · +${ce.effective_points ?? 0}đ</span>`;
-
-          const modeLabel =
-            ev.online_mode === "online"
-              ? "Online · 0p"
-              : `${ev.online_mode || "offline"} · ~${fa.estimated_travel_min ?? "?"}p`;
-
-          const feeLabel =
-            ev.fee_vnd === 0
-              ? "Miễn phí"
-              : ev.fee_vnd != null
-                ? `${Number(ev.fee_vnd).toLocaleString("vi-VN")}đ`
-                : "Không rõ phí";
-
-          const deadlineLabel =
-            ev.days_to_deadline != null ? `Còn ${fmtOptNum(ev.days_to_deadline, 1)} ngày` : "Không rõ hạn";
-
-          const reasoning = ev.reasoning || {};
-          const rCriteria = reasoning.criteria || [];
-          const verdictClass = (v) => {
-            if (v === "bắt buộc") return "verdict-danger";
-            if (v === "cao") return "verdict-high";
-            if (v === "khá") return "verdict-good";
-            if (v === "trung bình" || v === "trung tính") return "verdict-mid";
-            return "verdict-low";
-          };
-
-          const reasoningRowsHtml = rCriteria
-            .map((rc) => {
-              const barPct = Math.max(0, Math.min(100, Number(rc.raw_score || 0) * 100)).toFixed(0);
-              const mathExpr =
-                rc.weight !== null && rc.weight !== undefined
-                  ? `${fmtOptNum(rc.weight, 2)} × ${fmtOptNum(rc.raw_score, 3)} = +${fmtOptNum(rc.weighted_score, 3)}`
-                  : `+${fmtOptNum(rc.weighted_score, 3)} (trực tiếp)`;
-              return `
-                <div class="reasoning-row">
-                  <div class="reasoning-crit">
-                    <div class="reasoning-crit-head">
-                      <span class="comp-dot seg-${escapeHtml(rc.key)}"></span>
-                      <strong>${escapeHtml(rc.label)}</strong>
-                      <span class="verdict-tag ${verdictClass(rc.verdict)}">${escapeHtml(rc.verdict)}</span>
-                    </div>
-                    <div class="mini-bar-row">
-                      <div class="mini-bar-track"><div class="mini-bar-fill seg-${escapeHtml(rc.key)}" style="width:${barPct}%"></div></div>
-                      <span class="mono reasoning-math">${escapeHtml(mathExpr)} <span class="text-muted">(${fmtOptNum(rc.share_pct, 0)}%)</span></span>
-                    </div>
-                  </div>
-                  <div class="reasoning-text">${escapeHtml(rc.reason)}</div>
-                </div>
-              `;
-            })
-            .join("");
-
-          return `
-            <div class="rec-card ${ev.is_mandatory ? "mandatory-card" : ""}">
-              <div class="rec-card-top">
-                <div>
-                  <div class="badge-row" style="margin-bottom:6px">
-                    <span class="rec-rank-pill mono">#${ev.rank}</span>
-                    ${ptsBadge}
-                    ${fa.in_exam_week ? `<span class="badge badge-orange">Tuần thi</span>` : ""}
-                    <span class="badge badge-muted mono">${escapeHtml(ev.event_id)}</span>
-                  </div>
-                  <div style="font-size:15px;font-weight:700;color:var(--color-fg)">${escapeHtml(ev.title)}</div>
-                  <div class="rec-meta-line" style="margin-top:4px">
-                    <span>${fmtShortDateTime(ev.start_datetime)}</span>
-                    <span>• ${escapeHtml(modeLabel)}</span>
-                    <span>• ${escapeHtml(feeLabel)}</span>
-                    <span>• ${escapeHtml(deadlineLabel)}</span>
-                  </div>
-                  ${
-                    ev.description
-                      ? `<p class="rec-event-desc">${escapeHtml(ev.description)}</p>`
-                      : ""
-                  }
-                </div>
-                <div class="rec-score-box">
-                  <div class="kpi-label">Score</div>
-                  <div class="rec-score-total mono">${fmtOptNum(ev.score_total, 3)}</div>
-                </div>
-              </div>
-
-              ${
-                reasoning.headline
-                  ? `<div class="rec-reasoning-headline ${ev.is_mandatory ? "mandatory-headline" : ""}">${escapeHtml(reasoning.headline)}</div>`
-                  : ""
-              }
-
-              <div class="score-bar-track" title="Đóng góp theo trọng số: Gain / Interest / Fit / Urgency / Penalty">
-                <div class="seg-gain" style="width:${pct(wc.gain)}%"></div>
-                <div class="seg-interest" style="width:${pct(wc.interest)}%"></div>
-                <div class="seg-fit" style="width:${pct(wc.fit)}%"></div>
-                <div class="seg-urgency" style="width:${pct(wc.urgency)}%"></div>
-                <div class="seg-penalty" style="width:${pct(wc.penalty)}%"></div>
-              </div>
-
-              <div class="component-pills">
-                <div class="comp-pill">
-                  <div class="comp-pill-label"><span class="comp-dot seg-gain"></span>Gain</div>
-                  <div class="comp-pill-val mono">${fmtOptNum(c.gain, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.gain, 3)})</span></div>
-                </div>
-                <div class="comp-pill">
-                  <div class="comp-pill-label"><span class="comp-dot seg-interest"></span>Interest</div>
-                  <div class="comp-pill-val mono">${fmtOptNum(c.interest, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.interest, 3)})</span></div>
-                </div>
-                <div class="comp-pill">
-                  <div class="comp-pill-label"><span class="comp-dot seg-fit"></span>Fit</div>
-                  <div class="comp-pill-val mono">${fmtOptNum(c.fit, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.fit, 3)})</span></div>
-                </div>
-                <div class="comp-pill">
-                  <div class="comp-pill-label"><span class="comp-dot seg-urgency"></span>Urgency</div>
-                  <div class="comp-pill-val mono">${fmtOptNum(c.urgency, 3)} <span class="text-muted" style="font-size:10.5px">(+${fmtOptNum(wc.urgency, 3)})</span></div>
-                </div>
-                <div class="comp-pill">
-                  <div class="comp-pill-label"><span class="comp-dot seg-penalty"></span>Penalty</div>
-                  <div class="comp-pill-val mono">${Number(c.penalty) > 0 ? "+" : ""}${fmtOptNum(c.penalty, 3)}</div>
-                </div>
-              </div>
-
-              <div class="rec-card-actions">
-                <details style="flex:1 1 100%" ${ev.rank === 1 ? "open" : ""}>
-                  <summary class="helper-text" style="cursor:pointer;font-weight:600">Chi tiết tính toán &amp; Giải thích tiêu chí (Reasoning · Kiểm chứng trọng số)</summary>
-                  <div class="reasoning-panel">
-                    ${reasoningRowsHtml}
-                    ${
-                      reasoning.formula_check
-                        ? `<div class="formula-audit-bar mono"><strong>Kiểm chứng tổng:</strong> ${escapeHtml(reasoning.formula_check)}</div>`
-                        : ""
-                    }
-                    <div class="raw-params-strip mono">
-                      <span><strong>M6:</strong> P_eff=${ce.effective_points}, P_use=${gd.p_use ?? 0}, m_gap=${fmtOptNum(gd.m_gap, 3)}, src=${escapeHtml(ce.source)}</span>
-                      <span><strong>E5:</strong> cos=${fmtOptNum(ev.interest_cos_raw, 4)} trong [${fmtOptNum(cal.c_min, 3)}, ${fmtOptNum(cal.c_max, 3)}]</span>
-                      <span><strong>M4:</strong> f_tr=${fmtOptNum(sub.f_travel, 2)}, f_sl=${fmtOptNum(sub.f_slack, 2)}, f_pr=${fmtOptNum(sub.f_pref, 2)}, f_ex=${fmtOptNum(sub.f_exam, 2)}</span>
-                      <span><strong>Địa điểm:</strong> ${escapeHtml(ev.location || "Chưa rõ")}</span>
-                    </div>
-                  </div>
-                </details>
-                <div class="badge-row" style="margin-top:4px">
-                  <button type="button" class="btn btn-ghost btn-sm" data-rec-join="${escapeHtml(ev.event_id)}">Đã tham gia</button>
-                  <button type="button" class="btn btn-ghost btn-sm" data-rec-hide="${escapeHtml(ev.event_id)}">Ẩn</button>
-                </div>
-              </div>
-            </div>
-          `;
-        })
-        .join("");
+      bodyHtml = list.map((ev) => renderRecEventCard(ev, { cal, isMmrView })).join("");
     }
   } else {
     const reasonKeys = Object.keys(reasonCounts).sort((a, b) => reasonCounts[b] - reasonCounts[a]);
@@ -1086,6 +1287,24 @@ async function runRecommendationQuery() {
 function initRecommendationControls(recBoot) {
   state.recBootstrap = recBoot;
 
+  // Update data source dropdown with live counts & embedding fields
+  const dsSelect = $("#recDataSource");
+  if (dsSelect) {
+    const stats = recBoot.pool_stats || {};
+    const jsonOpt = dsSelect.querySelector('option[value="json"]');
+    const dbOpt = dsSelect.querySelector('option[value="database"]');
+    if (jsonOpt) {
+      jsonOpt.textContent = `Fixture JSON (${stats.total_events ?? 0} sự kiện · ${stats.predicted_count ?? 0} PREDICTED)`;
+    }
+    if (dbOpt) {
+      dbOpt.textContent = `Database SQLite (drl_database.db · ${stats.db_active_events_count ?? 0} sự kiện)`;
+    }
+  }
+  const embHint = $("#recEmbeddingHint");
+  if (embHint && Array.isArray(recBoot.rec_embedding_fields)) {
+    embHint.textContent = `Event vector: passage: ${recBoot.rec_embedding_fields.join(" + ")}`;
+  }
+
   // Personas
   $("#recPersonaBar").innerHTML = (recBoot.personas || [])
     .map(
@@ -1138,6 +1357,7 @@ function initRecommendationControls(recBoot) {
       .join("") + `<option value="custom">Tùy chỉnh tay (custom)</option>`;
 
   applyRecPersona("balanced_cs1");
+  applyMmrDefaultsToForm(recBoot.mmr_defaults);
 }
 
 /* =========================================================================
@@ -1151,11 +1371,14 @@ function setupListeners() {
     });
   });
 
-  // Clear cached post_id if user edits title or description in Tab 1
-  ["#clsTitle", "#clsDesc"].forEach((sel) => {
-    $(sel).addEventListener("input", () => {
-      $("#clsPostId").value = "";
-    });
+  // Clear cached post_id if user edits title, description or format in Tab 1
+  ["#clsTitle", "#clsDesc", "#clsFormat"].forEach((sel) => {
+    const el = $(sel);
+    if (el) {
+      el.addEventListener("input", () => {
+        $("#clsPostId").value = "";
+      });
+    }
   });
 
   $("#classifyForm").addEventListener("submit", async (e) => {
@@ -1171,6 +1394,7 @@ function setupListeners() {
       $("#clsPostId").value = "";
       $("#clsTitle").value = sample.title;
       $("#clsDesc").value = sample.description;
+      if ($("#clsFormat")) $("#clsFormat").value = sample.format || "";
       $("#clsOrg").value = sample.organizer;
       $("#clsRole").value = sample.role;
       await runLiveClassify({ useCachedQuery: false });
@@ -1207,6 +1431,9 @@ function setupListeners() {
     $("#clsPostId").value = ev.post_id || "";
     $("#clsTitle").value = ev.title || "";
     $("#clsDesc").value = ev.description || "";
+    if ($("#clsFormat")) {
+      $("#clsFormat").value = Array.isArray(ev.format) ? ev.format.join(", ") : ev.format || "";
+    }
     $("#clsOrg").value = ev.organizer || "";
     $("#clsRole").value = "participant";
     syncDefaultParams();
@@ -1239,6 +1466,12 @@ function setupListeners() {
   });
 
   // --- Tab 3: Recommendation Demo Listeners ---
+  if ($("#recDataSource")) {
+    $("#recDataSource").addEventListener("change", async () => {
+      await runRecommendationQuery();
+    });
+  }
+
   $("#recPersonaBar").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-persona-id]");
     if (!btn) return;
@@ -1320,6 +1553,14 @@ function setupListeners() {
     });
   });
 
+  ["#recMmrEnabled", "#recMmrTopN", "#recMmrLambda", "#recMmrAlpha"].forEach((sel) => {
+    const el = $(sel);
+    if (el) {
+      el.addEventListener("input", updateRecMmrSummaryBadge);
+      el.addEventListener("change", updateRecMmrSummaryBadge);
+    }
+  });
+
   $("#recForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     await runRecommendationQuery();
@@ -1327,6 +1568,7 @@ function setupListeners() {
 
   $("#btnRecReset").addEventListener("click", async () => {
     applyRecPersona("balanced_cs1");
+    applyMmrDefaultsToForm();
     await runRecommendationQuery();
     showToast("Đã đặt lại cấu hình Demo Recommendation mặc định");
   });

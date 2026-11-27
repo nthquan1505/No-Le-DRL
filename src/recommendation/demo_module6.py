@@ -154,6 +154,42 @@ class DemoCreditProvider(CreditCalculatorProtocol):
         inferred_duration: Optional[str] = None,
         explicit_points: Optional[float] = None,
     ) -> CreditEstimate:
+        # Fallback for DB-only rows that have `events.category (1..5)` + `events.min_credit`
+        # without a fine-grained criterion_ref yet (per SYSTEM_ARCHITECTURE.md).
+        meta = event.metadata or {}
+        if not rubric_item_id and meta.get("db_category") is not None and meta.get("db_min_credit") is not None:
+            cat_int = int(meta["db_category"])
+            grp = f"C{cat_int}" if 1 <= cat_int <= 5 else None
+            raw_pts = max(0.0, float(meta["db_min_credit"]))
+            eff_pts = raw_pts
+            capped_by: Optional[str] = None
+            if ledger is not None and grp in self.engine.group_caps:
+                eval_res = self.engine.evaluate_ledger(ledger)
+                rem_group = eval_res.remaining_cap_by_group.get(grp, 0.0)
+                rem_total = max(0.0, self.total_max - eval_res.total_score)
+                if rem_group <= 0.0 and raw_pts > 0.0:
+                    eff_pts, capped_by = 0.0, "group"
+                elif rem_total <= 0.0 and raw_pts > 0.0:
+                    eff_pts, capped_by = 0.0, "total"
+                else:
+                    if eff_pts > rem_group:
+                        eff_pts, capped_by = rem_group, "group"
+                    if eff_pts > rem_total:
+                        eff_pts, capped_by = rem_total, "total"
+            return CreditEstimate(
+                event_id=event.event_id,
+                rubric_item_id=None,
+                group_id=grp,
+                is_credit_eligible=raw_pts > 0.0 and (eff_pts > 0.0 or ledger is None),
+                expected_points=raw_pts,
+                min_points=raw_pts,
+                max_points=raw_pts,
+                effective_points=eff_pts,
+                capped_by=capped_by,
+                source="explicit",
+                warning_flags=["db_min_credit_group_level"],
+            )
+
         return self.engine.estimate_event_credit(
             event=event,
             rubric_item_id=rubric_item_id,
