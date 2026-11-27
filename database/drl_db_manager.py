@@ -11,6 +11,7 @@ Tables managed:
 
 All timestamps use ISO-8601 format in UTC+7 (Asia/Ho_Chi_Minh).
 List-of-values columns are stored as JSON-encoded `TEXT` arrays.
+Map coordinates use `"lat,lng"` `TEXT` strings.
 """
 
 from __future__ import annotations
@@ -42,12 +43,14 @@ except Exception:
     UTC7_TIMEZONE = timezone(timedelta(hours=7))
 
 
-# JSON-encoded list columns per table for optional automatic serialization/deserialization
+# JSON-encoded list columns per table for automatic serialization/deserialization
 TABLE_JSON_LIST_FIELDS: Dict[str, Tuple[str, ...]] = {
-    "events": ("keywords", "images_url"),
+    "events": ("keywords", "target_audience", "topic", "format", "images_url"),
     "users": ("weights", "credits", "preferred_topics", "preferred_formats"),
     "rubric": ("max_credit",),
 }
+
+BOOLEAN_FIELDS = frozenset({"is_online", "is_cancelled", "is_read"})
 
 ALLOWED_TABLES = frozenset(
     {"events", "users", "event_subscription", "fanpages", "notifications", "rubric"}
@@ -55,23 +58,47 @@ ALLOWED_TABLES = frozenset(
 
 # Expected columns for safe in-place schema migration on existing databases
 EXPECTED_NEW_COLUMNS: Dict[str, Tuple[Tuple[str, str], ...]] = {
-    "events": (("coordinate", "TEXT"),),
-    "users": (("default_coordinate", "TEXT"),),
+    "events": (
+        ("is_cancelled", "BOOLEAN NOT NULL DEFAULT 0 CHECK (is_cancelled IN (0, 1))"),
+        ("coordinate", "TEXT"),
+        ("registration_url", "TEXT"),
+    ),
+    "users": (
+        ("school_id", "INTEGER REFERENCES rubric (school_id) ON DELETE SET NULL ON UPDATE CASCADE"),
+        ("default_coordinate", "TEXT"),
+    ),
     "event_subscription": (
         ("gain", "REAL CHECK (gain IS NULL OR (gain >= 0.0 AND gain <= 1.0))"),
         ("fit", "REAL CHECK (fit IS NULL OR (fit >= 0.0 AND fit <= 1.0))"),
         ("interested", "REAL CHECK (interested IS NULL OR (interested >= 0.0 AND interested <= 1.0))"),
         ("urgency", "REAL CHECK (urgency IS NULL OR (urgency >= 0.0 AND urgency <= 1.0))"),
     ),
+    "fanpages": (
+        ("facebook_url", "TEXT"),
+    ),
+    "notifications": (
+        ("is_read", "BOOLEAN NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1))"),
+        ("created_at", "TEXT"),
+    ),
+    "rubric": (
+        ("school_name", "TEXT"),
+    ),
 }
 
 SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS rubric (
+    school_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    school_name TEXT,
+    max_credit TEXT NOT NULL DEFAULT '[20, 20, 20, 20, 20]'
+);
+
 CREATE TABLE IF NOT EXISTS events (
     event_id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
     description TEXT,
     keywords TEXT NOT NULL DEFAULT '[]',
     is_online BOOLEAN NOT NULL DEFAULT 0 CHECK (is_online IN (0, 1)),
+    is_cancelled BOOLEAN NOT NULL DEFAULT 0 CHECK (is_cancelled IN (0, 1)),
     reg_start_datetime TEXT,
     reg_end_datetime TEXT,
     event_start_datetime TEXT,
@@ -79,16 +106,17 @@ CREATE TABLE IF NOT EXISTS events (
     location TEXT,
     coordinate TEXT,
     fee TEXT,
-    target_audience TEXT,
-    topic TEXT,
-    format TEXT,
+    target_audience TEXT NOT NULL DEFAULT '[]',
+    topic TEXT NOT NULL DEFAULT '[]',
+    format TEXT NOT NULL DEFAULT '[]',
     award TEXT,
+    registration_url TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     sources TEXT,
     post_url TEXT,
     images_url TEXT NOT NULL DEFAULT '[]',
-    category INTEGER,
+    category INTEGER CHECK (category IS NULL OR (category >= 1 AND category <= 5)),
     min_credit INTEGER
 );
 
@@ -97,12 +125,14 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE,
     password TEXT,
     email TEXT,
+    school_id INTEGER,
     default_coordinate TEXT,
     start_year INTEGER,
     weights TEXT NOT NULL DEFAULT '[0.25, 0.25, 0.25, 0.25]',
     credits TEXT NOT NULL DEFAULT '[0, 0, 0, 0, 0]',
     preferred_topics TEXT NOT NULL DEFAULT '[]',
-    preferred_formats TEXT NOT NULL DEFAULT '[]'
+    preferred_formats TEXT NOT NULL DEFAULT '[]',
+    FOREIGN KEY (school_id) REFERENCES rubric (school_id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS event_subscription (
@@ -112,8 +142,8 @@ CREATE TABLE IF NOT EXISTS event_subscription (
     fit REAL CHECK (fit IS NULL OR (fit >= 0.0 AND fit <= 1.0)),
     interested REAL CHECK (interested IS NULL OR (interested >= 0.0 AND interested <= 1.0)),
     urgency REAL CHECK (urgency IS NULL OR (urgency >= 0.0 AND urgency <= 1.0)),
-    role TEXT,
-    status TEXT,
+    role TEXT CHECK (role IS NULL OR role IN ('participant', 'host', 'collaborator')),
+    status TEXT CHECK (status IS NULL OR status IN ('interested', 'registered', 'in_progress', 'done')),
     credit INTEGER,
     other_awards TEXT,
     PRIMARY KEY (user_id, event_id),
@@ -124,6 +154,7 @@ CREATE TABLE IF NOT EXISTS event_subscription (
 CREATE TABLE IF NOT EXISTS fanpages (
     fanpage_id INTEGER PRIMARY KEY AUTOINCREMENT,
     fanpage_name TEXT,
+    facebook_url TEXT UNIQUE,
     number_of_events INTEGER NOT NULL DEFAULT 0
 );
 
@@ -133,19 +164,18 @@ CREATE TABLE IF NOT EXISTS notifications (
     type TEXT,
     content TEXT,
     event_id INTEGER,
+    is_read BOOLEAN NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+    created_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (event_id) REFERENCES events (event_id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS rubric (
-    school_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    max_credit TEXT NOT NULL DEFAULT '[20, 20, 20, 20, 20]'
-);
-
-CREATE INDEX IF NOT EXISTS idx_events_unclassified ON events (category);
-CREATE INDEX IF NOT EXISTS idx_events_uncredited ON events (min_credit);
+CREATE INDEX IF NOT EXISTS idx_events_unclassified ON events (category) WHERE is_cancelled = 0;
+CREATE INDEX IF NOT EXISTS idx_events_uncredited ON events (min_credit) WHERE is_cancelled = 0;
+CREATE INDEX IF NOT EXISTS idx_users_school_id ON users (school_id);
 CREATE INDEX IF NOT EXISTS idx_event_subscription_event_id ON event_subscription (event_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications (user_id);
+CREATE INDEX IF NOT EXISTS idx_event_subscription_done_uncredited ON event_subscription (status, credit);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications (user_id, is_read, created_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_event_id ON notifications (event_id);
 """
 
@@ -377,7 +407,6 @@ class DRLDatabaseManager:
                     )
                     time.sleep(backoff)
                     continue
-                # Reset potentially stale connection on non-lock operational error
                 if not is_locked:
                     self.close_connection()
                 break
@@ -406,19 +435,39 @@ class DRLDatabaseManager:
     def initialize_schema(self) -> bool:
         """Create the 6 DRL architecture tables, migrate missing columns, and create indexes."""
         def _init(conn: sqlite3.Connection) -> bool:
-            conn.executescript(SCHEMA_SQL)
+            # First ensure existing tables have expected columns before creating partial indexes
+            existing_tables = {
+                row["name"]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';"
+                ).fetchall()
+            }
             for table, cols in EXPECTED_NEW_COLUMNS.items():
-                existing = {
-                    row["name"] for row in conn.execute(f"PRAGMA table_info({table});").fetchall()
-                }
-                for col_name, col_def in cols:
-                    if col_name not in existing:
-                        conn.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def};")
+                if table in existing_tables:
+                    existing_cols = {
+                        row["name"] for row in conn.execute(f"PRAGMA table_info({table});").fetchall()
+                    }
+                    for col_name, col_def in cols:
+                        if col_name not in existing_cols:
+                            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def};")
+            conn.executescript(SCHEMA_SQL)
             conn.execute("PRAGMA foreign_keys = ON;")
             self._schema_ready = True
             return True
 
         return self._run_with_retry(_init, fallback=False, is_write=True, raise_on_error=True)
+
+    @classmethod
+    def _resolve_json_fields(
+        cls,
+        table: Optional[str] = None,
+        json_list_fields: Sequence[str] = (),
+    ) -> Tuple[str, ...]:
+        if json_list_fields:
+            return tuple(json_list_fields)
+        if table:
+            return TABLE_JSON_LIST_FIELDS.get(table, ())
+        return ()
 
     @staticmethod
     def _row_to_dict(
@@ -429,8 +478,9 @@ class DRLDatabaseManager:
         for field in json_list_fields:
             if field in data:
                 data[field] = decode_json_list(data[field])
-        if "is_online" in data and data["is_online"] is not None:
-            data["is_online"] = bool(data["is_online"])
+        for bfield in BOOLEAN_FIELDS:
+            if bfield in data and data[bfield] is not None:
+                data[bfield] = bool(data[bfield])
         return data
 
     # ------------------------------------------------------------------
@@ -443,16 +493,19 @@ class DRLDatabaseManager:
         params: Union[Sequence[Any], Dict[str, Any]] = (),
         fallback: Optional[Dict[str, Any]] = None,
         json_list_fields: Sequence[str] = (),
+        table: Optional[str] = None,
         raise_on_error: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """Execute a SELECT query and return the first row as a dict, or `fallback`."""
+        fields = self._resolve_json_fields(table=table, json_list_fields=json_list_fields)
+
         def _op(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
             cur = conn.execute(query, params)
             row = cur.fetchone()
             cur.close()
             if row is None:
                 return fallback
-            return self._row_to_dict(row, json_list_fields=json_list_fields)
+            return self._row_to_dict(row, json_list_fields=fields)
 
         return self._run_with_retry(
             _op, fallback=fallback, is_write=False, raise_on_error=raise_on_error
@@ -464,16 +517,18 @@ class DRLDatabaseManager:
         params: Union[Sequence[Any], Dict[str, Any]] = (),
         fallback: Optional[List[Dict[str, Any]]] = None,
         json_list_fields: Sequence[str] = (),
+        table: Optional[str] = None,
         raise_on_error: bool = False,
     ) -> List[Dict[str, Any]]:
         """Execute a SELECT query and return all rows as a list of dicts, or `fallback` (defaults to `[]`)."""
         safe_fallback: List[Dict[str, Any]] = [] if fallback is None else fallback
+        fields = self._resolve_json_fields(table=table, json_list_fields=json_list_fields)
 
         def _op(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
             cur = conn.execute(query, params)
             rows = cur.fetchall()
             cur.close()
-            return [self._row_to_dict(r, json_list_fields=json_list_fields) for r in rows]
+            return [self._row_to_dict(r, json_list_fields=fields) for r in rows]
 
         return self._run_with_retry(
             _op, fallback=safe_fallback, is_write=False, raise_on_error=raise_on_error
@@ -565,8 +620,12 @@ class DRLDatabaseManager:
             if field in payload and not isinstance(payload[field], str):
                 payload[field] = encode_json_list(payload[field])
 
+        for bfield in BOOLEAN_FIELDS:
+            if bfield in payload and payload[bfield] is not None:
+                payload[bfield] = int(bool(payload[bfield]))
+
+        now_str = now_iso_utc7()
         if table == "events":
-            now_str = now_iso_utc7()
             if is_insert:
                 payload["created_at"] = to_iso_utc7(payload.get("created_at")) or now_str
             payload["updated_at"] = to_iso_utc7(payload.get("updated_at")) or now_str
@@ -578,8 +637,11 @@ class DRLDatabaseManager:
             ):
                 if dt_col in payload and payload[dt_col] is not None:
                     payload[dt_col] = to_iso_utc7(payload[dt_col])
-            if "is_online" in payload and payload["is_online"] is not None:
-                payload["is_online"] = int(bool(payload["is_online"]))
+        elif table == "notifications":
+            if is_insert:
+                payload["created_at"] = to_iso_utc7(payload.get("created_at")) or now_str
+            elif "created_at" in payload and payload["created_at"] is not None:
+                payload["created_at"] = to_iso_utc7(payload["created_at"])
 
         return payload
 
@@ -632,7 +694,7 @@ class DRLDatabaseManager:
         raise_on_error: bool = False,
     ) -> int:
         """
-        Update matching rows in one of the 5 DRL tables.
+        Update matching rows in one of the DRL tables.
         Automatically refreshes `updated_at` on `events` if not explicitly provided.
         """
         self._validate_table(table)
@@ -664,7 +726,7 @@ class DRLDatabaseManager:
         fallback: int = 0,
         raise_on_error: bool = False,
     ) -> int:
-        """Delete matching rows in one of the 5 DRL tables and return deleted row count."""
+        """Delete matching rows in one of the DRL tables and return deleted row count."""
         self._validate_table(table)
         if not where:
             return fallback
