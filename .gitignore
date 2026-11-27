@@ -98,3 +98,4 @@ env/
 .idea/
 /feeds
 /events/tuning_data/
+/testing_data/
