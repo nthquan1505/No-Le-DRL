@@ -1,0 +1,154 @@
+--- a/src/recommendation/pipeline.py
++++ b/src/recommendation/pipeline.py
+@@ -15,6 +15,9 @@
+ 
+ import numpy as np
+ 
++from module4 import ScheduleEngine
++from module4.calendar import add_calendar_events
++from module4.routing import CarRouting
+ from configs.model_config import PROJECT_ROOT
+ from src.embedder import BaseEmbedder
+ from src.recommendation.config import load_recommendation_config
+@@ -203,6 +206,20 @@
+     else:
+         sched_provider = DemoScheduleProvider.from_preset(profile.schedule_preset, config=cfg)
+ 
++    schedule_context = sched_provider.get_schedule_context()
++    if isinstance(sched_payload, dict) and sched_payload.get("calendar_items"):
++        schedule_context = add_calendar_events(
++            schedule_context, sched_payload["calendar_items"],
++            exam_event_ids=sched_payload.get("calendar_exam_event_ids", ()),
++            exclude_event_ids=sched_payload.get("calendar_excluded_event_ids", ()),
++        )
++    schedule_engine = ScheduleEngine(
++        schedule_context,
++        weekly_slots=sched_provider.weekly_slots,
++        config=cfg,
++        route_minutes=CarRouting.from_environment(),
++    )
++
+     # 3. Build Demo Module 6 ledger & shortfall
+     ledger = credit_provider.build_ledger_from_group_totals(
+         profile.current_by_group,
+@@ -231,7 +248,7 @@
+     filter_report = hard_filter.filter_candidates(
+         active_candidates,
+         profile=profile,
+-        schedule_provider=sched_provider,
++        schedule_provider=schedule_engine,
+         credit_provider=credit_provider,
+         ledger=ledger,
+         reference_now=ref_now_dt,
+@@ -243,7 +260,7 @@
+     scored_candidates, cal_range = scorer.score_candidates(
+         filter_report.eligible,
+         profile=profile,
+-        schedule_provider=sched_provider,
++        schedule_provider=schedule_engine,
+         credit_provider=credit_provider,
+         shortfall=shortfall,
+         sample_embeddings=sample_embeddings,
+@@ -284,7 +301,7 @@
+         "demo_module4_state": {
+             "preset_id": sched_provider.preset_id,
+             "weekly_slots_count": len(sched_provider.weekly_slots),
+-            "busy_intervals_count": len(sched_provider.get_schedule_context().busy_intervals),
++            "busy_intervals_count": len(schedule_context.busy_intervals),
+             "exam_weeks": [list(p) for p in sched_provider.get_schedule_context().exam_weeks],
+             "default_travel_buffer_min": sched_provider.get_schedule_context().default_travel_buffer_min,
+         },
+--- a/src/recommendation/filter.py
++++ b/src/recommendation/filter.py
+@@ -16,6 +16,7 @@
+ from datetime import datetime, timedelta, timezone
+ from typing import Any, Dict, List, Optional, Sequence
+ 
++from module4 import FitAssessment as Module4FitAssessment, ScheduleEngine
+ from module6.interface import UserLedger
+ from src.contract_validator import parse_iso_datetime
+ from src.recommendation.config import load_recommendation_config
+@@ -51,6 +52,7 @@
+     conflict_result: ConflictCheckResult
+     estimated_travel_min: int
+     effective_deadline: Optional[datetime]
++    fit_assessment: Optional[Module4FitAssessment] = None
+ 
+ 
+ @dataclass
+@@ -258,9 +260,15 @@
+ 
+             # Evaluate M4 conflict & travel
+             conflict = schedule_provider.check_conflict(ev)
+-            travel_min = int(
+-                schedule_provider.estimate_travel_minutes(ev, home_campus=profile.home_campus)
+-            )
++            assessment = None
++            if isinstance(schedule_provider, ScheduleEngine):
++                assessment = schedule_provider.compute_fit(
++                    ev, home_campus=profile.home_campus, max_travel_min=profile.max_travel_min,
++                    pref_hours=profile.pref_hours,
++                )
++                travel_min = assessment.estimated_travel_min
++            else:
++                travel_min = schedule_provider.estimate_travel_minutes(ev, home_campus=profile.home_campus)
+             eff_deadline = resolve_effective_deadline(ev, self._default_tz)
+ 
+             reasons: List[DropReason] = []
+@@ -463,6 +471,7 @@
+                         conflict_result=conflict,
+                         estimated_travel_min=travel_min,
+                         effective_deadline=eff_deadline,
++                        fit_assessment=assessment,
+                     )
+                 )
+ 
+--- a/src/recommendation/scoring.py
++++ b/src/recommendation/scoring.py
+@@ -16,13 +16,14 @@
+ from __future__ import annotations
+ 
+ import math
+-from dataclasses import dataclass, field
++from dataclasses import asdict, dataclass, field
+ from datetime import datetime, timedelta, timezone
+ from typing import Any, Dict, List, Optional, Sequence, Tuple
+ 
+ import numpy as np
+ 
+ from src.recommendation.config import load_recommendation_config
++from module4 import FitAssessment as Module4FitAssessment
+ from src.recommendation.demo_module4 import DemoFitAssessment, DemoScheduleProvider
+ from src.recommendation.demo_module6 import DemoCreditProvider, MandatoryPenaltyInfo
+ from src.recommendation.demo_profile import DemoUserProfile
+@@ -57,7 +58,7 @@
+ 
+     scored_event: ScoredEvent
+     candidate: EligibleCandidate
+-    fit_assessment: FitAssessment
++    fit_assessment: FitAssessment | Module4FitAssessment
+     interest_cos_raw: Optional[float]
+     days_to_deadline: Optional[float]
+     gain_details: Dict[str, Any] = field(default_factory=dict)
+@@ -83,6 +84,8 @@
+                 "reasons": list(self.fit_assessment.reasons),
+             }
+         )
++        if isinstance(self.fit_assessment, Module4FitAssessment):
++            fit_dict = asdict(self.fit_assessment)
+         return {
+             "event_id": ev.event_id,
+             "title": ev.title,
+@@ -618,8 +621,10 @@
+             gain, gain_details = self.compute_gain(cand.credit_estimate, shortfall, group_caps)
+             interest, cos_raw = self.compute_interest(profile.user_vec, cand.event_vec, cal_range)
+ 
+-            if isinstance(schedule_provider, DemoScheduleProvider):
+-                fit_res: FitAssessment = schedule_provider.compute_fit(
++            if cand.fit_assessment is not None:
++                fit_res = cand.fit_assessment
++            elif isinstance(schedule_provider, DemoScheduleProvider):
++                fit_res = schedule_provider.compute_fit(
+                     cand.event,
+                     home_campus=profile.home_campus,
+                     max_travel_min=profile.max_travel_min,
