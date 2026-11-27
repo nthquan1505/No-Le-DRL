@@ -69,6 +69,7 @@ class DroppedCandidate:
         return {
             "event_id": self.event.event_id,
             "title": self.event.title,
+            "description": self.event.description,
             "organizer": self.event.organizer,
             "start_datetime": self.event.start_datetime,
             "reg_end_datetime": self.event.reg_end_datetime,

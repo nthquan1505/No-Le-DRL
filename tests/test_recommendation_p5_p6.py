@@ -418,6 +418,19 @@ class TestDemoModule6AndP5P6(unittest.TestCase):
         # Gain check: 1.6 Khoa = 5 pts, C1 gap = 3/30 = 0.1 -> m_gap=0.55, source=rule (0.9) -> 0.5*0.55*0.9 = 0.2475
         self.assertAlmostEqual(reg_sc.gain, 0.2475, places=5)
 
+        # Grounded reasoning verification (strict math audit + no hallucination)
+        for sc in scored:
+            r = sc.to_dict()["reasoning"]
+            self.assertIn("headline", r)
+            self.assertIn("formula_check", r)
+            self.assertEqual(len(r["criteria"]), 5)
+            sum_weighted = sum(c["weighted_score"] for c in r["criteria"])
+            self.assertAlmostEqual(sum_weighted, sc.scored_event.score_total, places=5)
+            sum_share = sum(c["share_pct"] for c in r["criteria"])
+            self.assertAlmostEqual(sum_share, 100.0, delta=0.5)
+        self.assertIn("Bắt buộc", scored[0].to_dict()["reasoning"]["headline"])
+        self.assertIn("không cộng điểm", scored[0].to_dict()["reasoning"]["criteria"][0]["reason"])
+
     def test_effective_deadline_handles_inverted_reg_end(self) -> None:
         ev = EventNormalized(
             event_id="inv",

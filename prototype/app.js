@@ -874,6 +874,42 @@ function renderRecommendationResults() {
           const deadlineLabel =
             ev.days_to_deadline != null ? `Còn ${fmtOptNum(ev.days_to_deadline, 1)} ngày` : "Không rõ hạn";
 
+          const reasoning = ev.reasoning || {};
+          const rCriteria = reasoning.criteria || [];
+          const verdictClass = (v) => {
+            if (v === "bắt buộc") return "verdict-danger";
+            if (v === "cao") return "verdict-high";
+            if (v === "khá") return "verdict-good";
+            if (v === "trung bình" || v === "trung tính") return "verdict-mid";
+            return "verdict-low";
+          };
+
+          const reasoningRowsHtml = rCriteria
+            .map((rc) => {
+              const barPct = Math.max(0, Math.min(100, Number(rc.raw_score || 0) * 100)).toFixed(0);
+              const mathExpr =
+                rc.weight !== null && rc.weight !== undefined
+                  ? `${fmtOptNum(rc.weight, 2)} × ${fmtOptNum(rc.raw_score, 3)} = +${fmtOptNum(rc.weighted_score, 3)}`
+                  : `+${fmtOptNum(rc.weighted_score, 3)} (trực tiếp)`;
+              return `
+                <div class="reasoning-row">
+                  <div class="reasoning-crit">
+                    <div class="reasoning-crit-head">
+                      <span class="comp-dot seg-${escapeHtml(rc.key)}"></span>
+                      <strong>${escapeHtml(rc.label)}</strong>
+                      <span class="verdict-tag ${verdictClass(rc.verdict)}">${escapeHtml(rc.verdict)}</span>
+                    </div>
+                    <div class="mini-bar-row">
+                      <div class="mini-bar-track"><div class="mini-bar-fill seg-${escapeHtml(rc.key)}" style="width:${barPct}%"></div></div>
+                      <span class="mono reasoning-math">${escapeHtml(mathExpr)} <span class="text-muted">(${fmtOptNum(rc.share_pct, 0)}%)</span></span>
+                    </div>
+                  </div>
+                  <div class="reasoning-text">${escapeHtml(rc.reason)}</div>
+                </div>
+              `;
+            })
+            .join("");
+
           return `
             <div class="rec-card ${ev.is_mandatory ? "mandatory-card" : ""}">
               <div class="rec-card-top">
@@ -891,12 +927,23 @@ function renderRecommendationResults() {
                     <span>• ${escapeHtml(feeLabel)}</span>
                     <span>• ${escapeHtml(deadlineLabel)}</span>
                   </div>
+                  ${
+                    ev.description
+                      ? `<p class="rec-event-desc">${escapeHtml(ev.description)}</p>`
+                      : ""
+                  }
                 </div>
                 <div class="rec-score-box">
                   <div class="kpi-label">Score</div>
                   <div class="rec-score-total mono">${fmtOptNum(ev.score_total, 3)}</div>
                 </div>
               </div>
+
+              ${
+                reasoning.headline
+                  ? `<div class="rec-reasoning-headline ${ev.is_mandatory ? "mandatory-headline" : ""}">${escapeHtml(reasoning.headline)}</div>`
+                  : ""
+              }
 
               <div class="score-bar-track" title="Đóng góp theo trọng số: Gain / Interest / Fit / Urgency / Penalty">
                 <div class="seg-gain" style="width:${pct(wc.gain)}%"></div>
@@ -930,17 +977,24 @@ function renderRecommendationResults() {
               </div>
 
               <div class="rec-card-actions">
-                <details style="flex:1 1 260px">
-                  <summary class="helper-text" style="cursor:pointer;font-weight:600">Chi tiết tính toán M4 · M6 · E5</summary>
-                  <div class="rubric-context-box mono" style="font-size:11.5px;margin-top:6px">
-                    <div><strong>Gain (M6):</strong> P_eff=${ce.effective_points}, P_use=${gd.p_use ?? 0}, gap=${gd.group_gap_points ?? 0}/${gd.group_cap ?? "?"}, m_gap=${fmtOptNum(gd.m_gap, 3)}, src=${escapeHtml(ce.source)} (r=${fmtOptNum(gd.r_src, 2)})</div>
-                    <div><strong>Interest (E5):</strong> cos_raw=${fmtOptNum(ev.interest_cos_raw, 4)} | range=[${fmtOptNum(cal.c_min, 4)}, ${fmtOptNum(cal.c_max, 4)}] → ${fmtOptNum(c.interest, 4)}</div>
-                    <div><strong>Fit (M4):</strong> f_travel=${fmtOptNum(sub.f_travel, 3)}, f_slack=${fmtOptNum(sub.f_slack, 3)} (slack=${fa.nearest_slack_min ?? "none"}p), f_pref=${fmtOptNum(sub.f_pref, 3)}, f_exam=${fmtOptNum(sub.f_exam, 2)}</div>
-                    <div><strong>Địa điểm:</strong> ${escapeHtml(ev.location || "Chưa rõ")}</div>
-                    ${ev.is_mandatory ? `<div style="color:#991B1B"><strong>Penalty (Bắt buộc):</strong> ${escapeHtml(ev.mandatory_info?.reason || "")}</div>` : ""}
+                <details style="flex:1 1 100%" ${ev.rank === 1 ? "open" : ""}>
+                  <summary class="helper-text" style="cursor:pointer;font-weight:600">Chi tiết tính toán &amp; Giải thích tiêu chí (Reasoning · Kiểm chứng trọng số)</summary>
+                  <div class="reasoning-panel">
+                    ${reasoningRowsHtml}
+                    ${
+                      reasoning.formula_check
+                        ? `<div class="formula-audit-bar mono"><strong>Kiểm chứng tổng:</strong> ${escapeHtml(reasoning.formula_check)}</div>`
+                        : ""
+                    }
+                    <div class="raw-params-strip mono">
+                      <span><strong>M6:</strong> P_eff=${ce.effective_points}, P_use=${gd.p_use ?? 0}, m_gap=${fmtOptNum(gd.m_gap, 3)}, src=${escapeHtml(ce.source)}</span>
+                      <span><strong>E5:</strong> cos=${fmtOptNum(ev.interest_cos_raw, 4)} trong [${fmtOptNum(cal.c_min, 3)}, ${fmtOptNum(cal.c_max, 3)}]</span>
+                      <span><strong>M4:</strong> f_tr=${fmtOptNum(sub.f_travel, 2)}, f_sl=${fmtOptNum(sub.f_slack, 2)}, f_pr=${fmtOptNum(sub.f_pref, 2)}, f_ex=${fmtOptNum(sub.f_exam, 2)}</span>
+                      <span><strong>Địa điểm:</strong> ${escapeHtml(ev.location || "Chưa rõ")}</span>
+                    </div>
                   </div>
                 </details>
-                <div class="badge-row">
+                <div class="badge-row" style="margin-top:4px">
                   <button type="button" class="btn btn-ghost btn-sm" data-rec-join="${escapeHtml(ev.event_id)}">Đã tham gia</button>
                   <button type="button" class="btn btn-ghost btn-sm" data-rec-hide="${escapeHtml(ev.event_id)}">Ẩn</button>
                 </div>
@@ -994,6 +1048,11 @@ function renderRecommendationResults() {
                       .join("")}
                   </div>
                 </div>
+                ${
+                  d.description
+                    ? `<p class="dropped-event-desc">${escapeHtml(d.description)}</p>`
+                    : ""
+                }
                 <ul class="drop-reason-list">
                   ${(d.reasons || []).map((r) => `<li>${escapeHtml(r.message)}</li>`).join("")}
                 </ul>

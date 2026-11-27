@@ -62,6 +62,7 @@ class ScoredCandidate:
     days_to_deadline: Optional[float]
     gain_details: Dict[str, Any] = field(default_factory=dict)
     penalty_details: Dict[str, Any] = field(default_factory=dict)
+    reasoning: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         ev = self.candidate.event
@@ -132,6 +133,7 @@ class ScoredCandidate:
                 round(self.days_to_deadline, 3) if self.days_to_deadline is not None else None
             ),
             "penalty_details": dict(self.penalty_details),
+            "reasoning": dict(self.reasoning),
         }
 
 
@@ -204,6 +206,7 @@ class MultiCriteriaScorer:
     def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
         cfg = config if config is not None else load_recommendation_config()
         self._scoring_cfg: Dict[str, Any] = dict(cfg.get("scoring") or {})
+        self._interest_chips_cfg: Dict[str, Any] = dict(cfg.get("interest_chips") or {})
         sched_cfg = cfg.get("schedule") or {}
         tz_hours = int(sched_cfg.get("default_timezone_offset_hours", 7))
         self._default_tz = timezone(timedelta(hours=tz_hours))
@@ -326,6 +329,259 @@ class MultiCriteriaScorer:
             "reason": mandatory_info.reason,
         }
 
+    @staticmethod
+    def _level_tag(score: float) -> str:
+        if score >= 0.75:
+            return "cao"
+        if score >= 0.50:
+            return "khá"
+        if score >= 0.25:
+            return "trung bình"
+        return "thấp"
+
+    def _build_grounded_reasoning(
+        self,
+        *,
+        scored_event: ScoredEvent,
+        cand: EligibleCandidate,
+        profile: DemoUserProfile,
+        cal_range: InterestCalibrationRange,
+        gain_details: Dict[str, Any],
+        cos_raw: Optional[float],
+        fit_res: FitAssessment,
+        days_left: Optional[float],
+        pen_details: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Build strictly data-grounded, deterministic reasoning for each criterion & total score."""
+        w = scored_event.weights
+        ce = cand.credit_estimate
+        mi = cand.mandatory_info
+        total = scored_event.score_total
+
+        wc_gain = round(w.w1_gain * scored_event.gain, 6)
+        wc_int = round(w.w2_interest * scored_event.interest, 6)
+        wc_fit = round(w.w3_fit * scored_event.fit, 6)
+        wc_urg = round(w.w4_urgency * scored_event.urgency, 6)
+        wc_pen = round(scored_event.penalty, 6)
+
+        def _share(val: float) -> float:
+            if total <= 1e-9:
+                return 0.0
+            return round((val / total) * 100.0, 1)
+
+        # 1. Gain reasoning (grounded in Module 6 CreditEstimate + GroupShortfall)
+        if mi.is_mandatory and ce.effective_points <= 0.0:
+            gain_reason = (
+                f"Mục {ce.rubric_item_id or '6.4'} thuộc nhóm P không cộng điểm (+0đ); "
+                "giá trị ưu tiên được xử lý riêng ở cột Penalty bắt buộc."
+            )
+            gain_verdict = "không cộng điểm"
+        elif ce.effective_points <= 0.0 or not ce.is_credit_eligible:
+            gain_reason = f"Điểm thực nhận bằng 0đ (capped_by={ce.capped_by or 'ineligible'})."
+            gain_verdict = "thấp"
+        else:
+            grp = ce.group_id or "?"
+            ref = ce.rubric_item_id or "?"
+            gap_pts = gain_details.get("group_gap_points", 0.0)
+            grp_cap = gain_details.get("group_cap", 0.0)
+            r_src = gain_details.get("r_src", 0.9)
+            cap_note = f", bị chạm trần {ce.capped_by}" if ce.capped_by else ""
+            gap_note = (
+                f"nhóm {grp} còn thiếu {gap_pts:g}/{grp_cap:g}đ so với mục tiêu"
+                if gap_pts > 0
+                else f"nhóm {grp} đã đủ mục tiêu (nhưng chưa chạm trần {grp_cap:g}đ nên vẫn cộng được)"
+            )
+            gain_reason = (
+                f"Cộng dự kiến +{ce.effective_points:g}đ vào mục {ref} ({grp}{cap_note}); "
+                f"{gap_note}; nguồn {ce.source} (×{r_src:.2f})."
+            )
+            gain_verdict = self._level_tag(scored_event.gain)
+
+        # 2. Interest reasoning (grounded in E5 cosine + 908-sample range)
+        chip_labels = [
+            str((self._interest_chips_cfg.get(cid) or {}).get("label", cid))
+            for cid in (profile.interest_chips or [])
+        ]
+        pref_desc = ", ".join(chip_labels)
+        if profile.free_text:
+            pref_desc = f"{pref_desc} + '{profile.free_text}'" if pref_desc else f"'{profile.free_text}'"
+
+        if cos_raw is None:
+            int_reason = "Chưa khai báo sở thích (hoặc thiếu vector sự kiện) → áp mức trung tính 0.50."
+            int_verdict = "trung tính"
+        else:
+            clip_note = ""
+            if cos_raw <= cal_range.c_min:
+                clip_note = " (bị chặn dưới về 0.00)"
+            elif cos_raw >= cal_range.c_max:
+                clip_note = " (chạm trần 1.00)"
+            int_verdict = self._level_tag(scored_event.interest)
+            target_txt = f" với sở thích [{pref_desc}]" if pref_desc else ""
+            int_reason = (
+                f"Tương đồng E5 đạt cos={cos_raw:.4f}{target_txt}, ở mức {int_verdict} trong dải "
+                f"[{cal_range.c_min:.3f}, {cal_range.c_max:.3f}] của {cal_range.sample_count} mẫu{clip_note}."
+            )
+
+        # 3. Fit reasoning (grounded in Module 4 FitAssessment & sub_scores)
+        sub = fit_res.sub_scores if isinstance(fit_res, DemoFitAssessment) else {}
+        slack_min = fit_res.nearest_slack_min if isinstance(fit_res, DemoFitAssessment) else None
+        fit_parts: List[str] = []
+        if cand.event.online_mode == "online" or cand.event.is_online is True:
+            fit_parts.append("trực tuyến (0 phút di chuyển)")
+        else:
+            t_max = profile.max_travel_min or 45
+            cmp_txt = "≤" if fit_res.estimated_travel_min <= t_max else ">"
+            fit_parts.append(f"di chuyển ~{fit_res.estimated_travel_min}p ({cmp_txt} {t_max}p)")
+            if slack_min is None:
+                fit_parts.append("không có tiết kề cận trong ngày")
+            else:
+                fit_parts.append(f"cách tiết gần nhất {slack_min}p")
+        f_pref_val = sub.get("f_pref")
+        if f_pref_val is not None:
+            if f_pref_val >= 0.99:
+                fit_parts.append("trong khung giờ rảnh")
+            elif f_pref_val >= 0.65:
+                fit_parts.append("lệch nhẹ ≤1h so với khung giờ rảnh")
+            elif abs(f_pref_val - 0.5) < 1e-6:
+                fit_parts.append("thiếu giờ diễn ra (trung tính)")
+            else:
+                fit_parts.append("ngoài khung giờ rảnh")
+        if fit_res.in_exam_week:
+            f_exam_val = sub.get("f_exam", 1.0)
+            fit_parts.append(f"diễn ra trong tuần thi (×{f_exam_val:.2f})")
+        else:
+            fit_parts.append("ngoài tuần thi")
+        fit_reason = "Không trùng lịch; " + "; ".join(fit_parts) + "."
+        fit_verdict = self._level_tag(scored_event.fit)
+
+        # 4. Urgency reasoning (grounded in time-only decay exp(-d / tau))
+        tau = float((self._scoring_cfg.get("urgency") or {}).get("tau_days", 5.0))
+        if days_left is None:
+            urg_reason = f"Thiếu cả hạn đăng ký lẫn giờ bắt đầu → áp mức mặc định {scored_event.urgency:.2f}."
+            urg_verdict = "trung tính"
+        else:
+            dl_txt = (
+                cand.effective_deadline.strftime("%d/%m/%Y %H:%M")
+                if cand.effective_deadline is not None
+                else "—"
+            )
+            if days_left <= 2.0:
+                urg_stage = "rất gấp"
+            elif days_left <= 7.0:
+                urg_stage = "sắp tới hạn"
+            else:
+                urg_stage = "còn khá xa"
+            urg_reason = (
+                f"Còn {days_left:.1f} ngày đến hạn ({dl_txt}) — {urg_stage}; "
+                f"tính thuần thời gian exp(-{days_left:.1f}/{tau:g}) = {scored_event.urgency:.3f}."
+            )
+            urg_verdict = self._level_tag(scored_event.urgency)
+
+        # 5. Penalty reasoning (grounded in mandatory flag only)
+        if mi.is_mandatory and scored_event.penalty > 0.0:
+            pen_reason = (
+                f"{mi.reason} → cộng thẳng +{scored_event.penalty:.3f} (không nhân trọng số) "
+                "để ưu tiên tránh bị trừ điểm ĐRL."
+            )
+            pen_verdict = "bắt buộc"
+        else:
+            pen_reason = "Sự kiện thường (không bắt buộc) → không can thiệp (+0.000)."
+            pen_verdict = "không áp dụng"
+
+        criteria = [
+            {
+                "key": "gain",
+                "label": "Gain (Điểm ĐRL)",
+                "raw_score": scored_event.gain,
+                "weight": w.w1_gain,
+                "weighted_score": wc_gain,
+                "share_pct": _share(wc_gain),
+                "verdict": gain_verdict,
+                "reason": gain_reason,
+            },
+            {
+                "key": "interest",
+                "label": "Interest (Sở thích)",
+                "raw_score": scored_event.interest,
+                "weight": w.w2_interest,
+                "weighted_score": wc_int,
+                "share_pct": _share(wc_int),
+                "verdict": int_verdict,
+                "reason": int_reason,
+            },
+            {
+                "key": "fit",
+                "label": "Fit (Lịch & Di chuyển)",
+                "raw_score": scored_event.fit,
+                "weight": w.w3_fit,
+                "weighted_score": wc_fit,
+                "share_pct": _share(wc_fit),
+                "verdict": fit_verdict,
+                "reason": fit_reason,
+            },
+            {
+                "key": "urgency",
+                "label": "Urgency (Độ gấp)",
+                "raw_score": scored_event.urgency,
+                "weight": w.w4_urgency,
+                "weighted_score": wc_urg,
+                "share_pct": _share(wc_urg),
+                "verdict": urg_verdict,
+                "reason": urg_reason,
+            },
+            {
+                "key": "penalty",
+                "label": "Penalty (Bắt buộc)",
+                "raw_score": scored_event.penalty,
+                "weight": None,
+                "weighted_score": wc_pen,
+                "share_pct": _share(wc_pen),
+                "verdict": pen_verdict,
+                "reason": pen_reason,
+            },
+        ]
+
+        # Concise grounded headline explaining the top 1-2 actual score drivers
+        if mi.is_mandatory and wc_pen > 0.0:
+            headline = (
+                f"Ưu tiên hàng đầu nhờ can thiệp Bắt buộc (+{wc_pen:.3f}, chiếm {_share(wc_pen):.0f}% điểm) "
+                f"để tránh bị trừ {abs(mi.penalty_if_missed or 20):.0f}đ ĐRL."
+            )
+        else:
+            ranked_drivers = sorted(
+                [c for c in criteria if c["key"] != "penalty" and c["weighted_score"] > 0.0],
+                key=lambda x: -x["weighted_score"],
+            )
+            if len(ranked_drivers) >= 2:
+                d1, d2 = ranked_drivers[0], ranked_drivers[1]
+                headline = (
+                    f"Động lực chính ({profile.weight_preset}): "
+                    f"{d1['label'].split(' ')[0]} (+{d1['weighted_score']:.3f} · {d1['share_pct']:.0f}%) "
+                    f"và {d2['label'].split(' ')[0]} (+{d2['weighted_score']:.3f} · {d2['share_pct']:.0f}%)."
+                )
+            elif len(ranked_drivers) == 1:
+                d1 = ranked_drivers[0]
+                headline = (
+                    f"Động lực chính ({profile.weight_preset}): "
+                    f"{d1['label'].split(' ')[0]} (+{d1['weighted_score']:.3f} · {d1['share_pct']:.0f}%)."
+                )
+            else:
+                headline = "Tất cả thành phần điểm đều bằng 0."
+
+        formula_check = (
+            f"({w.w1_gain:.2f}×{scored_event.gain:.3f}) + "
+            f"({w.w2_interest:.2f}×{scored_event.interest:.3f}) + "
+            f"({w.w3_fit:.2f}×{scored_event.fit:.3f}) + "
+            f"({w.w4_urgency:.2f}×{scored_event.urgency:.3f}) + "
+            f"{scored_event.penalty:.3f} = {total:.3f}"
+        )
+
+        return {
+            "headline": headline,
+            "formula_check": formula_check,
+            "criteria": criteria,
+        }
+
     def score_candidates(
         self,
         eligible_candidates: Sequence[EligibleCandidate],
@@ -401,6 +657,17 @@ class MultiCriteriaScorer:
                 rubric_item_id=cand.rubric_item_id,
                 parent_group_id=cand.parent_group_id,
             )
+            reasoning = self._build_grounded_reasoning(
+                scored_event=se,
+                cand=cand,
+                profile=profile,
+                cal_range=cal_range,
+                gain_details=gain_details,
+                cos_raw=cos_raw,
+                fit_res=fit_res,
+                days_left=days_left,
+                pen_details=pen_details,
+            )
             scored_list.append(
                 ScoredCandidate(
                     scored_event=se,
@@ -410,6 +677,7 @@ class MultiCriteriaScorer:
                     days_to_deadline=days_left,
                     gain_details=gain_details,
                     penalty_details=pen_details,
+                    reasoning=reasoning,
                 )
             )
 
