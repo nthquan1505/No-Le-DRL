@@ -86,3 +86,15 @@ tmp/
 # Jupyter
 # =============================================================================
 .ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+.session_secret
+.vscode/
+.idea/
+/feeds
+/events/tuning_data/
