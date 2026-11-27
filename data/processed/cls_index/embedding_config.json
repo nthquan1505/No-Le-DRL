@@ -1,0 +1,138 @@
+{
+  "model_name": "intfloat/multilingual-e5-small",
+  "model_revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+  "embedding_dimension": 384,
+  "dtype": "float32",
+  "device": "cpu",
+  "batch_size": 32,
+  "pooling_method": "mean",
+  "pooling_config": {
+    "embedding_dimension": 384,
+    "pooling_mode": "mean",
+    "include_prompt": true
+  },
+  "l2_normalization": true,
+  "prefixes": {
+    "passage": "passage: ",
+    "query": "query: "
+  },
+  "tokenizer_config": {
+    "tokenizer_class": "XLMRobertaTokenizer",
+    "model_max_length": 512,
+    "max_seq_length": 512,
+    "do_lower_case": false,
+    "vocab_size": 250002,
+    "pad_token": "<pad>",
+    "cls_token": "<s>",
+    "sep_token": "</s>"
+  },
+  "model_modules": [
+    "Transformer",
+    "Pooling",
+    "Normalize"
+  ],
+  "shared_across_branches": true,
+  "text_preprocessing_rules": {
+    "unicode_normalization": "NFC",
+    "whitespace_normalization": "collapse_whitespace_and_strip",
+    "lowercase": false,
+    "rubric_branch": {
+      "stage1_fields": [
+        "groups.<id>.name",
+        "tieu_chi[eligible].name",
+        "items[event_matchable=true].name"
+      ],
+      "stage2_definition_fields": [
+        "name",
+        "scope_note"
+      ],
+      "stage2_anchor_fields": [
+        "anchors",
+        "verified_anchors",
+        "draft_anchors"
+      ],
+      "stage2_keyword_fields": [
+        "name",
+        "keywords"
+      ],
+      "excluded_semantics": [
+        "scoring_points_and_formulas",
+        "participation_verification",
+        "role_eligibility",
+        "attendance_and_completion_thresholds",
+        "csv_row_and_administrative_metadata",
+        "uncertain_review_notes_kept_in_metadata_only"
+      ]
+    },
+    "sample_branch": {
+      "source_csv_columns": [
+        "STT",
+        "Ma_Muc",
+        "Organizer",
+        "Ten_Hoat_Dong",
+        "Vai_Tro",
+        "Tieu_Chi_Quy_Che",
+        "Diem_Toi_Da"
+      ],
+      "embedded_fields": [
+        "Ten_Hoat_Dong"
+      ],
+      "format_template": "passage: {event_title}",
+      "metadata_only_fields": [
+        "STT",
+        "Ma_Muc",
+        "Organizer",
+        "Vai_Tro",
+        "Tieu_Chi_Quy_Che",
+        "Diem_Toi_Da"
+      ],
+      "eligibility_filter": "rubric item exists and event_matchable == true"
+    }
+  },
+  "token_stats": {
+    "rubric": {
+      "count": 170,
+      "min_tokens": 7,
+      "median_tokens": 17.0,
+      "max_tokens": 467,
+      "max_seq_length": 512,
+      "truncated_count": 0
+    },
+    "sample": {
+      "count": 127,
+      "min_tokens": 6,
+      "median_tokens": 14.0,
+      "max_tokens": 44,
+      "max_seq_length": 512,
+      "truncated_count": 0
+    }
+  },
+  "artifact_counts": {
+    "rubric_embeddings": 170,
+    "sample_embeddings": 127
+  },
+  "generation_timestamp_utc": "2026-11-25T06:03:59+00:00",
+  "sources": {
+    "rubric": {
+      "path": "data/raw/rubric.yaml",
+      "version": "khtn-2025-26-verified-v5-mvp",
+      "size_bytes": 151895,
+      "sha256": "d06da721c85bc79b3cd1f56c05e8a7ce3819ddff04564bab372d25e3ba1a04fd"
+    },
+    "samples": {
+      "path": "res/events_full.csv",
+      "rows": 153,
+      "size_bytes": 25797,
+      "sha256": "23962abbb4affc970d07a5eb2d2fb4c9d314d111add89fa259ee8baee00fa279"
+    }
+  },
+  "runtime_versions": {
+    "python": "3.13.9",
+    "torch": "2.15.0+cpu",
+    "transformers": "5.24.1",
+    "sentence_transformers": "6.3.0",
+    "numpy": "2.3.5",
+    "pandas": "2.3.3",
+    "pyarrow": "21.0.0"
+  }
+}

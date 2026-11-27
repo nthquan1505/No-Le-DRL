@@ -1,0 +1,143 @@
+"""Modular Recommendation Engine for No-Le-DRL (Module 3 — Phases 4–6)."""
+
+from src.recommendation.config import (
+    DEFAULT_RECOMMENDATION_CONFIG_PATH,
+    load_recommendation_config,
+)
+from src.recommendation.demo_module4 import (
+    DEMO_SCHEDULE_PRESETS,
+    DemoFitAssessment,
+    DemoScheduleProvider,
+)
+from src.recommendation.demo_module6 import (
+    DEMO_CREDIT_PRESETS,
+    DemoCreditProvider,
+    MandatoryPenaltyInfo,
+)
+from src.recommendation.demo_profile import (
+    DEMO_PERSONAS,
+    DemoUserProfile,
+    available_demo_personas,
+    build_demo_user_vector,
+    create_mandatory_shcd_demo_event,
+    resolve_demo_weights,
+)
+from src.recommendation.filter import (
+    DroppedCandidate,
+    EligibleCandidate,
+    FilterReport,
+    HardConstraintFilter,
+    RecommendationCandidateInput,
+    parse_reference_now,
+    resolve_effective_deadline,
+)
+from src.recommendation.pipeline import (
+    build_demo_profile_from_db_user,
+    load_recommendation_candidate_pool,
+    load_recommendation_candidate_pool_from_db,
+    run_recommendation_demo,
+)
+from src.recommendation.rec_embedder import (
+    DEFAULT_REC_PASSAGE_PREFIX,
+    REC_EMBEDDING_FIELDS,
+    RecommendationEmbeddingSet,
+    build_recommendation_event_text,
+    generate_or_load_recommendation_embeddings,
+)
+from src.recommendation.schedule_adapter import (
+    ConflictCheckResult,
+    FitAssessment,
+    LocalScheduleAdapter,
+    ScheduleProvider,
+    WeeklyBusySlot,
+    detect_campus,
+    parse_ics_schedule,
+)
+from src.recommendation.scoring import (
+    InterestCalibrationRange,
+    MultiCriteriaScorer,
+    ScoredCandidate,
+    compute_interest_calibration_range,
+    scale_interest_clipped_minmax,
+)
+from src.recommendation.selector import (
+    VALID_COSINE_RESCALE_MODES,
+    MMRConfig,
+    MMRMetrics,
+    MMRSelectionResult,
+    MMRSelector,
+    SelectedCandidate,
+    SelectionTrace,
+    SimilarityCalibration,
+    build_similarity_matrices,
+    compute_intra_list_diversity,
+    compute_rubric_similarity,
+    select_top_n_mmr,
+)
+from src.recommendation.user_profile import (
+    BehaviorSignal,
+    OnboardingInput,
+    UserProfileManager,
+    UserProfileState,
+)
+
+__all__ = [
+    "BehaviorSignal",
+    "ConflictCheckResult",
+    "DEFAULT_RECOMMENDATION_CONFIG_PATH",
+    "DEFAULT_REC_PASSAGE_PREFIX",
+    "DEMO_CREDIT_PRESETS",
+    "DEMO_PERSONAS",
+    "DEMO_SCHEDULE_PRESETS",
+    "DemoCreditProvider",
+    "DemoFitAssessment",
+    "DemoScheduleProvider",
+    "DemoUserProfile",
+    "DroppedCandidate",
+    "EligibleCandidate",
+    "FilterReport",
+    "FitAssessment",
+    "HardConstraintFilter",
+    "InterestCalibrationRange",
+    "LocalScheduleAdapter",
+    "MMRConfig",
+    "MMRMetrics",
+    "MMRSelectionResult",
+    "MMRSelector",
+    "MandatoryPenaltyInfo",
+    "MultiCriteriaScorer",
+    "OnboardingInput",
+    "REC_EMBEDDING_FIELDS",
+    "RecommendationCandidateInput",
+    "RecommendationEmbeddingSet",
+    "ScheduleProvider",
+    "ScoredCandidate",
+    "SelectedCandidate",
+    "SelectionTrace",
+    "SimilarityCalibration",
+    "UserProfileManager",
+    "UserProfileState",
+    "VALID_COSINE_RESCALE_MODES",
+    "WeeklyBusySlot",
+    "available_demo_personas",
+    "build_demo_profile_from_db_user",
+    "build_demo_user_vector",
+    "build_recommendation_event_text",
+    "build_similarity_matrices",
+    "compute_interest_calibration_range",
+    "compute_intra_list_diversity",
+    "compute_rubric_similarity",
+    "create_mandatory_shcd_demo_event",
+    "detect_campus",
+    "generate_or_load_recommendation_embeddings",
+    "load_recommendation_candidate_pool",
+    "load_recommendation_candidate_pool_from_db",
+    "load_recommendation_config",
+    "parse_ics_schedule",
+    "parse_reference_now",
+    "resolve_demo_weights",
+    "resolve_effective_deadline",
+    "run_recommendation_demo",
+    "scale_interest_clipped_minmax",
+    "select_top_n_mmr",
+]

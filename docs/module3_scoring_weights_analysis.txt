@@ -1,0 +1,475 @@
+================================================================================
+PHÂN TÍCH CHI TIẾT CÁC TIÊU CHÍ CHẤM ĐIỂM & XÂY DỰNG BỘ TRỌNG SỐ (w1..w4)
+HỆ THỐNG ĐỀ XUẤT HOẠT ĐỘNG ĐIỂM RÈN LUYỆN — MODULE 3 (P6 · SCORING & WEIGHTS)
+================================================================================
+
+Tài liệu tham chiếu trong dự án:
+- module3_engine_flowchart.drawio.svg
+- docs/module3_decision_log.md (Quyết định D-3, D-4, D-5)
+- module6/credit_engine.py (Module 6 — Credit Calc & Evaluation)
+- src/recommendation/schedule_adapter.py (Module 4 — Schedule Conflict Detection)
+- src/recommendation/user_profile.py (P4 — User Profile & Adaptation)
+- configs/recommendation_config.yaml
+- src/schemas.py
+
+--------------------------------------------------------------------------------
+1. VỊ TRÍ CỦA P6 TRÊN FLOWCHART & CÔNG THỨC TỔNG QUÁT
+--------------------------------------------------------------------------------
+
+Trong sơ đồ luồng module3_engine_flowchart.drawio.svg, chỉ những sự kiện đã vượt
+qua P5 · FILTER (Lọc ràng buộc cứng) mới đi vào P6 · SCORING & WEIGHTS:
+
+- P5 loại trước (Hard Constraints):
+  + Đã hết hạn đăng ký hoặc đã diễn ra.
+  + Hết chỗ (seats_left == 0).
+  + Sai đối tượng tham gia (khóa, khoa, lớp).
+  + Đã tham gia hoặc bị người dùng ẩn.
+  + Trùng lịch cứng với thời khóa biểu / lịch thi từ Module 4 (has_conflict == True).
+  + Vượt ngân sách cứng (fee_vnd > max_budget_vnd).
+  + effective_points == 0 (chạm trần / không đủ điều kiện điểm — trừ trường hợp
+    chế độ interest_first hoặc hoạt động bắt buộc nhóm P như mục 6.4).
+
+- P6 chấm điểm (Soft Ranking) bằng hàm đa tiêu chí tuyến tính có hạng tử phạt
+  cộng thêm (thống nhất theo hộp P6 và quyết định D-5):
+
+    Score(u, e) = w1 * Gain(u, e)
+                + w2 * Interest(u, e)
+                + w3 * Fit(u, e)
+                + w4 * Urgency(u, e)
+                + Penalty(u, e)
+
+  Trong đó:
+  + Gain, Interest, Fit, Urgency thuộc [0, 1] (chuẩn hóa cùng miền để các trọng
+    số w1..w4 so sánh trực tiếp được với nhau).
+  + w1, w2, w3, w4 >= 0 và w1 + w2 + w3 + w4 = 1.
+  + Penalty(u, e) <= 0 là điểm phạt cộng thêm KHÔNG nhân trọng số (chỉ đo rủi ro,
+    bất định hoặc ma sát nằm ngoài 4 trục chính để tránh nhân đôi phạt).
+
+  [Lưu ý khi đối chiếu sơ đồ]:
+  Cạnh nối P4 -> P6 trong module3_engine_flowchart.drawio.svg hiện đang ghi
+  nhãn "w1..w5", trong khi nội dung hộp P4, hộp P6, lớp ScoringWeights trong
+  src/schemas.py và quyết định D-5 thống nhất dùng 4 trọng số w1..w4 + Penalty
+  độc lập.
+
+--------------------------------------------------------------------------------
+2. PHÂN TÍCH CHI TIẾT CÁC BƯỚC TÍNH 5 TIÊU CHÍ
+--------------------------------------------------------------------------------
+
+2.1. Gain thuộc [0, 1] — Giá trị điểm ĐRL thực nhận theo mục tiêu
+-----------------------------------------------------------------
+
+Đầu vào từ Module 6 (module6/credit_engine.py):
+- Từ estimate_event_credit():
+  + effective_points (P_eff): điểm thực nhận sau khi áp trần nhóm C1..C5,
+    trần tổng 100 và luật loại trừ exclusive_with.
+  + min_points (P_min), expected_points (P_exp), max_points (P_max).
+  + group_id (c), source ("explicit" / "rule" / "rule_fallback").
+  + is_credit_eligible, warning_flags.
+- Từ compute_group_shortfall():
+  + remaining_cap_by_group[c], target_gap_by_group[c], current_total, target_total.
+- Lưu ý thực tế HCMUS:
+  Trần nhóm thực tế trong rubric.yaml là C1=30, C2=20, C3=25, C4=25, C5=30
+  (tổng kẹp [0, 100], mức nền tuân thủ mặc định 50 điểm) — khác với khung demo
+  TT16/2015 (20/25/20/25/10) trong tài liệu thiết kế gốc. Do đó, mọi phép chuẩn
+  hóa phải lấy trực tiếp trần M_c và khoảng thiếu từ Module 6.
+
+Các bước tính:
+
+  Bước 1 — Độ lớn điểm thực nhận (g_pts):
+    Nếu source == "rule_fallback" (thiếu thông tin cấp/thời lượng, Module 6 chỉ
+    ước lượng khoảng [P_min, P_max]), dùng giá trị thận trọng thay vì trung bình:
+      P_use(e) = min(P_eff(e), 0.7 * P_min(e) + 0.3 * P_exp(e))
+    Ngược lại:
+      P_use(e) = P_eff(e)
+
+    Chuẩn hóa theo ngưỡng tham chiếu P_ref:
+      g_pts(e) = min(1, P_use(e) / P_ref)
+
+    Với khung HCMUS (hoạt động phổ biến 3, 5, 10 điểm; tối đa 15 điểm), chọn
+    P_ref = 10 giúp phân tách rõ hoạt động 3đ (0.3), 5đ (0.5) và 10đ (1.0).
+
+  Bước 2 — Hệ số cấp thiết theo khoảng thiếu mục tiêu (m_gap):
+      gap_c        = clip_[0, 1]( target_gap_by_group[c] / M_c )
+      m_gap(u, c)  = 0.5 + 0.5 * gap_c      (thuộc [0.5, 1.0])
+
+    Vì sao giữ sàn alpha = 0.5?
+    Khi nhóm c đã đạt target_c nhưng chưa chạm trần (P_eff > 0) và tổng điểm
+    ĐRL của sinh viên vẫn chưa đạt target_total, điểm từ nhóm c vẫn bù được vào
+    tổng điểm nên không bị kéo về 0.
+
+  Bước 3 — Hệ số độ chắc chắn nguồn điểm (r_src):
+    + source == "explicit" (bài đăng ghi rõ số điểm ĐRL) : r_src = 1.00
+    + source == "rule" (suy ra đầy đủ từ rubric)         : r_src = 0.90
+    + source == "rule_fallback" (thiếu thuộc tính)       : r_src = 0.80
+
+  Bước 4 — Xử lý ngoại lệ hoạt động bắt buộc (Nhóm P, mục 6.4 — Sinh hoạt công dân):
+    Module 6 trả is_credit_eligible = False kèm cờ "mandatory_event_avoid_penalty".
+    Hoạt động này không cộng điểm nhưng giúp TRÁNH BỊ TRỪ ĐIỂM, nên cho đi qua P5
+    và quy đổi trực tiếp thành giá trị bảo toàn điểm: Gain = 0.90.
+
+  Bước 5 — Tổng hợp:
+      Gain(u, e) = clip_[0, 1]( g_pts(e) * m_gap(u, c) * r_src(e) )
+
+  [Nguyên tắc tách biệt D-3]:
+  Không nhân xác suất phân loại conf vào Gain nếu đã phạt NEEDS_REVIEW trong
+  Penalty — giữ Gain phản ánh thuần túy giá trị điểm từ Module 6 để phần giải
+  thích ở P8 nhất quán và không phạt kép.
+
+
+2.2. Interest thuộc [0, 1] — Mức độ phù hợp sở thích
+----------------------------------------------------
+
+Đầu vào:
+- u_vec (384d, chuẩn hóa L2) từ P4 (src/recommendation/user_profile.py):
+  kết hợp 0.70 * u_declared + 0.30 * u_learned (Rocchio từ click/save/joined/dismiss).
+- e_vec (384d, chuẩn hóa L2) từ P2.1 (intfloat/multilingual-e5-small).
+- Tập thẻ T_u = user.interest_tags và T_e = event.categories (hoặc tag chuẩn hóa từ M2).
+
+Các bước tính:
+
+  Bước 1 — Tính cosine thô:
+      s_cos(u, e) = dot(u_vec, e_vec)
+
+  Bước 2 — Xử lý vấn đề nén dải cosine của multilingual-e5-small:
+    Vector E5 đa ngôn ngữ có tính dị hướng (anisotropy): cosine giữa hai văn bản
+    không liên quan thường vẫn nằm quanh [0.70, 0.76], còn cặp rất khớp nằm quanh
+    [0.84, 0.92]. Nếu dùng thẳng s_cos, mọi sự kiện đều có Interest ~ 0.8, làm
+    mất độ phân tách so với Gain và Urgency.
+
+    Cách chuẩn hóa bền vững (lai giữa Percentile Rank và Neo biên tuyệt đối):
+    + Trên tập ứng viên sau lọc P5 gồm N sự kiện (khi N >= 5):
+        s_pct(u, e) = (rank(s_cos(u, e)) - 1) / (N - 1)
+    + Chuẩn hóa theo biên cố định đo thực tế trên tập sự kiện
+      (ví dụ [mu_low, mu_high] = [0.72, 0.90]) để tránh thổi phồng khi mọi sự kiện
+      trong pool đều kém liên quan:
+        s_abs(u, e) = clip_[0, 1]( (s_cos(u, e) - mu_low) / (mu_high - mu_low) )
+    + Kết hợp:
+        s_sem(u, e) = 0.5 * s_pct(u, e) + 0.5 * s_abs(u, e)    nếu N >= 5
+                    = s_abs(u, e)                              nếu N < 5
+
+  Bước 3 — Tính khớp thẻ tường minh (Tag Overlap):
+      s_tag(u, e) = |T_u ∩ T_e| / |T_u ∪ T_e|    (thuộc [0, 1])
+
+  Bước 4 — Tổng hợp (có xử lý cold-start):
+      Interest(u, e) = 0.7 * s_sem(u, e) + 0.3 * s_tag(u, e)   nếu có u_vec và T_u, T_e khác rỗng
+                     = s_sem(u, e)                             nếu có u_vec nhưng thiếu tag
+                     = 0.50                                    nếu cold-start tuyệt đối (chưa có u_vec, T_u)
+
+
+2.3. Fit thuộc [0, 1] — Độ thuận tiện về lịch trình & di chuyển (từ Module 4)
+-----------------------------------------------------------------------------
+
+Đầu vào từ Module 4 (src/recommendation/schedule_adapter.py):
+- has_conflict (đã loại cứng ở P5 nếu True).
+- travel_min (t_travel): thời gian di chuyển từ địa điểm tiết học kề trước hoặc
+  home_campus tới địa điểm sự kiện (phút).
+- busy_intervals / weekly_slots => suy ra khoảng trống kề sát nhất delta_t_slack
+  giữa sự kiện và tiết học ngay trước/sau nó.
+- in_exam_week: cờ sự kiện có rơi vào tuần thi hay không.
+- Từ User Profile: max_travel_min (T_max, mặc định 45 phút cho tuyến CS1 Nguyễn
+  Văn Cừ <-> CS2 Linh Trung) và khung giờ ưu tiên pref_hours (mặc định [08:00, 21:00]).
+
+Các bước tính (nâng cấp từ mô hình cộng/trừ rời rạc sang mô hình liên tục dùng
+travel_min thực từ Module 4):
+
+  Bước 1 — Điểm di chuyển (f_travel):
+    + Nếu online_mode == "online":
+        f_travel(e) = 1.00
+    + Nếu offline (với hybrid có thể lấy trung bình với 1.0):
+        Nếu t_travel <= T_max:
+          f_travel(e) = 1 - 0.8 * (t_travel / T_max)
+        Nếu t_travel > T_max (khi T_max là soft limit):
+          f_travel(e) = max(0, 0.2 - 0.2 * (t_travel - T_max) / T_max)
+
+      Ví dụ với T_max = 45 phút:
+        - Online (0 phút)         -> 1.00
+        - Cùng cơ sở (10 phút)    -> 0.82
+        - Không rõ (30 phút)      -> 0.47
+        - Khác cơ sở (45 phút)    -> 0.20
+
+  Bước 2 — Độ thoáng khoảng đệm với lịch học kế cận (f_slack):
+    Gọi delta_t_slack = min(delta_t_trước, delta_t_sau) là khoảng trống nhỏ nhất
+    giữa sự kiện và lớp học gần nhất trong ngày; t_buf là thời gian di chuyển cần
+    thiết từ Module 4. Vì P5 đã đảm bảo delta_t_slack >= t_buf, độ dư thoải mái là:
+      delta_t_du = delta_t_slack - t_buf
+      f_slack(e) = min(1.0, 0.4 + 0.6 * (delta_t_du / 30))
+
+    (Dư >= 30 phút hoặc không có tiết kề cận -> 1.0; vừa sát nút delta_t_du = 0 -> 0.4.)
+
+  Bước 3 — Độ phù hợp khung giờ ưa thích (f_pref):
+    + Toàn bộ thời lượng nằm trong pref_hours : 1.0
+    + Lệch một phần <= 1 giờ                  : 0.7
+    + Ngoài khung giờ (quá sớm / quá khuya)   : 0.3
+    + Thiếu giờ diễn ra                       : 0.5 (trung tính)
+
+  Bước 4 — Hệ số áp lực tuần thi (f_exam):
+    + Không phải tuần thi : f_exam = 1.00
+    + Trong tuần thi      : Online = 0.90 | Hybrid = 0.70 | Offline = 0.45
+
+  Bước 5 — Tổng hợp:
+      Fit(u, e) = clip_[0, 1]( (0.45 * f_travel + 0.25 * f_slack + 0.30 * f_pref) * f_exam )
+
+  [So sánh với mã nguồn hiện có]:
+  Hàm compute_fit() tại src/recommendation/schedule_adapter.py (dòng 584-655)
+  hiện tính rời rạc theo configs/recommendation_config.yaml (base_offline=0.70,
+  online=+0.25, same_campus=+0.10, cross_campus=-0.15, exam_week_offline=-0.25,
+  travel_over_max=-0.20). Khi Module 4 cung cấp travel_min liên tục và khoảng
+  trống tới tiết kề cạnh, công thức liên tục trên thay thế mượt hơn nhiều.
+
+
+2.4. Urgency thuộc [0, 1] — Độ khẩn cấp của cơ hội
+--------------------------------------------------
+
+Đầu vào:
+- reg_end_datetime (hạn đăng ký; fallback sang start_datetime nếu không có).
+- Thời điểm hiện tại now.
+- seats_left và capacity (nếu có).
+
+Các bước tính:
+
+  Bước 1 — Độ gấp theo thời gian còn lại (u_time):
+    Tính số ngày còn lại d = (t_deadline - t_now) / 24h >= 0 (ca d < 0 đã bị P5 loại):
+      u_time(e) = exp(-d / tau)    nếu có hạn đăng ký hoặc thời gian bắt đầu
+                = 0.20             nếu thiếu cả hai mốc thời gian
+
+    Với hằng số suy giảm tau = 5 ngày:
+      - Còn 1 ngày  -> 0.82
+      - Còn 2 ngày  -> 0.67
+      - Còn 5 ngày  -> 0.37
+      - Còn 10 ngày -> 0.14
+      - Còn 20 ngày -> 0.02
+
+  Bước 2 — Độ khan hiếm chỗ ngồi (u_scarcity):
+      u_scarcity(e) = 0.20    nếu seats_left <= 10 hoặc (seats_left / capacity) <= 0.15
+                    = 0.10    nếu 10 < seats_left <= 25
+                    = 0.00    nếu còn nhiều chỗ hoặc không có dữ liệu
+
+  Bước 3 — Tổng hợp:
+      Urgency(u, e) = min(1.0, u_time(e) + u_scarcity(e))
+
+
+2.5. Penalty <= 0 — Hạng tử phạt mềm (Rủi ro & Bất định)
+--------------------------------------------------------
+
+Để tuyệt đối KHÔNG phạt lặp (no double-counting) với P5, Gain hay Fit, Penalty
+chỉ gom các yếu tố bất định thông tin / chi phí phụ / rủi ro xác nhận và được
+chặn sàn tại -0.30:
+
+  1) Bất định nhãn phân loại:
+     - Điều kiện : P2 trả status == NEEDS_REVIEW (hoặc pending_review)
+     - Mức phạt  : -0.10
+     - Ghi chú   : Không trùng Gain (Gain chỉ tính thuần điểm từ Module 6).
+
+  2) Thiếu thông tin quan trọng:
+     - Điều kiện : M2 gắn missing_field_flags (thiếu start_datetime, thiếu
+                   location với sự kiện offline, hoặc thiếu reg_end_datetime)
+     - Mức phạt  : -0.03 mỗi trường (tối đa -0.09)
+     - Ghi chú   : Không trùng Fit/Urgency (hai tiêu chí đó chỉ gán mức trung tính).
+
+  3) Gánh nặng lệ phí mềm:
+     - Điều kiện : 0 < fee_vnd <= max_budget_vnd (vượt ngân sách đã bị P5 loại)
+     - Mức phạt  : -0.06 * (fee_vnd / max_budget_vnd)
+     - Ghi chú   : Nếu đưa lệ phí vào Penalty thì bỏ free_event_bonus trong Fit.
+
+  4) Rủi ro thiếu minh chứng / nguồn ngoài chưa xác thực:
+     - Điều kiện : warning_flags từ Module 6 hoặc đơn vị ngoài không chính thức
+     - Mức phạt  : -0.05
+
+  Tổng hợp:
+      Penalty(u, e) = max(-0.30, sum_k p_k(u, e))      (thuộc [-0.30, 0])
+
+--------------------------------------------------------------------------------
+3. XÂY DỰNG & HIỆU CHỈNH BỘ TRỌNG SỐ (w1, w2, w3, w4)
+--------------------------------------------------------------------------------
+
+Bộ trọng số phải luôn thỏa miền simplex có chặn (bounded simplex) đã cài sẵn
+trong src/recommendation/user_profile.py (_project_bounded_simplex):
+
+    W = { w = (w1, w2, w3, w4) | w1 + w2 + w3 + w4 = 1, 0.05 <= w_i <= 0.70 }
+
+- Chặn dưới 0.05: tránh một tiêu chí bị tắt hoàn toàn.
+- Chặn trên 0.70: tránh hệ thống suy biến thành sắp xếp đơn tiêu chí.
+
+Quy trình xây dựng gồm 4 tầng:
+
+3.1. Tầng 1 — Trọng số khởi tạo theo Preset & Phương pháp AHP (Cold-Start)
+--------------------------------------------------------------------------
+
+Dùng AHP (Analytic Hierarchy Process) — lập ma trận so sánh cặp 4x4 theo thang
+Saaty (1: ngang nhau, 2: hơi ưu tiên, 3: ưu tiên vừa), tính vector riêng chính
+và kiểm tra chỉ số nhất quán CR < 0.10.
+
+Ví dụ ma trận so sánh cặp cho chế độ "balanced" (Gain > Interest > Fit > Urgency):
+
+               |  Gain  | Interest |   Fit   | Urgency | Trọng số AHP
+  -------------+--------+----------+---------+---------+-------------
+  Gain         |  1.00  |   1.60   |  2.00   |  2.70   |    0.40
+  Interest     |  0.63  |   1.00   |  1.25   |  1.70   |    0.25
+  Fit          |  0.50  |   0.80   |  1.00   |  1.33   |    0.20
+  Urgency      |  0.37  |   0.59   |  0.75   |  1.00   |    0.15
+
+  (Chỉ số nhất quán CR ~ 0.00 < 0.10.)
+
+4 bộ preset khởi tạo (khớp với configs/recommendation_config.yaml):
+
+  Chế độ (weight_preset) | w1 (Gain) | w2 (Interest) | w3 (Fit) | w4 (Urgency) | Bối cảnh áp dụng
+  -----------------------+-----------+---------------+----------+--------------+------------------------------------------
+  balanced (mặc định)    |   0.40    |     0.25      |   0.20   |     0.15     | Dùng hằng ngày, cân bằng điểm & trải nghiệm
+  need_points            |   0.55    |     0.15      |   0.15   |     0.15     | Thiếu nhiều điểm hoặc cuối học kỳ
+  interest_first         |   0.20    |     0.50      |   0.20   |     0.10     | Đã gần đủ điểm mục tiêu, ưu tiên sở thích
+  exam_week              |   0.25    |     0.15      |   0.45   |     0.15     | Tuần thi / lịch học dày đặc
+
+
+3.2. Tầng 2 — Điều chỉnh trọng số động theo ngữ cảnh (Preset + M6 + M4)
+-----------------------------------------------------------------------
+
+Khớp với mô tả hộp P4 · USER PROFILE trên flowchart ("Preset + Shortfall (M6)
++ Lịch (M4)"):
+
+  1) Áp lực thiếu điểm từ Module 6 (rho_point thuộc [0, 1]):
+       rho_gap   = clip_[0, 1]( max(0, target_total - current_total) / max(target_total - 50, 1) )
+       rho_point = rho_gap * (0.4 + 0.6 * rho_sem)
+     với rho_sem thuộc [0, 1] là phần trăm thời gian học kỳ đã trôi qua.
+
+  2) Áp lực lịch bận từ Module 4 (rho_busy thuộc [0, 1]):
+     Tỷ lệ số giờ bận trong 7 ngày tới so với ngưỡng bận chuẩn (vd 30 giờ/tuần),
+     hoặc đặt rho_busy = 1.0 nếu đang trong exam_week.
+
+  3) Dịch chuyển mềm từ trọng số nền w_base và chiếu lên bounded simplex W:
+       w1_tilde = w1_base + 0.15 * rho_point
+       w2_tilde = w2_base - 0.10 * I(cold_start)
+       w3_tilde = w3_base + 0.15 * rho_busy
+       w4_tilde = w4_base + 0.05 * I(rho_sem > 0.75 and rho_gap > 0.30)
+
+       w_eff = Project_W(w1_tilde, w2_tilde, w3_tilde, w4_tilde)
+
+     (Dùng hàm _project_bounded_simplex đã cài sẵn trong user_profile.py.)
+     Nhờ đó, càng gần cuối kỳ mà còn thiếu điểm thì w1, w4 tự tăng; đến tuần thi
+     thì w3 tự tăng mà không bắt buộc người dùng đổi preset thủ công.
+
+
+3.3. Tầng 3 — Hiệu chỉnh thực nghiệm bằng dữ liệu nhỏ (Offline Calibration)
+---------------------------------------------------------------------------
+
+Không cần dữ liệu lớn hay train mô hình sâu, chỉ cần 15–20 sinh viên:
+
+  1) Khảo sát so sánh cặp (Pairwise Preference Survey) + Bradley-Terry:
+     - Cho mỗi sinh viên đánh giá ~15–20 cặp sự kiện thực (e_A, e_B) trong cùng
+       bối cảnh điểm/lịch và chọn sự kiện ưu tiên hơn (y_AB thuộc {+1, -1}).
+     - Tính hiệu vector 4 tiêu chí: delta_x_AB = x(e_A) - x(e_B) thuộc R^4.
+     - Ước lượng theta >= 0 bằng Logistic Regression không intercept có điều
+       chuẩn L2 quanh prior AHP theta_0:
+         theta_hat = argmin_{theta >= 0}
+                       sum_{(A,B)} log(1 + exp(-y_AB * dot(theta, delta_x_AB)))
+                       + lambda * ||theta - theta_0||_2^2
+     - Chuẩn hóa: w_i = theta_hat_i / sum_j(theta_hat_j).
+       Chỉ có 4 tham số nên ~150–300 lượt chọn cặp là hội tụ rất ổn định.
+
+  2) Kiểm chứng độ nhạy (Sensitivity & Ablation Study):
+     - Dao động từng w_i trong khoảng +/-20% (chuẩn hóa lại tổng bằng 1), đo
+       Kendall's tau và Top-5 Overlap / nDCG@5 trên tập 108 sự kiện. Nếu
+       tau >= 0.85, bảng xếp hạng bền vững với sai số trọng số.
+     - Chạy Ablation (tắt lần lượt từng tiêu chí w_i = 0) để định lượng đóng góp
+       thực sự của từng thành phần.
+
+
+3.4. Tầng 4 — Thích nghi cá nhân Online từ Feedback Store (P4)
+--------------------------------------------------------------
+
+Khi có hành vi người dùng trên Dashboard (click, save, joined, dismiss), cập nhật
+trực tiếp trọng số theo công thức đã triển khai trong user_profile.py (dòng 326-373):
+
+    w_i^(t+1) = (1 - pull) * ( w_i^(t) + lr_a * (c_i - c_mean) + boost_{a, reason, i} )
+                + pull * w_i_declared
+
+    w^(t+1)  <- Project_W( w^(t+1) )
+
+  Trong đó:
+  - c_i là 4 điểm thành phần [gain, interest, fit, urgency] của sự kiện tương tác,
+    c_mean = (c1 + c2 + c3 + c4) / 4.
+  - lr_a theo mức cam kết hành vi:
+      click = 0.02 | save = 0.06 | joined = 0.10 | dismiss = -0.04.
+  - boost_{a, reason, i}: cộng trực tiếp +0.06 vào tiêu chí tương ứng khi user
+    chọn lý do ẩn (vd too_busy / schedule_conflict -> w3_fit; low_points -> w1_gain;
+    not_interested -> w2_interest; deadline_too_close -> w4_urgency).
+  - pull = 0.10: lực kéo neo về trọng số khai báo ban đầu để chống trôi (drift).
+  - Lộ trình dài hạn (khi có hàng nghìn log): nâng cấp lên Contextual Bandit
+    (LinUCB / Thompson Sampling) trên vector đặc trưng 4 chiều.
+
+--------------------------------------------------------------------------------
+4. VÍ DỤ MINH HỌA TÍNH TAY (THEO KHUNG ĐIỂM HCMUS)
+--------------------------------------------------------------------------------
+
+Hồ sơ sinh viên u:
+- SV CNTT học tại CS1 (Nguyễn Văn Cừ), target_total = 85.
+- Điểm hiện tại: C1 = 22/30 (target_C1 = 25, thiếu 3đ);
+                 C3 = 10/25 (target_C3 = 22, thiếu 12đ).
+- Sở thích: AI & Lập trình; T_max = 45 phút; ngân sách 50.000đ; tuần học bình thường.
+
+Xét 2 sự kiện đều qua P5 (không trùng lịch):
+- Sự kiện A: Hội thảo AI cấp Trường tại CS1
+    Mục 1.6 (C1), P_eff = 5, source = rule, trạng thái PREDICTED, miễn phí,
+    travel = 10p, dư 60p trước tiết sau, trong khung giờ rảnh, còn 2 ngày hết hạn,
+    sở thích rất khớp (s_sem = 0.90, s_tag = 0.70).
+
+- Sự kiện B: Chiến dịch tình nguyện tại CS2 Linh Trung
+    Mục 3.5 (C3), P_eff = 10, source = explicit, trạng thái NEEDS_REVIEW,
+    phí 20.000đ, travel = 45p, dư 15p trước tiết sau, trong khung giờ rảnh,
+    còn 10 ngày hết hạn, ít khớp sở thích (s_sem = 0.35, s_tag = 0.00).
+
+Tính chi tiết từng thành phần:
+
+  1) Gain:
+     - Sự kiện A: min(1, 5/10)  * (0.5 + 0.5 * 3/30)  * 0.90 = 0.5 * 0.55 * 0.90 = 0.248
+     - Sự kiện B: min(1, 10/10) * (0.5 + 0.5 * 12/25) * 1.00 = 1.0 * 0.74 * 1.00 = 0.740
+
+  2) Interest:
+     - Sự kiện A: 0.7 * 0.90 + 0.3 * 0.70 = 0.840
+     - Sự kiện B: 0.7 * 0.35 + 0.3 * 0.00 = 0.245
+
+  3) Fit:
+     - Sự kiện A: f_travel = 0.82, f_slack = 1.00, f_pref = 1.00, f_exam = 1.0
+                  => (0.45*0.82 + 0.25*1.00 + 0.30*1.00) * 1.0 = 0.919
+     - Sự kiện B: f_travel = 0.20, f_slack = 0.70, f_pref = 1.00, f_exam = 1.0
+                  => (0.45*0.20 + 0.25*0.70 + 0.30*1.00) * 1.0 = 0.565
+
+  4) Urgency:
+     - Sự kiện A: exp(-2/5)  = 0.670
+     - Sự kiện B: exp(-10/5) = 0.135
+
+  5) Penalty:
+     - Sự kiện A: 0.000
+     - Sự kiện B: -0.10 (NEEDS_REVIEW) - 0.06 * (20000 / 50000) (phí) = -0.124
+
+So sánh tổng điểm Score theo 2 bộ trọng số:
+
+  - Chế độ balanced (0.40, 0.25, 0.20, 0.15):
+      Score(A) = 0.40(0.248) + 0.25(0.840) + 0.20(0.919) + 0.15(0.670) + 0.000 = 0.594
+      Score(B) = 0.40(0.740) + 0.25(0.245) + 0.20(0.565) + 0.15(0.135) - 0.124 = 0.367
+      => Sự kiện A thắng rõ vì thuận tiện, rất hợp sở thích, sắp hết hạn và nhãn chắc chắn.
+
+  - Chế độ need_points (0.55, 0.15, 0.15, 0.15)
+    (giả sử B đã được xác nhận nhãn PREDICTED, tức Penalty = -0.024):
+      Score(A) = 0.55(0.248) + 0.15(0.840) + 0.15(0.919) + 0.15(0.670) + 0.000 = 0.501
+      Score(B) = 0.55(0.740) + 0.15(0.245) + 0.15(0.565) + 0.15(0.135) - 0.024 = 0.525
+      => Sự kiện B vượt lên đúng với nhu cầu ưu tiên lấp khoảng thiếu lớn ở nhóm C3.
+
+--------------------------------------------------------------------------------
+5. ĐIỂM CẦN LƯU Ý KHI TRIỂN KHAI THỰC TẾ VÀO HỆ THỐNG
+--------------------------------------------------------------------------------
+
+1. Ranh giới giữa P6 và P7:
+   P6 chỉ chấm điểm từng sự kiện ĐỘC LẬP. Hai ràng buộc mang tính tập hợp —
+   (i) không chọn 2 sự kiện gợi ý trùng giờ nhau và (ii) tổng điểm cộng dồn của
+   nhiều sự kiện cùng nhóm không vượt remaining_cap_by_group — phải để
+   P7 · SELECTION (MMR / CP-SAT) giải quyết.
+
+2. Đo lại dải biên cosine của e5-small trước khi chốt Interest:
+   Nên chạy thống kê phân vị [p5, p95] của cosine giữa 8 chip onboarding trong
+   configs/recommendation_config.yaml và tập 108 sự kiện hiện có để đặt đúng
+   (mu_low, mu_high).
+
+3. Đồng nhất free_event_bonus để không tính trùng:
+   Hàm LocalScheduleAdapter.compute_fit() hiện cộng +0.05 cho sự kiện miễn phí.
+   Nếu chuyển yếu tố lệ phí sang hạng tử Penalty như thiết kế trên thì cần tắt
+   free_event_bonus trong Fit để tránh tính trùng.

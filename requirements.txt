@@ -1,3 +1,21 @@
+# Core dependencies (Phases 0-2, deterministic tests & rubric loading)
+PyYAML>=6.0
+numpy>=1.24
+pandas>=2.0
+pyarrow>=14.0
+pytest>=8.0
+
+# Optional ML dependencies (Phase 3: P2 embedding & hierarchical KNN)
+# Uncomment when ready to run real multilingual-e5-small inference:
+# sentence-transformers>=2.7
+# torch>=2.1
+
+# Optional Optimization dependencies (Phase 6: P7 CP-SAT schedule planner)
+# ortools>=9.8
+
+# Optional API/UI dependencies (Phase 8)
+# fastapi>=0.110
+# uvicorn>=0.29
 typer>=0.12.0
 rich>=13.7.0
 sqlalchemy>=2.0.30

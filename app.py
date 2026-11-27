@@ -1,0 +1,693 @@
+"""Interactive Web Server & Service for No-Le-DRL (Classification & Module 6).
+
+Exposes strictly the real, implemented backend modules:
+- Embedding: Unified `intfloat/multilingual-e5-small` (`384d` L2-normalized) via `src.embedder`.
+- Classification: Dual-Branch Hierarchical 2-Stage kNN + Stage-wise Fusion (`src.classification`).
+- Credit Estimation: Isolated deterministic `module6.RubricCreditEngine` driven by `data/raw/rubric.yaml`.
+
+Usage:
+    python3 app.py                 # Starts on http://127.0.0.1:8765
+    python3 app.py --port 8080     # Custom port
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import time
+from dataclasses import asdict
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any, Dict, List
+from urllib.parse import urlparse
+
+import numpy as np
+
+from configs.model_config import MODEL_DEVICE, MODEL_ID, PROJECT_ROOT
+from module6 import AttributeExtractor, RubricCreditEngine
+from src.classification.algorithms.algorithm_registry import build_default_registry
+from src.classification.data.loaders import load_all_assets
+from src.classification.data.validators import validate_loaded_assets
+from src.classification.decision.confidence_handler import ConfidenceAndDecisionHandler
+from src.classification.embeddings.event_text_builder import (
+    CLASSIFICATION_VECTOR_PROFILES,
+    build_all_classification_profile_texts,
+    build_event_query_text,
+    normalize_string_list_field,
+)
+from src.classification.pipeline.classification_pipeline import ClassificationPipeline
+from src.classification.retrieval.rubric_retriever import RubricRetriever
+from src.classification.retrieval.sample_retriever import SampleRetriever
+from src.db_event_adapter import fetch_events_from_db
+from src.embedder import create_embedder
+from src.recommendation import (
+    REC_EMBEDDING_FIELDS,
+    DemoCreditProvider,
+    DemoScheduleProvider,
+    MMRConfig,
+    available_demo_personas,
+    load_recommendation_candidate_pool,
+    load_recommendation_candidate_pool_from_db,
+    load_recommendation_config,
+    run_recommendation_demo,
+)
+from src.schemas import EventNormalized
+from src.vector_ops import l2_norm, l2_normalize
+
+PROTOTYPE_DIR = PROJECT_ROOT / "prototype"
+CLASSIFICATION_CONFIG_PATH = PROJECT_ROOT / "configs" / "classification_config.yaml"
+
+
+class PrototypeService:
+    """Backend service backing the No-Le-DRL Classification & Module 6 UI."""
+
+    def __init__(self) -> None:
+        # 1. Unified P2.1 Embedder (intfloat/multilingual-e5-small, 384d L2-normalized)
+        self.embedder, self.embedder_status = create_embedder(
+            model_id=MODEL_ID,
+            device=MODEL_DEVICE,
+        )
+
+        # 2. Dual-Branch Hierarchical 2-Stage kNN System (src/classification)
+        self.dual_branch_config_path = CLASSIFICATION_CONFIG_PATH
+        self.dual_assets = load_all_assets(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+        validate_loaded_assets(self.dual_assets)
+
+        self.dual_sample_retriever = SampleRetriever(self.dual_assets.sample_branch)
+        self.dual_rubric_retriever = RubricRetriever(
+            self.dual_assets.rubric_branch,
+            self.dual_assets.rubric,
+        )
+        self.dual_registry = build_default_registry()
+        alg_cfg = self.dual_assets.config.get("algorithm") or {}
+        self.dual_algorithm_name = str(alg_cfg.get("name", "hierarchical_two_stage_knn"))
+        self.dual_default_params = dict(alg_cfg.get("params") or {})
+        self.dual_decision_cfg = dict(self.dual_assets.config.get("decision") or {})
+
+        self.dual_decision_handler = ConfidenceAndDecisionHandler(
+            rubric_retriever=self.dual_rubric_retriever,
+            decision_config=self.dual_decision_cfg,
+            max_suggested_candidates=int(self.dual_default_params.get("max_suggested_candidates", 5)),
+        )
+
+        self.dual_batch_events: List[Dict[str, Any]] = []
+        self.dual_classification_by_post_id: Dict[str, Dict[str, Any]] = {}
+        self.dual_query_vectors_by_post_id: Dict[str, List[float]] = {}
+        self._load_dual_branch_batch_outputs()
+
+        # 3. Isolated Module 6 Shared Credit Engine (driven by data/raw/rubric.yaml)
+        self.attribute_extractor = AttributeExtractor()
+        self.credit_engine = RubricCreditEngine(attribute_extractor=self.attribute_extractor)
+        self.rubric_name_by_id: Dict[str, str] = {
+            str(spec["ref"]): str(spec["name"])
+            for spec in self.credit_engine.rubric["items"].values()
+        }
+
+        # 4. Recommendation Demo Subsystem (P4 Demo + Demo M4/M6 + P5 Filter + P6 Scoring)
+        self.rec_config = load_recommendation_config()
+        pen_cfg = (self.rec_config.get("scoring") or {}).get("penalty_mandatory") or {}
+        self.demo_credit_provider = DemoCreditProvider(
+            credit_engine=self.credit_engine,
+            enable_item_2_2_penalty_link=bool(pen_cfg.get("enable_item_2_2_penalty_link", False)),
+        )
+        self.rec_chip_vec_cache: Dict[str, List[float]] = {}
+        self.rec_candidates = load_recommendation_candidate_pool(
+            embedder=self.embedder,
+            use_rec_4field_embeddings=True,
+        )
+
+    def _load_dual_branch_batch_outputs(self) -> None:
+        """Load precomputed dual-branch classification_events.json and shared query vectors."""
+        paths_cfg = self.dual_assets.config.get("paths") or {}
+        out_json = PROJECT_ROOT / str(
+            paths_cfg.get("output_classification_json", "outputs/classification_events.json")
+        )
+        q_emb_path = PROJECT_ROOT / str(
+            paths_cfg.get("query_embeddings", "data/generated/events_query_embeddings.npy")
+        )
+        q_meta_path = PROJECT_ROOT / str(
+            paths_cfg.get("query_metadata", "data/generated/events_query_metadata.json")
+        )
+
+        if not out_json.is_file() or not q_emb_path.is_file() or not q_meta_path.is_file():
+            pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+            pipeline.run()
+
+        self.dual_batch_events = []
+        self.dual_classification_by_post_id = {}
+        self.dual_query_vectors_by_post_id = {}
+
+        if out_json.is_file():
+            self.dual_batch_events = json.loads(out_json.read_text(encoding="utf-8"))
+            for rec in self.dual_batch_events:
+                pid = str(rec.get("post_id") or "").strip()
+                cls_obj = rec.get("classification")
+                if pid and isinstance(cls_obj, dict):
+                    self.dual_classification_by_post_id[pid] = cls_obj
+
+        if q_emb_path.is_file() and q_meta_path.is_file():
+            q_vecs = np.load(q_emb_path, mmap_mode="r")
+            q_meta = json.loads(q_meta_path.read_text(encoding="utf-8"))
+            for row_meta in q_meta.get("records") or []:
+                pid = str(row_meta.get("post_id") or "").strip()
+                r_idx = int(row_meta["embedding_row"])
+                if pid and 0 <= r_idx < q_vecs.shape[0]:
+                    self.dual_query_vectors_by_post_id[pid] = [float(v) for v in q_vecs[r_idx].tolist()]
+
+    def _dual_branch_summary(self) -> Dict[str, Any]:
+        status_counts: Dict[str, int] = {
+            "PREDICTED": 0,
+            "NEEDS_REVIEW": 0,
+            "NO_MATCH": 0,
+            "SKIPPED_NOT_EVENT": 0,
+        }
+        for rec in self.dual_batch_events:
+            st = str((rec.get("classification") or {}).get("status") or "")
+            if st in status_counts:
+                status_counts[st] += 1
+        emb_cfg = self.dual_assets.config.get("embedding") or {}
+        bvs = emb_cfg.get("branch_vector_selection") or {}
+        return {
+            "enabled": True,
+            "algorithm": self.dual_algorithm_name,
+            "registered_algorithms": self.dual_registry.list_algorithms(),
+            "parameter_status": "provisional_not_evaluated",
+            "sample_reference_count": self.dual_sample_retriever.eligible_count,
+            "rubric_stage1_count": len(self.dual_rubric_retriever.eligible_stage1_groups),
+            "rubric_total_prototypes": int(len(self.dual_assets.rubric_branch.metadata)),
+            "batch_events_count": len(self.dual_batch_events),
+            "status_counts": status_counts,
+            "classification_vector_profiles": list(CLASSIFICATION_VECTOR_PROFILES),
+            "default_params": {
+                "stage1_top_k": int(self.dual_default_params.get("candidate_group_count", 2)),
+                "k1": int(self.dual_default_params.get("k1", 10)),
+                "k2": int(self.dual_default_params.get("k2", 10)),
+                "beta": float(self.dual_default_params.get("stage1_fusion_beta", 0.5)),
+                "alpha": float(self.dual_default_params.get("stage2_fusion_alpha", 0.5)),
+                "sample_branch_vector": str(bvs.get("sample_branch", "title_description")),
+                "rubric_branch_vector": str(bvs.get("rubric_branch", "title_description")),
+            },
+        }
+
+    def get_dual_branch_events(self) -> Dict[str, Any]:
+        """Return all batch-classified events from the dual-branch pipeline for UI inspection."""
+        items = []
+        for rec in self.dual_batch_events:
+            cls = rec.get("classification") or {}
+            top_sugg = (cls.get("suggested_candidates") or [None])[0]
+            items.append(
+                {
+                    "post_id": rec.get("post_id"),
+                    "title": rec.get("title") or "",
+                    "description": rec.get("description") or "",
+                    "format": rec.get("format") or [],
+                    "organizer": rec.get("organizer") or "",
+                    "date": rec.get("date"),
+                    "status": cls.get("status"),
+                    "predicted_group_id": cls.get("predicted_group_id"),
+                    "predicted_criterion_ref": cls.get("predicted_criterion_ref"),
+                    "predicted_criterion_name": cls.get("predicted_criterion_name"),
+                    "top_suggested_ref": top_sugg.get("criterion_ref") if top_sugg else None,
+                    "top_suggested_group": top_sugg.get("group_id") if top_sugg else None,
+                    "top_suggested_score": top_sugg.get("fused_score") if top_sugg else None,
+                    "branch_agreement": (cls.get("confidence") or {}).get("branch_agreement"),
+                    "review_reasons": cls.get("review_reasons") or [],
+                    "classification": cls,
+                }
+            )
+        return {
+            "summary": self._dual_branch_summary(),
+            "events": items,
+        }
+
+    def run_dual_branch_pipeline(self) -> Dict[str, Any]:
+        """Re-run ClassificationPipeline (reusing verified shared query cache) and reload outputs."""
+        pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+        run_summary = pipeline.run()
+        self._load_dual_branch_batch_outputs()
+        self.rec_candidates = load_recommendation_candidate_pool(
+            embedder=self.embedder,
+            use_rec_4field_embeddings=True,
+        )
+        return {
+            "status": "ok",
+            "algorithm": run_summary.algorithm_name,
+            "query_embeddings_reused": run_summary.query_embeddings_reused,
+            "total_input_events": run_summary.total_input_events,
+            "embedded_events_count": run_summary.embedded_events_count,
+            "status_counts": run_summary.status_counts,
+            "all_checks_passed": (
+                run_summary.asset_validation.all_passed
+                and run_summary.query_validation.all_passed
+                and run_summary.output_validation.all_passed
+            ),
+            "dual_branch_events": self.get_dual_branch_events(),
+        }
+
+    def inspect_classify(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Run Dual-Branch Hierarchical 2-Stage kNN + Stage-wise Fusion + Module 6 estimation."""
+        title = str(payload.get("title") or "").strip()
+        description = str(payload.get("description") or "").strip()
+        organizer = str(payload.get("organizer") or "").strip()
+        role = str(payload.get("role") or "participant").strip()
+        post_id = str(payload.get("post_id") or "").strip()
+        formats = normalize_string_list_field(payload.get("format"))
+
+        if not title and not description:
+            raise ValueError("Vui lòng nhập ít nhất tên hoạt động hoặc mô tả ngắn.")
+
+        emb_cfg = self.dual_assets.config.get("embedding") or {}
+        default_bvs = emb_cfg.get("branch_vector_selection") or {}
+        sample_branch_vector = str(
+            payload.get("sample_branch_vector")
+            or default_bvs.get("sample_branch", "title_description")
+        ).strip()
+        rubric_branch_vector = str(
+            payload.get("rubric_branch_vector")
+            or default_bvs.get("rubric_branch", "title_description")
+        ).strip()
+        for bname, pval in (
+            ("sample_branch_vector", sample_branch_vector),
+            ("rubric_branch_vector", rubric_branch_vector),
+        ):
+            if pval not in CLASSIFICATION_VECTOR_PROFILES:
+                raise ValueError(
+                    f"Invalid {bname}={pval!r}. Expected one of {CLASSIFICATION_VECTOR_PROFILES}."
+                )
+
+        stage_overrides: Dict[str, str] = {}
+        for skey in (
+            "sample_stage1_vector",
+            "sample_stage2_vector",
+            "rubric_stage1_vector",
+            "rubric_stage2_vector",
+        ):
+            sval = payload.get(skey)
+            if sval not in (None, ""):
+                sval_clean = str(sval).strip()
+                if sval_clean not in CLASSIFICATION_VECTOR_PROFILES:
+                    raise ValueError(
+                        f"Invalid {skey}={sval_clean!r}. Expected one of {CLASSIFICATION_VECTOR_PROFILES}."
+                    )
+                stage_overrides[skey] = sval_clean
+
+        stage1_top_k = max(
+            1,
+            min(
+                4,
+                int(
+                    payload.get("stage1_top_k")
+                    if payload.get("stage1_top_k") not in (None, "")
+                    else self.dual_default_params.get("candidate_group_count", 2)
+                ),
+            ),
+        )
+        k1 = max(
+            1,
+            min(
+                30,
+                int(
+                    payload.get("k1")
+                    if payload.get("k1") not in (None, "")
+                    else self.dual_default_params.get("k1", 10)
+                ),
+            ),
+        )
+        k2 = max(
+            1,
+            min(
+                30,
+                int(
+                    payload.get("k2")
+                    if payload.get("k2") not in (None, "")
+                    else self.dual_default_params.get("k2", 10)
+                ),
+            ),
+        )
+        beta = max(
+            0.0,
+            min(
+                1.0,
+                float(
+                    payload.get("beta")
+                    if payload.get("beta") not in (None, "")
+                    else self.dual_default_params.get("stage1_fusion_beta", 0.5)
+                ),
+            ),
+        )
+        alpha = max(
+            0.0,
+            min(
+                1.0,
+                float(
+                    payload.get("alpha")
+                    if payload.get("alpha") not in (None, "")
+                    else self.dual_default_params.get("stage2_fusion_alpha", 0.5)
+                ),
+            ),
+        )
+
+        raw_event = {
+            "is_event": True,
+            "post_id": post_id or "live_inspect",
+            "title": title,
+            "description": description,
+            "organizer": organizer,
+            "format": formats,
+        }
+        profile_texts = build_all_classification_profile_texts(raw_event, query_prefix="query: ")
+        query_text = profile_texts["title_description"]
+
+        t0 = time.perf_counter()
+        reused_query_vec = False
+        vectors_by_profile: Dict[str, np.ndarray] = {}
+        needed_profiles = sorted(
+            {
+                sample_branch_vector,
+                rubric_branch_vector,
+                *stage_overrides.values(),
+                "title_description",
+            }
+        )
+        for prof in needed_profiles:
+            if (
+                prof == "title_description"
+                and post_id
+                and post_id in self.dual_query_vectors_by_post_id
+                and payload.get("use_cached_query") is True
+            ):
+                p_vec = self.dual_query_vectors_by_post_id[post_id]
+                reused_query_vec = True
+            else:
+                ptxt = profile_texts[prof]
+                pbody = ptxt[len("query: ") :] if ptxt.startswith("query: ") else ptxt
+                p_vec = l2_normalize(self.embedder.encode_query(pbody))
+            vectors_by_profile[prof] = np.asarray(p_vec, dtype=np.float32)
+
+        vec = vectors_by_profile["title_description"].tolist()
+
+        runtime_params = dict(self.dual_default_params)
+        runtime_params["candidate_group_count"] = stage1_top_k
+        runtime_params["k1"] = k1
+        runtime_params["k2"] = k2
+        runtime_params["stage1_fusion_beta"] = beta
+        runtime_params["stage2_fusion_alpha"] = alpha
+        runtime_params["sample_branch_vector"] = sample_branch_vector
+        runtime_params["rubric_branch_vector"] = rubric_branch_vector
+        for skey, sval in stage_overrides.items():
+            runtime_params[skey] = sval
+
+        algorithm = self.dual_registry.create(
+            self.dual_algorithm_name,
+            sample_retriever=self.dual_sample_retriever,
+            rubric_retriever=self.dual_rubric_retriever,
+            rubric_data=self.dual_assets.rubric,
+            params=runtime_params,
+        )
+        shared_q_np = vectors_by_profile["title_description"]
+        prediction = algorithm.classify(
+            shared_q_np,
+            event_context=raw_event,
+            query_vectors_by_profile=vectors_by_profile,
+        )
+        dual_cls = self.dual_decision_handler.decide(prediction=prediction, event=raw_event)
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+
+        # Resolve rubric criterion for Module 6 rule-based point estimation
+        s1_fused = (dual_cls.get("scores") or {}).get("stage1", {}).get("fused") or []
+        s2_fused = (dual_cls.get("scores") or {}).get("stage2", {}).get("fused") or []
+        selected_groups = [g["group_id"] for g in s1_fused if g.get("selected_for_stage2")]
+
+        status = dual_cls.get("status")
+        if status == "PREDICTED" and dual_cls.get("predicted_criterion_ref"):
+            m6_ref = str(dual_cls["predicted_criterion_ref"])
+            m6_ref_mode = "predicted"
+        elif status == "NEEDS_REVIEW" and s2_fused:
+            m6_ref = str(s2_fused[0]["criterion_ref"])
+            m6_ref_mode = "suggested_preview"
+        else:
+            m6_ref = None
+            m6_ref_mode = "none"
+
+        ev = EventNormalized(
+            event_id=raw_event["post_id"],
+            title=title or description,
+            description=description,
+            organizer=organizer,
+        )
+        credit_est = self.credit_engine.estimate_event_credit(
+            event=ev,
+            rubric_item_id=m6_ref,
+            ledger=None,
+            role=role,
+        )
+
+        sample_stage2_pool = int(
+            self.dual_assets.sample_branch.metadata["group_id"].isin(selected_groups).sum()
+        )
+        rm = self.dual_assets.rubric_branch.metadata
+        rubric_stage2_pool = int(
+            ((rm["stage"] == "criterion") & (rm["group_id"].isin(selected_groups)) & (rm["event_matchable"])).sum()
+        )
+
+        return {
+            "embedder_status": asdict(self.embedder_status),
+            "formatted_query_text": query_text,
+            "profile_query_texts": profile_texts,
+            "reused_cached_query": reused_query_vec,
+            "vector_dimension": len(vec),
+            "vector_l2_norm": round(l2_norm(vec), 6),
+            "elapsed_ms": round(elapsed_ms, 2),
+            "knn_params_used": {
+                "algorithm": self.dual_algorithm_name,
+                "parameter_status": "provisional_not_evaluated",
+                "stage1_top_k": stage1_top_k,
+                "k1": k1,
+                "k2": k2,
+                "beta": beta,
+                "alpha": alpha,
+                "sample_branch_vector": sample_branch_vector,
+                "rubric_branch_vector": rubric_branch_vector,
+            },
+            "reference_pool_sizes": {
+                "sample_stage1_total": self.dual_sample_retriever.eligible_count,
+                "sample_stage2_filtered": sample_stage2_pool,
+                "rubric_stage1_total": len(self.dual_rubric_retriever.eligible_stage1_groups),
+                "rubric_stage2_filtered": rubric_stage2_pool,
+            },
+            "dual_branch": dual_cls,
+            "module6_credit_estimate": credit_est.to_dict(),
+            "module6_ref_mode": m6_ref_mode,
+            "rubric_item_name": self.rubric_name_by_id.get(credit_est.rubric_item_id or "", ""),
+        }
+
+    def bootstrap_payload(self) -> Dict[str, Any]:
+        """Initial payload powering the 2-tab Classification & Module 6 UI."""
+        return {
+            "embedder_status": asdict(self.embedder_status),
+            "dual_branch_summary": self._dual_branch_summary(),
+            "dual_branch_events": self.get_dual_branch_events(),
+        }
+
+    def get_recommendation_bootstrap(self) -> Dict[str, Any]:
+        """Bootstrap metadata powering Tab 3 Recommendation Demo UI (P4/M4/M6/P5/P6)."""
+        chips_raw = self.rec_config.get("interest_chips") or {}
+        interest_chips = [
+            {"id": str(k), "label": str(v["label"]), "text": str(v["text"])}
+            for k, v in chips_raw.items()
+        ]
+        summary = self._dual_branch_summary()
+        status_counts = summary.get("status_counts") or {}
+        db_rows = fetch_events_from_db(db_path=PROJECT_ROOT / "drl_database.db", exclude_cancelled=True)
+        return {
+            "interest_chips": interest_chips,
+            "personas": available_demo_personas(),
+            "weight_presets": dict(self.rec_config.get("weight_presets") or {}),
+            "schedule_presets": DemoScheduleProvider.available_presets(),
+            "credit_presets": DemoCreditProvider.available_presets(),
+            "group_caps": self.demo_credit_provider.group_caps,
+            "reference_now_presets": [
+                {"value": "2026-10-01T08:00:00+07:00", "label": "01/10/2026 (18 PREDICTED)"},
+                {"value": "2026-11-01T08:00:00+07:00", "label": "01/11/2026 (11 PREDICTED)"},
+                {"value": "2026-04-01T08:00:00+07:00", "label": "01/04/2026 (36 PREDICTED)"},
+            ],
+            "rec_embedding_fields": list(REC_EMBEDDING_FIELDS),
+            "mmr_defaults": MMRConfig.from_config(self.rec_config).to_dict(),
+            "pool_stats": {
+                "total_events": len(self.rec_candidates),
+                "predicted_count": int(status_counts.get("PREDICTED", 0)),
+                "needs_review_count": int(status_counts.get("NEEDS_REVIEW", 0)),
+                "sample_embeddings_count": int(self.dual_assets.sample_branch.embeddings.shape[0]),
+                "db_active_events_count": len(db_rows),
+            },
+        }
+
+    def run_dual_branch_pipeline_from_db(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Run ClassificationPipeline directly from `drl_database.db` with 3-vector branch routing."""
+        req = dict(payload or {})
+        bvs: Dict[str, Any] = {}
+        for k in (
+            "sample_branch",
+            "rubric_branch",
+            "sample_stage1",
+            "sample_stage2",
+            "rubric_stage1",
+            "rubric_stage2",
+        ):
+            if req.get(k) not in (None, ""):
+                bvs[k] = str(req[k]).strip()
+
+        pipeline = ClassificationPipeline(self.dual_branch_config_path, project_root=PROJECT_ROOT)
+        result = pipeline.run_from_database(
+            db_path=PROJECT_ROOT / "drl_database.db",
+            only_unclassified=bool(req.get("only_unclassified", False)),
+            exclude_cancelled=bool(req.get("exclude_cancelled", True)),
+            branch_vector_selection=bvs or None,
+            write_back_db=bool(req.get("write_back_db", True)),
+            write_output_files=bool(req.get("write_output_files", False)),
+            embedder=self.embedder,
+        )
+        return {
+            "status": "ok",
+            "source_mode": result["source_mode"],
+            "db_path": result["db_path"],
+            "algorithm": result["algorithm"],
+            "profiles_computed": result["profiles_computed"],
+            "branch_vector_selection": result["branch_vector_selection"],
+            "total_input_events": result["total_input_events"],
+            "embedded_events_count": result["embedded_events_count"],
+            "skipped_events_count": result["skipped_events_count"],
+            "status_counts": result["status_counts"],
+            "db_categories_updated": result["db_categories_updated"],
+            "asset_validation_passed": result["asset_validation_passed"],
+            "events": result["events"],
+        }
+
+    def run_recommendation(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute Recommendation pipeline on DB (`drl_database.db`) or JSON fixture pool."""
+        req = dict(payload or {})
+        data_source = str(req.get("data_source") or "json").strip().lower()
+        if data_source == "database":
+            active_pool = load_recommendation_candidate_pool_from_db(
+                db_path=PROJECT_ROOT / "drl_database.db",
+                embedder=self.embedder,
+                exclude_cancelled=True,
+            )
+        else:
+            active_pool = self.rec_candidates
+
+        result = run_recommendation_demo(
+            req,
+            candidates=active_pool,
+            sample_embeddings=self.dual_assets.sample_branch.embeddings,
+            embedder=self.embedder,
+            credit_provider=self.demo_credit_provider,
+            config=self.rec_config,
+            chip_vec_cache=self.rec_chip_vec_cache,
+        )
+        result["pipeline_summary"]["data_source"] = data_source
+        return result
+
+
+def make_handler(service: PrototypeService):
+    """Create HTTP request handler bound to a PrototypeService instance."""
+
+    class PrototypeHandler(BaseHTTPRequestHandler):
+        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+            print(f"[server] {self.command} {self.path} -> {args[1] if len(args) > 1 else ''}")
+
+        def _send_json(self, data: Dict[str, Any], status: int = HTTPStatus.OK) -> None:
+            body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _send_file(self, file_path: Path, content_type: str) -> None:
+            if not file_path.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+                return
+            data = file_path.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _read_json_body(self) -> Dict[str, Any]:
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length) if length > 0 else b"{}"
+            return json.loads(raw.decode("utf-8"))
+
+        def do_GET(self) -> None:  # noqa: N802
+            path = urlparse(self.path).path
+
+            if path in ("/", "/index.html"):
+                self._send_file(PROTOTYPE_DIR / "index.html", "text/html; charset=utf-8")
+            elif path == "/styles.css":
+                self._send_file(PROTOTYPE_DIR / "styles.css", "text/css; charset=utf-8")
+            elif path == "/app.js":
+                self._send_file(PROTOTYPE_DIR / "app.js", "application/javascript; charset=utf-8")
+            elif path == "/api/bootstrap":
+                self._send_json(service.bootstrap_payload())
+            elif path == "/api/dual-branch/events":
+                self._send_json(service.get_dual_branch_events())
+            elif path == "/api/recommendation/bootstrap":
+                self._send_json(service.get_recommendation_bootstrap())
+            else:
+                self.send_error(HTTPStatus.NOT_FOUND, f"Unknown route: {path}")
+
+        def do_POST(self) -> None:  # noqa: N802
+            path = urlparse(self.path).path
+            try:
+                body = self._read_json_body()
+                if path == "/api/classify":
+                    self._send_json(service.inspect_classify(body))
+                elif path == "/api/dual-branch/run":
+                    self._send_json(service.run_dual_branch_pipeline())
+                elif path == "/api/dual-branch/run-db":
+                    self._send_json(service.run_dual_branch_pipeline_from_db(body))
+                elif path == "/api/recommendation/run":
+                    self._send_json(service.run_recommendation(body))
+                else:
+                    self.send_error(HTTPStatus.NOT_FOUND, f"Unknown route: {path}")
+            except Exception as exc:
+                self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+
+    return PrototypeHandler
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run No-Le-DRL Module 3 Classification & Module 6 UI Server."
+    )
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8765)
+    args = parser.parse_args()
+
+    print("Đang khởi tạo No-Le-DRL (Dual-Branch Classification + Module 6)...")
+    service = PrototypeService()
+    st = service.embedder_status
+    db = service._dual_branch_summary()
+    print(f"  • Embedder    : {st.active_model} ({st.dimension}d, device={st.device})")
+    print(
+        f"  • Dual-Branch : {db['algorithm']} "
+        f"(Sample={db['sample_reference_count']}, Rubric={db['rubric_total_prototypes']}, "
+        f"β={db['default_params']['beta']}, α={db['default_params']['alpha']}, provisional)"
+    )
+    print(f"  • Batch Events: {db['batch_events_count']} sự kiện -> {db['status_counts']}")
+    print(f"  • URL         : http://{args.host}:{args.port}")
+
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(service))
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nĐã dừng server.")
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

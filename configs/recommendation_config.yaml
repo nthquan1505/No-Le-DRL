@@ -1,0 +1,210 @@
+# =============================================================================
+# HCMUS DRL Recommendation Configuration (Phase 4+ — Provisional)
+# =============================================================================
+# Aligned with D-3 (Module 6 credit boundary), D-5 (w1..w4 + Penalty),
+# and unified e5-small (384d L2) embeddings.
+# Numerical weights below are provisional starting defaults pending evaluation.
+
+config_status: provisional_not_evaluated
+
+interest_chips:
+  ai_tech:
+    label: "AI & Công nghệ"
+    text: "Hội thảo AI Machine Learning lập trình an toàn thông tin CTF Hackathon khoa CNTT"
+  academic_nckh:
+    label: "Học thuật & NCKH"
+    text: "Seminar học thuật nghiên cứu khoa học sinh viên Olympic Toán Tin học ICPC"
+  soft_skills:
+    label: "Kỹ năng mềm & Hướng nghiệp"
+    text: "Workshop kỹ năng mềm viết CV phỏng vấn tuyển dụng người trong nghề hành trang sinh viên"
+  volunteering:
+    label: "Tình nguyện & Cộng đồng"
+    text: "Chiến dịch tình nguyện Mùa Hè Xanh Xuân Tình Nguyện thiện nguyện hiến máu quyên góp cộng đồng"
+  arts_sports:
+    label: "Văn nghệ & Thể thao"
+    text: "Hội thao bóng đá chạy bộ giải thể thao văn nghệ âm nhạc sinh viên khỏe"
+  english_global:
+    label: "Ngoại ngữ & Hội nhập"
+    text: "Thi thử TOEIC tiếng Anh Star Awards CLB Anh văn hội nhập quốc tế sinh viên 5 tốt"
+  startup_career:
+    label: "Khởi nghiệp & Đổi mới sáng tạo"
+    text: "Khởi nghiệp đổi mới sáng tạo cuộc thi ý tưởng sáng tạo kết nối doanh nghiệp thực tập"
+  student_union:
+    label: "Công tác Đoàn – Hội & Kỹ năng tổ chức"
+    text: "Đoàn Thanh niên Hội Sinh viên tập huấn cán bộ Đoàn Hội đại hội kỹ năng tổ chức sự kiện"
+
+weight_presets:
+  balanced:
+    label: "Cân bằng"
+    weights:
+      w1_gain: 0.40
+      w2_interest: 0.25
+      w3_fit: 0.20
+      w4_urgency: 0.15
+  need_points:
+    label: "Cần đủ điểm ĐRL"
+    weights:
+      w1_gain: 0.55
+      w2_interest: 0.15
+      w3_fit: 0.15
+      w4_urgency: 0.15
+  interest_first:
+    label: "Ưu tiên sở thích"
+    weights:
+      w1_gain: 0.20
+      w2_interest: 0.50
+      w3_fit: 0.20
+      w4_urgency: 0.10
+  exam_week:
+    label: "Tuần thi / Ít thời gian"
+    weights:
+      w1_gain: 0.25
+      w2_interest: 0.15
+      w3_fit: 0.45
+      w4_urgency: 0.15
+
+profile:
+  declared_blend_weight: 0.70
+  behavior_vector_weights:
+    click: 0.3
+    save: 1.0
+    joined: 1.5
+    dismiss: -0.4
+  weight_adaptation:
+    enabled: true
+    min_weight: 0.05
+    max_weight: 0.70
+    declared_anchor_pull: 0.10
+    action_learning_rates:
+      click: 0.02
+      save: 0.06
+      joined: 0.10
+      dismiss: -0.04
+    dismiss_reason_boosts:
+      schedule_conflict:
+        w3_fit: 0.06
+      too_busy:
+        w3_fit: 0.06
+      low_points:
+        w1_gain: 0.06
+      not_interested:
+        w2_interest: 0.06
+      deadline_too_close:
+        w4_urgency: 0.06
+
+schedule:
+  default_travel_buffer_min: 30
+  default_event_duration_min: 120
+  default_timezone_offset_hours: 7
+  online_conflicts_with_regular_classes: false
+  campus_travel_minutes:
+    online: 0
+    same_campus: 10
+    cross_campus: 45
+    unknown: 30
+  fit_scoring:
+    conflict_score: 0.0
+    base_offline: 0.70
+    online_bonus: 0.25
+    hybrid_bonus: 0.15
+    same_campus_bonus: 0.10
+    cross_campus_penalty: -0.15
+    free_event_bonus: 0.05
+    exam_week_offline_penalty: -0.25
+    exam_week_hybrid_penalty: -0.10
+    travel_over_max_penalty: -0.20
+
+# =============================================================================
+# Phase 5 Demo Extensions: Demo M4/M6, P5 Hard Filter & P6 Multi-Criteria Scoring
+# =============================================================================
+input_source:
+  mode: database                      # "database" (drl_database.db) | "json" (offline fixture)
+  db_path: drl_database.db
+  exclude_cancelled: true
+
+rec_embedding:
+  fields: [title, description, topic, format]
+  passage_prefix: "passage: "
+  embeddings_path: data/generated/events_rec_embeddings.npy
+  metadata_path: data/generated/events_rec_metadata.json
+  reuse_existing: true
+
+demo_module4:
+  default_max_travel_min: 45
+  comfort_slack_min: 30
+  default_pref_hours: [8.0, 21.0]
+  fit_weights:
+    travel: 0.45
+    slack: 0.25
+    pref_hours: 0.30
+  pref_hours_scores:
+    inside: 1.0
+    near_1h: 0.7
+    outside: 0.3
+    missing_time: 0.5
+  exam_week_multipliers:
+    online: 0.90
+    hybrid: 0.70
+    offline: 0.45
+
+filter:
+  require_predicted_status: true
+  strict_max_travel: true
+  allow_zero_gain_in_interest_mode: false
+  mandatory_bypass_zero_gain: true
+  mandatory_bypass_budget: true
+  mandatory_bypass_travel: true
+  mandatory_bypass_hidden: true
+
+scoring:
+  gain:
+    p_ref: 10.0
+    gap_floor: 0.5
+    source_reliability:
+      explicit: 1.00
+      rule: 0.90
+      rule_fallback: 0.80
+    fallback_min_weight: 0.7
+  interest:
+    calibration_mode: "per_user_samples_minmax"  # "per_user_samples_minmax" | "per_user_samples_p1_p99" | "fixed"
+    fixed_c_min: 0.72
+    fixed_c_max: 0.90
+    cold_start_default: 0.50
+    event_embedding_fields: ["title", "description", "topic", "format"]
+    event_embedding_prefix: "passage: "
+    rec_embeddings_path: "data/generated/events_rec_embeddings.npy"
+    rec_metadata_path: "data/generated/events_rec_metadata.json"
+  input_source:
+    default_mode: "database"                     # "database" (drl_database.db) | "json" (offline fixture)
+    db_path: "drl_database.db"
+    exclude_cancelled: true
+  urgency:
+    tau_days: 5.0
+    missing_deadline_default: 0.20
+  penalty_mandatory:
+    penalty_ref_points: 20.0
+    max_boost: 1.00
+    default_mandatory_boost: 0.50
+    enable_item_2_2_penalty_link: false
+
+# =============================================================================
+# Phase 6: P7 List Selection via MMR (+ 1 Exploration Slot; CP-SAT deferred)
+# =============================================================================
+selection:
+  mmr:
+    enabled: true
+    top_n: 5
+    lambda_param: 0.70                  # Relevance vs Diversity trade-off in [0, 1]
+    alpha_semantic: 0.70                # Hybrid Sim = alpha * sim_sem + (1 - alpha) * sim_rubric
+    same_item_similarity: 1.00          # sim_rubric when same rubric_item_id
+    same_group_similarity: 0.50         # sim_rubric when different item but same parent_group_id
+    cosine_rescale_mode: "pool_minmax"  # "pool_minmax" | "fixed" | "none"
+    fixed_cos_min: 0.72                 # Empirical e5-small floor when rescaling
+    fixed_cos_max: 0.92                 # Empirical e5-small ceiling when rescaling
+    min_pool_cosine_span: 0.05          # Minimum pool spread before falling back to fixed range
+    enable_exploration_slot: true       # Reserve last slot (when N >= 3 & pool >= N) for Exploration
+    exploration_gain_weight: 0.60       # ExploreScore = (w_g*Gain + w_f*Fit) * (1 - max_sim)
+    exploration_fit_weight: 0.40
+    pin_mandatory: true                 # Pin mandatory events (e.g. 6.4 SHCD) at top of list
+
+

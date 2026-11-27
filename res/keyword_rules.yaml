@@ -1,0 +1,608 @@
+# =============================================================================
+# keyword_rules.yaml — Luật từ khóa (TẦNG 0) cho phân loại mục ĐRL
+# Dựa trên rubric.yaml (khtn-qd1028-2020-v1): 21 nhãn sự kiện + NONE + P.sinh_hoat_cong_dan.
+#
+# CÁCH HOẠT ĐỘNG (tóm tắt)
+#   1. Chuẩn hóa văn bản: chữ thường, bỏ dấu, đ→d, bỏ ký tự đặc biệt.
+#      => viết từ khóa CÓ DẤU cho dễ đọc; code tự chuẩn hóa khi nạp.
+#   2. Mỗi từ khóa khớp theo CỤM TỪ NGUYÊN VẸN (không khớp nửa chừng một từ).
+#   3. Mỗi nhãn cộng điểm theo độ mạnh của từ khóa tìm thấy (mỗi cụm chỉ tính 1 lần):
+#        decisive 6.0 | strong 3.0 | medium 1.5 | weak 0.5
+#      Cụm nằm trong TIÊU ĐỀ được nhân 1.5.
+#   4. Trừ điểm nếu gặp từ phủ định (negative); điều chỉnh chéo bằng adjust_rules.
+#   5. Nhãn chỉ được coi là "có tín hiệu" khi điểm >= min_score_to_fire (2.0);
+#      không nhãn nào đạt ngưỡng → trả None để tầng 1/2 xử lý (không bỏ phiếu bừa).
+#
+# LƯU Ý TRUNG THỰC
+#   * Đây là bộ luật khởi điểm, soạn từ lời văn quy chế + cách đặt tên sự kiện
+#     phổ biến. CHƯA được kiểm chứng trên bài đăng thật của trường. Bước tiếp theo
+#     bắt buộc: chạy trên 100–150 bài thật, đọc các ca sai, rồi chỉnh danh sách.
+#   * Từ khóa càng ngắn/chung (vd "khảo sát", "cuộc thi") càng dễ gây nhầm →
+#     chỉ để mức medium/weak hoặc yêu cầu đi kèm từ khác (combos).
+#   * Quy chế KHÔNG cộng điểm cho việc chỉ "xem/cổ vũ/dự đêm nhạc"; chỉ cộng cho
+#     cuộc thi, hoạt động có tham gia thực chất (xem rubric). Luật phản ánh điều này.
+# =============================================================================
+
+version: "kw-v1"
+rubric_version: "khtn-qd1028-2020-v3-mvp"
+status: "draft — cần kiểm thử trên bài đăng thật"
+
+normalization:
+  lowercase: true
+  strip_diacritics: true
+  map_d: true                       # đ → d
+  non_alnum_to_space: true
+  collapse_whitespace: true
+
+scoring:
+  weights: {decisive: 6.0, strong: 3.0, medium: 1.5, weak: 0.5}
+  title_multiplier: 1.5
+  negative_penalty: 3.0             # mỗi từ phủ định tìm thấy
+  min_score_to_fire: 2.0
+  max_label_score: 12.0             # chặn cộng dồn quá mức do cụm lồng nhau
+  softmax_beta: 1.5                 # đổi điểm → phân phối xác suất thô
+  organizer_prior_scale: 1.0
+  confusable_margin: 2.0            # top1 − top2 < margin (cả hai đã "fire") → cờ review
+
+# -----------------------------------------------------------------------------
+# TỪ KHÓA THEO NHÃN
+# -----------------------------------------------------------------------------
+labels:
+
+  # ============================ C1 — HỌC TẬP & NCKH ===========================
+  C1.de_tai_nckh:
+    decisive: ["euréka", "giải thưởng euréka"]
+    strong:
+      - "cuộc thi nghiên cứu khoa học"
+      - "sinh viên nghiên cứu khoa học"
+      - "nghiên cứu khoa học sinh viên"
+      - "nckh sinh viên"
+      - "sinh viên nckh"
+      - "đề tài nckh"
+      - "đăng ký đề tài"
+      - "hội nghị sinh viên nghiên cứu khoa học"
+    medium:
+      - "nghiên cứu khoa học"
+      - "nckh"
+      - "đề tài nghiên cứu"
+      - "khóa luận tốt nghiệp"
+      - "tiểu luận tốt nghiệp"
+      - "báo cáo khoa học"
+    weak: ["đề tài"]
+    note: "Phân biệt với 1.9: 'hội thảo/seminar' thuần là sinh hoạt học thuật; NCKH là nộp/đăng ký đề tài hoặc thi NCKH."
+
+  C1.cuoc_thi_hoc_thuat:
+    decisive: ["olympic tin học", "icpc", "cuộc thi học thuật"]
+    strong:
+      - "olympic"
+      - "cuộc thi lập trình"
+      - "thi lập trình"
+      - "hackathon"
+      - "datathon"
+      - "capture the flag"
+      - "ctf"
+      - "cuộc thi toán"
+      - "cuộc thi vật lý"
+      - "cuộc thi hóa học"
+      - "cuộc thi sinh học"
+      - "cuộc thi tin học"
+      - "cuộc thi khoa học dữ liệu"
+      - "data science challenge"
+      - "ai challenge"
+      - "sinh viên giỏi"
+      - "kỳ thi học thuật"
+      - "thi học thuật"
+      - "cuộc thi chuyên môn"
+    medium:
+      - "robocon"
+      - "cuộc thi khởi nghiệp"
+      - "ý tưởng khởi nghiệp"
+      - "cuộc thi sáng tạo kỹ thuật"
+      - "vòng sơ khảo"
+      - "vòng loại"
+    weak: ["cuộc thi", "thi đấu", "vòng chung kết"]
+    note: "'cuộc thi' chung chung chỉ là weak vì thuộc cả 3.1 và 3.11; cần từ chỉ lĩnh vực học thuật."
+
+  C1.sinh_hoat_hoc_thuat:
+    strong:
+      - "seminar"
+      - "workshop"
+      - "tọa đàm"
+      - "chuyên đề"
+      - "talkshow"
+      - "webinar"
+      - "tư vấn hướng nghiệp"
+      - "định hướng nghề nghiệp"
+      - "chia sẻ kinh nghiệm"
+      - "sinh hoạt học thuật"
+      - "kỹ năng mềm"
+      - "career talk"
+    medium:
+      - "diễn giả"
+      - "báo cáo viên"
+      - "kỹ năng"
+      - "học thuật"
+      - "khoa học"
+    weak: ["chia sẻ", "giao lưu"]
+    negative: ["hội thảo quốc tế ứng tuyển"]
+    note: "Gồm cả 'tham gia HOẶC tổ chức' (mục 1.9): vai trò BTC/CTV vẫn dùng mục này. Cụm 'hội thảo' xử lý ở mục homographs (đồng âm với 'hội thao' khi bỏ dấu)."
+
+  # ============================ C2 — NỘI QUY ==================================
+  C2.danh_gia_mon_hoc:
+    decisive: ["đánh giá môn học", "khảo sát môn học"]
+    strong:
+      - "khảo sát đánh giá môn học"
+      - "lấy ý kiến phản hồi môn học"
+      - "đánh giá chất lượng giảng dạy"
+      - "đánh giá giảng dạy"
+      - "phản hồi môn học"
+      - "khảo sát ý kiến sinh viên về môn học"
+    medium:
+      - "đánh giá khóa học"
+      - "đánh giá học phần"
+      - "lấy ý kiến sinh viên về giảng viên"
+    note: "Mục 2.2 — nhiệm vụ cuối học kỳ (đánh giá trên 50% số môn)."
+
+  C2.khao_sat_dieu_tra:
+    strong:
+      - "điều tra xã hội"
+      - "điều tra xã hội học"
+      - "phiếu khảo sát"
+      - "khảo sát sinh viên"
+      - "khảo sát tình hình việc làm"
+      - "khảo sát nhu cầu"
+    medium:
+      - "khảo sát"
+      - "điều tra"
+      - "lấy ý kiến sinh viên"
+    weak: ["ý kiến sinh viên", "phản hồi sinh viên"]
+    negative:
+      - "khảo sát thực địa"
+      - "khảo sát địa chất"
+      - "khảo sát hiện trường"
+      - "đánh giá môn học"
+    note: "Tránh từ chung như 'form', 'đăng ký' (gần như bài nào cũng có)."
+
+  # ============================ C3 — CT-XH, VH-VN, TDTT =======================
+  C3.cuoc_thi_ct_vhvn_tdtt:
+    decisive: ["tư tưởng hồ chí minh"]
+    strong:
+      - "mác lênin"
+      - "mác-lênin"
+      - "lịch sử đảng"
+      - "lịch sử việt nam"
+      - "hội thi"
+      - "hội diễn"
+      - "liên hoan văn nghệ"
+      - "hội khỏe"
+      - "giải bóng đá"
+      - "giải bóng chuyền"
+      - "giải bóng rổ"
+      - "giải cầu lông"
+      - "giải cờ vua"
+      - "giải cờ"
+      - "giải thể thao"
+      - "đại hội thể dục thể thao"
+      - "thi đấu thể thao"
+      - "tiếng hát sinh viên"
+      - "tài năng sinh viên"
+      - "sinh viên thanh lịch"
+    medium:
+      - "cuộc thi hát"
+      - "cuộc thi nhảy"
+      - "cuộc thi nhiếp ảnh"
+      - "cuộc thi vẽ"
+      - "cuộc thi viết"
+      - "chung kết"
+      - "tìm hiểu về chính trị"
+      - "tìm hiểu về văn hóa"
+    weak: ["văn nghệ", "thể thao", "văn hóa", "cuộc thi", "đăng ký đội"]
+    negative: ["cổ vũ"]
+    note: "Mục 3.1 là CUỘC THI. 'văn nghệ' đơn lẻ chỉ weak: dự đêm nhạc/chương trình giải trí không được cộng điểm."
+
+  C3.chung_nhan_the_luc:
+    decisive: ["thanh niên khỏe"]
+    strong:
+      - "giải chạy"
+      - "chạy bộ"
+      - "fun run"
+      - "marathon"
+      - "thử thách sức khỏe"
+      - "ngày hội thể dục thể thao"
+      - "sức khỏe thể chất"
+    medium: ["ngày chạy olympic", "danh hiệu sức khỏe", "chạy vì", "ngày hội thể thao"]
+    weak: ["sức khỏe"]
+    note: "Quy chế nêu rõ 'giải chạy bộ, thử thách sức khỏe, Thanh niên khỏe'. Cần giấy chứng nhận danh hiệu."
+
+  C3.huy_dong_luc_luong:
+    strong:
+      - "huy động lực lượng"
+      - "huy động sinh viên"
+      - "lực lượng hỗ trợ"
+      - "kêu gọi sinh viên hỗ trợ"
+      - "hỗ trợ lễ khai giảng"
+      - "hỗ trợ lễ tốt nghiệp"
+    medium:
+      - "hỗ trợ công tác tổ chức"
+      - "phục vụ lễ"
+      - "hỗ trợ ngày hội"
+      - "đón tiếp tân sinh viên"
+      - "lực lượng sinh viên"
+    weak: ["hỗ trợ"]
+    note: "Hỗ trợ sự kiện của Trường/Khoa (không phải tình nguyện vì cộng đồng) → mục 3.3."
+
+  C3.hoat_dong_cap_lop:
+    strong:
+      - "sinh hoạt lớp"
+      - "họp lớp"
+      - "hoạt động lớp"
+      - "hoạt động của lớp"
+      - "chi đoàn"
+      - "chi hội"
+      - "ban cán sự lớp"
+      - "bcs lớp"
+    medium: ["tập thể lớp", "lớp trưởng", "gặp mặt lớp", "team building lớp", "liên hoan lớp"]
+    negative: ["lớp học", "lớp tập huấn", "lớp kỹ năng"]
+    note: "Cần xác nhận của BCS lớp/BCH Chi đoàn, Chi hội."
+
+  C3.doi_tuyen_cap_truong:
+    strong:
+      - "đội tuyển"
+      - "tuyển chọn đội tuyển"
+      - "tuyển thành viên đội tuyển"
+      - "đội tuyển trường"
+      - "đại diện trường tham dự"
+      - "đại diện trường tham gia"
+      - "tuyển đội tuyển"
+    medium: ["tuyển chọn thí sinh đại diện", "vòng tuyển chọn đội", "thi tuyển đội"]
+    weak: ["đại diện trường"]
+
+  C3.tu_van_tuyen_sinh_viec_lam:
+    decisive: ["ngày hội việc làm", "tư vấn tuyển sinh", "job fair"]
+    strong:
+      - "ngày hội tuyển sinh"
+      - "ngày hội hướng nghiệp"
+      - "ngày hội tư vấn"
+      - "open day"
+      - "career fair"
+    medium: ["ngày hội doanh nghiệp", "ngày hội nghề nghiệp"]
+    weak: ["tuyển sinh", "việc làm", "kết nối doanh nghiệp"]
+    negative: ["tuyển dụng nhân viên", "tuyển dụng part-time"]
+    note: "Phân biệt với 1.9: 'tư vấn hướng nghiệp' dạng buổi nói chuyện → C1.sinh_hoat_hoc_thuat."
+
+  C3.tim_hieu_lich_su_truong:
+    strong:
+      - "lịch sử phát triển nhà trường"
+      - "lịch sử hình thành"
+      - "truyền thống nhà trường"
+      - "truyền thống của trường"
+      - "tìm hiểu về hội sinh viên"
+      - "tìm hiểu về đoàn thanh niên"
+      - "tìm hiểu về đhqg"
+      - "tìm hiểu về trường"
+      - "tìm hiểu lịch sử trường"
+    medium: ["ngày truyền thống", "kỷ niệm ngày thành lập", "tìm hiểu về đại học quốc gia"]
+    weak: ["truyền thống"]
+    combos:
+      - {all: ["tìm hiểu", "lịch sử", "nhà trường"], weight: strong}
+      - {all: ["tìm hiểu", "lịch sử", "trường"], weight: medium}
+    note: "Phân biệt với 3.1: 'lịch sử Đảng/Việt Nam' → 3.1; lịch sử Trường/Đoàn/Hội/ĐHQG → 3.9."
+
+  C3.gop_y_van_ban:
+    strong:
+      - "góp ý dự thảo"
+      - "góp ý văn bản"
+      - "lấy ý kiến dự thảo"
+      - "dự thảo quy chế"
+      - "đối thoại với"
+      - "sinh viên đối thoại"
+      - "gặp gỡ đối thoại"
+      - "diễn đàn đối thoại"
+      - "đối thoại giữa sinh viên"
+    medium: ["gặp gỡ ban giám hiệu", "đối thoại ban giám hiệu", "dự thảo", "đối thoại"]
+    weak: ["góp ý"]
+    combos:
+      - {all: ["lấy ý kiến", "dự thảo"], weight: strong}
+      - {all: ["lấy ý kiến", "quy chế"], weight: strong}
+      - {all: ["lấy ý kiến", "văn bản"], weight: strong}
+      - {all: ["góp ý", "quy chế"], weight: strong}
+
+  C3.san_pham_truyen_thong:
+    strong:
+      - "quảng bá hình ảnh"
+      - "dự án truyền thông"
+      - "sản phẩm truyền thông"
+      - "video giới thiệu trường"
+      - "cuộc thi video"
+      - "cuộc thi làm video"
+      - "cuộc thi ảnh về trường"
+    medium: ["sáng tạo nội dung", "phim ngắn", "clip giới thiệu", "tiktok"]
+    weak: ["truyền thông"]
+    combos:
+      - {all: ["quảng bá", "trường"], weight: strong}
+
+  C3.dai_bieu_duoc_tuyen_chon:
+    strong:
+      - "đại biểu chính thức"
+      - "tuyển chọn đại biểu"
+      - "cử đại biểu"
+      - "trao đổi sinh viên"
+      - "student exchange"
+      - "chương trình trao đổi"
+    medium: ["giao lưu văn hóa", "giao lưu sinh viên quốc tế", "đại biểu tham dự", "được cử đi"]
+    combos:
+      - {all: ["tuyển chọn", "giao lưu"], weight: strong}
+      - {all: ["tuyển chọn", "quốc tế"], weight: medium}
+    note: "Phân biệt với 3.13: được Trường/ĐHQG TUYỂN CHỌN/CỬ đi → 3.12; tự nộp hồ sơ ứng tuyển → 3.13."
+
+  C3.dai_bieu_tu_ung_tuyen:
+    strong:
+      - "hội thảo quốc tế"
+      - "international conference"
+      - "summer school"
+      - "winter school"
+      - "tự ứng tuyển"
+      - "ứng tuyển cá nhân"
+    medium: ["exchange program", "ứng tuyển", "apply", "chương trình quốc tế"]
+    combos:
+      - {all: ["quốc tế", "ứng tuyển"], weight: strong}
+      - {all: ["quốc tế", "đăng ký cá nhân"], weight: strong}
+      - {all: ["quốc tế", "nộp hồ sơ"], weight: medium}
+
+  # ============================ C4 — CỘNG ĐỒNG ================================
+  C4.hien_mau:
+    decisive: ["hiến máu", "giọt hồng", "chủ nhật đỏ", "hành trình đỏ", "blood donation"]
+    strong: ["hiến máu nhân đạo", "ngày hội hiến máu", "hiến máu tình nguyện"]
+    note: "Cần giấy chứng nhận hiến máu."
+
+  C4.tinh_nguyen:
+    decisive: ["mùa hè xanh", "xuân tình nguyện", "tiếp sức mùa thi", "tiếp sức đến trường"]
+    strong:
+      - "tình nguyện"
+      - "tình nguyện viên"
+      - "tnv"
+      - "thiện nguyện"
+      - "chiến dịch tình nguyện"
+      - "hoạt động cộng đồng"
+      - "vì cộng đồng"
+      - "dọn vệ sinh"
+      - "làm sạch môi trường"
+      - "nhặt rác"
+      - "trồng cây"
+      - "dạy học tình nguyện"
+      - "xuân yêu thương"
+      - "tết yêu thương"
+      - "mang tết đến"
+      - "chủ nhật xanh"
+    medium: ["trung thu cho em", "bảo vệ môi trường", "hành trình xanh", "chiến sĩ mùa hè xanh", "vùng cao", "trẻ em có hoàn cảnh khó khăn"]
+    weak: ["cộng đồng", "môi trường"]
+    note: "Cần thời lượng (dưới 24 giờ / 24 giờ–dưới 1 tuần / từ 1 tuần) để tính điểm — xem attributes.duration."
+
+  C4.quyen_gop:
+    strong:
+      - "quyên góp"
+      - "gây quỹ"
+      - "ủng hộ đồng bào"
+      - "thùng quyên góp"
+      - "kêu gọi ủng hộ"
+      - "từ thiện"
+      - "cứu trợ"
+      - "ủng hộ miền trung"
+      - "ủng hộ lũ lụt"
+      - "quyên góp sách"
+      - "góp sách"
+    medium: ["gây quỹ từ thiện", "áo ấm cho em", "kêu gọi đóng góp", "quỹ vì"]
+    weak: ["ủng hộ", "tặng quà"]
+
+  C4.tuyen_truyen_phap_luat:
+    decisive: ["hiến pháp", "phòng chống ma túy"]
+    strong:
+      - "tìm hiểu pháp luật"
+      - "tuyên truyền pháp luật"
+      - "pháp luật"
+      - "phòng chống tệ nạn"
+      - "đẩy lùi tệ nạn"
+      - "phòng chống dịch"
+      - "phòng chống covid"
+      - "phòng chống tội phạm"
+      - "phòng chống tham nhũng"
+      - "an toàn giao thông"
+      - "an ninh mạng"
+      - "ngày pháp luật"
+    medium:
+      - "tín dụng đen"
+      - "lừa đảo trực tuyến"
+      - "phòng chống hiv"
+      - "tệ nạn xã hội"
+      - "ma túy"
+      - "cờ bạc"
+      - "phòng chống bạo lực"
+    weak: ["tuyên truyền"]
+
+  # ============================ ĐIỂM TRỪ / BẮT BUỘC ===========================
+  P.sinh_hoat_cong_dan:
+    decisive: ["sinh hoạt công dân", "shcd"]
+    strong: ["tuần sinh hoạt công dân", "sinh hoạt công dân đầu khóa", "sinh hoạt công dân cuối khóa"]
+    medium: ["bài thu hoạch", "học tập nội quy", "tuần lễ đầu khóa", "tuần sinh hoạt đầu khóa"]
+    note: "Quy chế không cộng điểm; bỏ lỡ bị trừ 10–20 điểm → xử lý như sự kiện BẮT BUỘC (nhắc nhở), không phải đề xuất kiếm điểm."
+
+  # ============================ KHÔNG TÍNH ĐIỂM ===============================
+  NONE:
+    decisive: ["không tính điểm rèn luyện", "không được cộng điểm rèn luyện", "khuyến mãi"]
+    strong:
+      - "giảm giá"
+      - "mua 1 tặng 1"
+      - "voucher"
+      - "bán vé"
+      - "giá vé"
+      - "tiệc"
+      - "party"
+      - "cho thuê"
+      - "sang nhượng"
+      - "pass đồ"
+      - "tìm trọ"
+      - "tuyển dụng nhân viên"
+      - "fan meeting"
+    medium:
+      - "đêm nhạc"
+      - "concert"
+      - "minigame"
+      - "xem phim"
+      - "du lịch"
+      - "picnic"
+      - "liên hoan"
+      - "cổ vũ"
+      - "trà sữa"
+    weak: ["quảng cáo", "ưu đãi", "miễn phí vé"]
+    note: "Đêm nhạc/giao lưu giải trí: quy chế không có mục cộng điểm → NONE hoặc hỏi lại, KHÔNG gán C3."
+
+# -----------------------------------------------------------------------------
+# ĐIỀU CHỈNH CHÉO GIỮA CÁC NHÃN (ưu tiên giải quyết các cặp dễ nhầm)
+# if_any: có ít nhất 1 cụm | if_all: có đủ | if_none: không có cụm nào
+# -----------------------------------------------------------------------------
+adjust_rules:
+  - id: A1
+    why: "Hiến máu tình nguyện là mục riêng (4.2), không tính là tình nguyện viên chung (4.3)"
+    if_any: ["hiến máu", "giọt hồng"]
+    if_none: ["tình nguyện viên", "tnv"]
+    label: C4.tinh_nguyen
+    delta: -3.0
+  - id: A2
+    why: "Tình nguyện viên hỗ trợ hội thảo/workshop học thuật không phải tình nguyện vì cộng đồng (giới hạn: bài không dấu 'hoi thao' có thể là hội thao thể thao)"
+    if_any: ["hội thảo", "workshop", "seminar", "tọa đàm", "talkshow", "hội nghị"]
+    if_any_2: ["tình nguyện viên", "tnv", "cộng tác viên", "ctv"]
+    label: C4.tinh_nguyen
+    delta: -4.0
+  - id: A3
+    why: "Phục vụ lễ/ngày hội của Trường → 3.3 thay vì 4.3"
+    if_any: ["lễ khai giảng", "lễ tốt nghiệp", "ngày hội việc làm", "tư vấn tuyển sinh", "open day"]
+    if_any_2: ["tình nguyện viên", "tnv", "cộng tác viên", "ctv"]
+    label: C4.tinh_nguyen
+    delta: -3.0
+  - id: A4
+    why: "Bài nhắc tới điểm rèn luyện thì ít khả năng là NONE"
+    if_any: ["điểm rèn luyện", "đrl", "cộng điểm rl", "điểm rl"]
+    label: NONE
+    delta: -4.0
+  - id: A5
+    why: "Lịch sử Đảng/Việt Nam → 3.1; lịch sử Trường/Đoàn/Hội → 3.9"
+    if_any: ["lịch sử phát triển nhà trường", "truyền thống nhà trường", "lịch sử hình thành"]
+    label: C3.cuoc_thi_ct_vhvn_tdtt
+    delta: -3.0
+  - id: A6
+    why: "Hội thảo khoa học dạng đăng ký đề tài NCKH không phải sinh hoạt hội thảo"
+    if_any: ["đăng ký đề tài", "đề tài nckh", "cuộc thi nghiên cứu khoa học"]
+    label: C1.sinh_hoat_hoc_thuat
+    delta: -2.0
+  - id: A7
+    why: "Cuộc thi tìm hiểu Hiến pháp/pháp luật thuộc 4.6, không thuộc 3.1"
+    if_any: ["hiến pháp", "pháp luật"]
+    label: C3.cuoc_thi_ct_vhvn_tdtt
+    delta: -2.0
+  - id: A8
+    why: "Quảng cáo thương mại kèm khóa học/kỹ năng: không phải sinh hoạt học thuật của Trường"
+    if_any: ["khuyến mãi", "giảm giá", "học phí ưu đãi", "đăng ký ngay để nhận ưu đãi"]
+    label: C1.sinh_hoat_hoc_thuat
+    delta: -4.0
+  - id: A9
+    why: "Giải chạy gây quỹ: chủ yếu 3.2 nhưng cũng liên quan 4.5 — giữ cả hai trong top-2 (xem confusable_pairs)"
+    if_all: ["chạy", "gây quỹ"]
+    label: C3.chung_nhan_the_luc
+    delta: 1.5
+
+# -----------------------------------------------------------------------------
+# TỪ ĐỒNG ÂM KHI BỎ DẤU — phải xử lý riêng, nếu không sẽ nhầm nhãn
+#   "hội thảo" (seminar → C1.1.9) và "hội thao" (sports meet → C3.3.1) đều thành "hoi thao".
+# Cách làm:
+#   * Bài CÓ dấu: so khớp theo dạng có dấu → chọn đúng biến thể.
+#   * Bài KHÔNG dấu: dựa vào từ ngữ cảnh (context_any); không có ngữ cảnh → cộng điểm cho
+#     CẢ HAI biến thể để hai nhãn gần nhau và bài được đánh dấu "review".
+# -----------------------------------------------------------------------------
+homographs:
+  - stripped: "hội thao"
+    weight: strong
+    variants:
+      - text: "hội thảo"
+        label: C1.sinh_hoat_hoc_thuat
+        context_any: ["khoa học", "chuyên đề", "báo cáo", "diễn giả", "seminar", "workshop", "công nghệ", "ai", "nghiên cứu", "kỹ năng"]
+      - text: "hội thao"
+        label: C3.cuoc_thi_ct_vhvn_tdtt
+        context_any: ["thể thao", "bóng", "giải", "cup", "thi đấu", "vận động viên", "chạy", "cờ", "đội"]
+
+# -----------------------------------------------------------------------------
+# TIÊN NGHIỆM THEO ĐƠN VỊ TỔ CHỨC (regex trên tên đơn vị đã chuẩn hóa)
+# Chỉ cộng nhẹ; không bao giờ đủ để một mình quyết định nhãn.
+# -----------------------------------------------------------------------------
+organizer_priors:
+  - match: ["phong cong tac sinh vien", "(^| )ctsv( |$)"]
+    boosts: {C2.khao_sat_dieu_tra: 0.5, P.sinh_hoat_cong_dan: 0.5, C2.danh_gia_mon_hoc: 0.3}
+  - match: ["doan truong", "doan thanh nien", "thanh doan"]
+    boosts: {C4.tinh_nguyen: 0.5, C3.cuoc_thi_ct_vhvn_tdtt: 0.5, C4.tuyen_truyen_phap_luat: 0.3}
+  - match: ["hoi sinh vien"]
+    boosts: {C4.tinh_nguyen: 0.5, C3.cuoc_thi_ct_vhvn_tdtt: 0.5, C4.quyen_gop: 0.3}
+  - match: ["lien chi hoi", "lien chi doan"]
+    boosts: {C3.cuoc_thi_ct_vhvn_tdtt: 0.3, C4.tinh_nguyen: 0.3, C3.hoat_dong_cap_lop: 0.3}
+  - match: ["chi doan", "chi hoi", "ban can su lop"]
+    boosts: {C3.hoat_dong_cap_lop: 1.0}
+  - match: ["(^| )khoa (?!hoc )", "bo mon", "clb hoc thuat", "cau lac bo hoc thuat"]
+    boosts: {C1.sinh_hoat_hoc_thuat: 0.5, C1.cuoc_thi_hoc_thuat: 0.5, C1.de_tai_nckh: 0.3}
+  - match: ["phong dao tao", "phong khao thi"]
+    boosts: {C2.danh_gia_mon_hoc: 0.5}
+  - match: ["quan he doanh nghiep"]
+    boosts: {C3.tu_van_tuyen_sinh_viec_lam: 0.5, C1.sinh_hoat_hoc_thuat: 0.3}
+
+# -----------------------------------------------------------------------------
+# CẶP NHÃN DỄ NHẦM — khi cả hai đều có tín hiệu, hạ trạng thái xuống "review"
+# và đưa cả hai vào top-2 để người dùng/tầng 2 quyết định
+# -----------------------------------------------------------------------------
+confusable_pairs:
+  - [C3.chung_nhan_the_luc, C4.quyen_gop, "Giải chạy gây quỹ từ thiện: 3.2 hay 4.5"]
+  - [C4.tinh_nguyen, C4.hien_mau, "Chương trình tình nguyện có hiến máu"]
+  - [C1.sinh_hoat_hoc_thuat, C1.de_tai_nckh, "Hội thảo NCKH sinh viên"]
+  - [C1.cuoc_thi_hoc_thuat, C3.cuoc_thi_ct_vhvn_tdtt, "Cuộc thi chung chung"]
+  - [C3.dai_bieu_duoc_tuyen_chon, C3.dai_bieu_tu_ung_tuyen, "Chương trình quốc tế: được cử hay tự ứng tuyển"]
+  - [C3.huy_dong_luc_luong, C4.tinh_nguyen, "Hỗ trợ sự kiện: huy động lực lượng hay tình nguyện"]
+  - [C3.san_pham_truyen_thong, C3.cuoc_thi_ct_vhvn_tdtt, "Cuộc thi video/ảnh"]
+  - [C2.khao_sat_dieu_tra, C3.gop_y_van_ban, "Lấy ý kiến sinh viên"]
+
+# -----------------------------------------------------------------------------
+# THUỘC TÍNH SUY RA (không phải nhãn): cấp tổ chức, vai trò, thời lượng, điểm công bố
+# Trích tường minh là việc của Module 2; phần này là dự phòng khi M2 để trống.
+# Cấp trả về dạng mịn; đổi sang bucket điểm (lop / khoa / truong_tro_len) theo
+# rubric.yaml → level_buckets.
+# -----------------------------------------------------------------------------
+attributes:
+  level:
+    # Kiểm tra từ cao xuống thấp; chỉ dùng cụm CÓ "cấp"/phạm vi rõ ràng để tránh nhầm
+    # (tên trường "ĐH KHTN, ĐHQG-HCM" xuất hiện ở hầu hết bài nên KHÔNG dùng làm tín hiệu).
+    quoc_te: ["quốc tế", "international", "asean", "toàn cầu"]
+    quoc_gia: ["toàn quốc", "cấp quốc gia", "trung ương"]
+    thanh_pho: ["cấp thành phố", "cấp thành", "thành đoàn", "hội sinh viên thành phố", "toàn thành"]
+    dhqg: ["cấp đhqg", "cấp đại học quốc gia", "đoàn đhqg", "hội sinh viên đhqg", "liên trường"]
+    truong: ["cấp trường", "toàn trường", "đoàn trường", "hội sinh viên trường", "toàn thể sinh viên trường"]
+    khoa: ["cấp khoa", "toàn khoa", "liên chi đoàn", "liên chi hội", "khoa tổ chức", "sinh viên khoa"]
+    lop: ["cấp lớp", "chi đoàn", "chi hội", "ban cán sự lớp", "sinh hoạt lớp", "tập thể lớp"]
+  role:
+    organizer: ["ban tổ chức", "btc", "tuyển ban tổ chức", "thành viên ban tổ chức"]
+    collaborator: ["cộng tác viên", "ctv"]
+    volunteer: ["tình nguyện viên", "tnv"]
+  # Dùng cụm cụ thể: "tuyển" bỏ dấu thành "tuyen" trùng "tuyên (truyền)".
+  recruitment_cues: ["tuyển thành viên", "tuyển ban tổ chức", "tuyển cộng tác viên", "tuyển ctv", "tuyển btc",
+                     "tuyển tình nguyện viên", "tuyển tnv", "chiêu mộ", "mở đơn", "đăng ký làm"]
+  duration:
+    # Dùng cho mục 4.3 (tình nguyện) — chỉ là GỢI Ý, giờ làm việc thực tế do M2/người dùng xác nhận
+    unit_patterns: ["(\\d+)\\s*(gio|ngay|tuan|thang)"]
+    rules:
+      - {unit: [tuan, thang], result: ge_1w}
+      - {unit: ngay, ge: 7, result: ge_1w}
+      - {unit: ngay, ge: 2, lt: 7, result: ambiguous_lt_24h_or_mid}
+      - {unit: ngay, eq: 1, result: lt_24h}
+      - {unit: gio, result: lt_24h}
+    priors:
+      - {phrase: "mùa hè xanh", result: ge_1w, confidence: low}
+  explicit_points:
+    # Dự phòng cho M2: bắt cụm công bố điểm rèn luyện (đã chuẩn hóa không dấu)
+    cong_diem: "cong\\s+(\\d+)\\s+diem\\s+(?:ren\\s+luyen|rl|drl)"
+    so_diem: "(\\d+)\\s+diem\\s+ren\\s+luyen"
+    nhac_den_drl: ["diem ren luyen", "drl", "diem rl"]
+    phu_dinh: "khong\\s+(?:duoc\\s+)?(?:tinh|cong)\\s+diem\\s+ren\\s+luyen"

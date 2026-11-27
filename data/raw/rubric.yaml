@@ -1,0 +1,2285 @@
+# =============================================================================
+# rubric.yaml — Khung điểm rèn luyện (ĐRL) dạng cấu hình cho Module 3 (và M6)
+# Nguồn quy chế nền: Quy chế đánh giá kết quả rèn luyện sinh viên hệ chính quy,
+#        Trường ĐH Khoa học Tự nhiên, ĐHQG-HCM — QĐ 1028/QĐ-KHTN-CTSV ngày
+#        04/9/2020 (Điều 1–12 + Phụ lục "Khung điểm chi tiết", đã hết hiệu lực,
+#        dùng làm khung tham chiếu MVP).
+# Nguồn dữ liệu thực tế: res/events_full.csv (153 dòng đã gán nhãn năm học 2025–26).
+#
+# CÁCH ĐỌC FILE NÀY
+#   scoring        Quy tắc tính tổng (trần 100, trần theo nhóm, điểm trừ)
+#   groups         5 nhóm cộng điểm (C1–C5) + nhóm điểm trừ (P)
+#   tieu_chi       13 tiêu chí của quy chế (TC1–TC13), mỗi tiêu chí thuộc 1 nhóm
+#   levels/roles   Từ vựng chuẩn cho "cấp tổ chức" và "vai trò"
+#   items          Từng dòng của Phụ lục = 1 mục (item). Trường của mỗi item:
+#     ref            số mục trong Phụ lục (để truy vết, vd "4.2")
+#     group, tieu_chi  nhóm C1–C5/P và tiêu chí
+#     kind           event | task | mandatory_event | membership | compliance |
+#                    record | status | achievement | special_circumstance |
+#                    penalty (điểm trừ) |
+#                    role_variant (cách tính cho BTC/CTV của các mục khác)
+#     event_matchable  true = bài đăng/thông báo sự kiện có thể gắn nhãn trực tiếp;
+#                    false = mục hồ sơ/tuân thủ/thành tích/tư cách thành viên/điểm trừ
+#                    hoặc role_variant (cần tách phân loại hoạt động khỏi xác nhận vai trò)
+#     variant_by     biến chọn dòng điểm: none | level | duration | award_tier |
+#                    outcome | band
+#     points         {vai_trò: {biến_thể: điểm}}  (điểm trừ là số âm)
+#     bands          bảng khoảng giá trị (cho item kind=record)
+#     unit           flat | per_semester | per_activity | per_round (đợt) |
+#                    per_item (đề tài/bài/dự án/giải) | per_occurrence (lần)
+#     repeatable     true/false; null = quy chế không nói rõ
+#     role_items     vai trò → item dùng để tính điểm khi sinh viên là BTC/CTV
+#     role_alias     vai trò suy ra được → vai trò có trong bảng điểm
+#     requires_role_context  true ở role_variant: tránh khớp nhầm theo tiêu đề với mục gốc
+#     evidence       minh chứng/xác nhận mà quy chế nêu (cho Module 7)
+#     tier           1–5: khả năng của hệ thống với mục này (xem `capabilities.tiers`)
+#     mvp_scope      recommend | recommend_apply | assumed_default | remind | track_later | out_of_scope
+#     verification   none = hiện chưa có cách xác nhận (xem `capabilities.verification`)
+#     default_assumption  chỉ có ở mục tuân thủ: mặc định coi là đạt, sinh viên có thể tắt
+#     school_data    thống kê đầy đủ từ events_full.csv (rows, support, csv_rows, organizers, roles_seen, evidence_examples)
+#     uncertain      các điểm CHƯA CHẮC (thiếu dữ liệu, mâu thuẫn giữa CSV 2025–26 và QĐ 1028/2020…)
+#     scope_note     phạm vi thực tế của mục theo dữ liệu trường và quy chế
+#     inclusion_rules / exclusion_rules / confusable_with  quy tắc biên phân loại cho kNN & prototype ngữ nghĩa
+#     cap_points     trần điểm của mục (nếu trường ghi thấp hơn bảng điểm)
+#     conditions     điều kiện kèm theo (chuỗi văn bản)
+#     exclusive_with các item không được cộng đồng thời / chỉ tính mức cao nhất
+#     anchors_status verified_from_school_list | verified_partial | draft
+#     anchors, keywords  dữ liệu prototype/từ khóa cho phân loại (tách riêng verified_anchors / draft_anchors khi partial)
+#   meta_labels    nhãn đặc biệt cho bộ phân loại: NONE (aliases: [NO_MATCH]) và NEEDS_REVIEW
+#   global_rules   Quy tắc ở Điều 7–9 (xếp loại, hạn chế do kỷ luật, cộng toàn khóa)
+#
+# LƯU Ý TRUNG THỰC
+#   * Không tự bịa ví dụ sự kiện, không sửa âm thầm nhãn đã kiểm chứng (kể cả 3.7),
+#     không thay đổi quy tắc tính điểm của quy chế hay khẳng định QĐ 2020 còn hiệu lực.
+#   * Phân loại một bài đăng vào một mục KHÔNG đồng nghĩa chứng minh sinh viên đã
+#     tham gia, giữ vai trò tương ứng, hay đủ điều kiện nhận điểm.
+#   * Mọi dữ liệu chưa kiểm chứng đều giữ nguyên ở `uncertain`, `anchors_status: draft`,
+#     và `open_questions`.
+# =============================================================================
+
+meta:
+  version: "khtn-2025-26-verified-v5-mvp"
+  school: "Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM"
+  source_document: "Quy chế đánh giá kết quả rèn luyện sinh viên hệ chính quy — QĐ 1028/QĐ-KHTN-CTSV ngày 04/9/2020"
+  source_file: "res/drl2025.md"
+  applies_to: "Sinh viên đại học, cao đẳng hệ chính quy"
+  status: "mvp — đã tinh chỉnh ranh giới tiêu chí, truy vết anchors/evidence theo events_full.csv (153 dòng, 26/51 mục), bổ sung NEEDS_REVIEW & tách phân loại khỏi xác nhận vai trò/tính điểm; còn điểm chưa chắc ở open_questions"
+  data_source:
+    baseline_rubric: "rubric(5).yaml (khtn-2025-26-verified-v4-mvp)"
+    school_verified_list: "res/events_full.csv (153 dòng, 26/51 mã mục có dữ liệu, năm học 2025–26)"
+    precedence: "Khi mâu thuẫn, dữ liệu quan sát trong events_full.csv được ghi nhận ưu tiên về mặt phạm vi thực tế, nhưng không tự ý xóa quy tắc điểm của QĐ 1028/2020 khi chưa có xác nhận chính thức từ CTSV."
+  validity:
+    state: expired
+    used_for: "MVP đồ án Computational Thinking"
+    note: "QĐ 1028/QĐ-KHTN-CTSV (2020) đã hết hiệu lực nhưng được dùng làm khung điểm cho MVP. Khi áp dụng thật phải đối chiếu với quy chế đang hiệu lực."
+  language: vi
+
+# -----------------------------------------------------------------------------
+# QUY TẮC TÍNH TỔNG (Điều 4, Điều 6)
+# -----------------------------------------------------------------------------
+scoring:
+  period: hoc_ky_chinh              # mỗi đợt đánh giá = 1 học kỳ chính (Điều 4.5)
+  period_note: "Chương trình đại trà: không tính học kỳ hè. Chương trình theo đề án: 3 học kỳ/năm học."
+  total_max: 100
+  group_max_sum: 130                # 30+20+25+25+30 > 100 → áp quy tắc quy về 100
+  overflow_rule: "Tổng điểm các nội dung > 100 thì quy về 100 (Điều 4.4)"
+  caps_level: group_only            # quy chế chỉ có trần theo NHÓM; không có trần theo từng mục/tiêu chí
+  penalties_unlimited: true         # điểm trừ không giới hạn (Điều 4.2.f)
+  floor: 0                          # điểm học kỳ thấp nhất là 0 (người dùng xác nhận — Q2)
+  formula: >
+    raw = Σ_nhóm C1..C5 min(Σ điểm cộng của nhóm, max_nhóm) + Σ điểm trừ (số âm);
+    điểm_học_kỳ = clamp(raw, 0, 100)
+  formula_status: "confirmed — áp trần từng nhóm trước rồi mới trừ điểm; điểm trừ không giới hạn; sàn 0, trần 100 (Q2, Q3)"
+  repeat_rule: >
+    Mỗi hoạt động được cộng 1 lần; một mục có thể có nhiều hoạt động, tổng điểm bị chặn bởi trần
+    của nhóm lớn (Q5). Áp dụng cả cho các mục quy chế không ghi đơn vị (3.2, 3.4, 3.6, 4.2, 5.3).
+  display_policy: "MVP chỉ hiển thị điểm 'dự kiến' kèm nhãn 'Ước tính — chưa xác nhận'; không trình bày như điểm chính thức"
+  aggregation:
+    nam_hoc: "trung bình cộng điểm các học kỳ chính có đánh giá trong năm học (Điều 6.2)"
+    toan_khoa: "trung bình cộng điểm các học kỳ chính có đánh giá của khóa học (Điều 6.3)"
+
+# -----------------------------------------------------------------------------
+# KHẢ NĂNG CỦA HỆ THỐNG VỚI TỪNG MỤC (MVP thu thập sự kiện từ nhiều nguồn, CHƯA có xác nhận điểm)
+# -----------------------------------------------------------------------------
+capabilities:
+  sources_in_scope: ["fanpage khoa/Đoàn/Hội", "email sinh viên (Gmail/Outlook) từ đơn vị chính thức"]
+  privacy_note: "Chỉ xử lý thư/bài đăng chính thức của trường/đơn vị và khi sinh viên đồng ý rõ ràng; không đọc thư cá nhân."
+  classification_boundary:
+    activity_vs_participation: "Phân loại (P2) chỉ gán nhãn loại hoạt động/mục tiêu chí cho văn bản sự kiện; KHÔNG chứng minh cá nhân sinh viên đã tham gia hoặc hoàn thành điều kiện (hoàn tất vòng 1, thời lượng, >50% môn...)."
+    activity_vs_role_and_credit: "Vai trò cá nhân (BTC/CTV/TNV/Huy động lực lượng) và điều kiện tính điểm/trần nhóm do xác nhận riêng (Module 7) và bộ máy tính điểm tất định (Module 6) quyết định (quyết định D-3)."
+  tiers:
+    1: {name: "Tìm thấy, đề xuất, ước tính điểm", note: "Bài đăng chính là sự kiện; tham gia đủ điều kiện mới được điểm. Lõi của MVP."}
+    2: {name: "Tìm thấy lời kêu gọi, điểm phụ thuộc kết quả", note: "Gợi ý 'có thể ứng tuyển'; điểm chỉ có khi được chọn/hoàn tất (points_condition)."}
+    3: {name: "Thành tích — biết sau khi sự việc xảy ra", note: "Không đề xuất được; chờ chức năng tự khai báo sau MVP."}
+    4: {name: "Hồ sơ, trạng thái, tuân thủ", note: "Dữ liệu nằm ở hồ sơ học tập/Đoàn–Hội/CTSV; MVP dùng giả định mặc định hoặc bỏ qua."}
+    5: {name: "Hoàn cảnh đặc biệt, nhạy cảm", note: "Ngoài phạm vi: không hỏi, không suy đoán, không lưu."}
+  mvp_scope:
+    recommend: "Phân loại, ước tính điểm dự kiến và đề xuất đầy đủ"
+    recommend_apply: "Đề xuất dạng 'ứng tuyển/đăng ký'; điểm hiển thị kèm điều kiện 'nếu được chọn/hoàn tất'"
+    assumed_default: "Tính vào điểm nền theo giả định mặc định (sinh viên có thể tắt)"
+    remind: "Không phải đề xuất kiếm điểm; nhắc việc bắt buộc để tránh bị trừ điểm"
+    track_later: "Chưa xử lý ở MVP; sẽ nhận qua chức năng tự khai báo/minh chứng sau MVP"
+    out_of_scope: "Không xử lý"
+  verification:
+    none: "Hiện chưa có cách xác nhận điểm → mọi điểm chỉ là ước tính"
+    planned: "Sau MVP: minh chứng sinh viên tải lên (Module 7) và đối chiếu danh sách do Khoa/Đoàn/Hội cập nhật (Q9)"
+  points_condition:               # dùng cho tier 2
+    selection_or_completion: "Chỉ có điểm khi được chọn/hoàn tất (1.5, 3.6, 3.11, 3.12, 3.13)"
+  ledger:
+    sources:
+      system_detected: "Hệ thống tìm thấy sự kiện mà sinh viên đăng ký/tham gia (chưa xác nhận)"
+      self_reported: "Sinh viên tự khai (chức năng mở rộng sau MVP)"
+      assumed_default: "Giả định mặc định, vd không vi phạm (sinh viên có thể tắt)"
+    status_levels:
+      estimated: "Ước tính — chưa xác nhận"
+      confirmed: "Có minh chứng được xác nhận (ngoài phạm vi MVP)"
+    mvp_display: [estimated]       # MVP chỉ hiển thị điểm 'dự kiến'
+    label_vi: "Ước tính — chưa xác nhận"
+    baseline:
+      assumed_defaults: [C1.khong_vi_pham_quy_che_dao_tao, C2.khong_vi_pham_noi_quy, C3.khong_vi_pham_te_nan, C4.khong_vi_pham_phap_luat]
+      assumed_points_by_group: {C1: 15, C2: 15, C3: 10, C4: 10}   # tổng 50 điểm nền
+      manual_group_baseline: optional   # sinh viên có thể nhập điểm hiện có theo từng nhóm để khoảng thiếu điểm chính xác hơn (vd ĐTB, giải thưởng đã có)
+      note: "Không có điểm nền thì khoảng thiếu điểm bị thổi phồng tới 50 điểm và đề xuất lệch."
+  post_types:                      # phân loại bài đăng/email trước khi phân loại mục
+    call_to_action: {mvp: handled, note: "Bài kêu gọi/đăng ký/thông báo sự kiện → dùng để đề xuất"}
+    result_announcement: {mvp: deferred, note: "Bài kết quả/vinh danh/danh sách ('chúc mừng', 'đạt giải', 'Danh sách tình nguyện viên...', 'Danh sách ban cán sự...') → gợi ý ghi nhận thành tích/trạng thái; để sau cùng chức năng tự khai báo (quan sát trong events_full.csv ở 4.3 [139], 4.7 [147–150], 5.1 [151])"}
+
+# -----------------------------------------------------------------------------
+# NHÓM VÀ TIÊU CHÍ
+# -----------------------------------------------------------------------------
+groups:
+  C1:
+    name: "Tham gia học tập và nghiên cứu khoa học"
+    max: 30
+    tieu_chi: [TC1, TC2, TC3]
+    ref: "Điều 4.2.a, Điều 5.1"
+  C2:
+    name: "Chấp hành nội quy, quy chế và các quy định được áp dụng trong Nhà trường"
+    max: 20
+    tieu_chi: [TC4]
+    ref: "Điều 4.2.b, Điều 5.2"
+  C3:
+    name: "Tham gia các hoạt động chính trị - xã hội, văn hóa - văn nghệ, thể dục - thể thao; phòng chống tội phạm và các tệ nạn xã hội"
+    max: 25
+    tieu_chi: [TC5, TC6, TC7]
+    ref: "Điều 4.2.c, Điều 5.3"
+  C4:
+    name: "Hành động hướng đến xây dựng và phát triển cộng đồng"
+    max: 25
+    tieu_chi: [TC8, TC9, TC10]
+    ref: "Điều 4.2.d, Điều 5.4"
+  C5:
+    name: "Các nội dung khuyến khích"
+    max: 30
+    tieu_chi: [TC11, TC12, TC13]
+    ref: "Điều 4.2.e, Điều 5.5"
+  P:
+    name: "Điểm trừ"
+    max: null                       # không giới hạn
+    sign: negative
+    ref: "Điều 4.2.f, Phụ lục mục 6"
+
+tieu_chi:
+  TC1:  {group: C1, name: "Chấp hành các Quy chế, Quy định liên quan học vụ và khảo thí"}
+  TC2:  {group: C1, name: "Có kết quả học tập tốt và sự tiến bộ của mỗi học kỳ"}
+  TC3:  {group: C1, name: "Sự chủ động tham gia nghiên cứu khoa học và các hoạt động học thuật ngoại khóa"}
+  TC4:  {group: C2, name: "Chấp hành nội quy, quy chế và các quy định được áp dụng trong Nhà trường"}
+  TC5:  {group: C3, name: "Sự chủ động tham gia các hoạt động chính trị - xã hội, văn hóa - văn nghệ, thể dục - thể thao"}
+  TC6:  {group: C3, name: "Tham gia phòng chống tội phạm và các tệ nạn xã hội trong nhà trường và nơi lưu trú"}
+  TC7:  {group: C3, name: "Sự chủ động tham gia xây dựng, đóng góp, quảng bá hình ảnh của Nhà trường và ĐHQG-HCM"}
+  TC8:  {group: C4, name: "Chấp hành pháp luật và các văn bản quy phạm pháp luật"}
+  TC9:  {group: C4, name: "Sự chủ động tham gia các hoạt động tình nguyện, hành động giải quyết vấn đề xã hội, các hoạt động chung của lớp, khoa và Nhà trường"}
+  TC10: {group: C4, name: "Tham gia tuyên truyền các chủ trương của Đảng, chính sách, pháp luật của Nhà nước trong cộng đồng"}
+  TC11: {group: C5, name: "Thành tích xuất sắc trong các kỳ thi, cuộc thi và rèn luyện"}
+  TC12: {group: C5, name: "Có tinh thần vượt khó, phấn đấu vươn lên trong học tập và cuộc sống"}
+  TC13: {group: C5, name: "Các trường hợp có hoàn cảnh đặc biệt"}
+
+# -----------------------------------------------------------------------------
+# TỔNG QUAN DANH SÁCH DO TRƯỜNG KIỂM CHỨNG (res/events_full.csv)
+# -----------------------------------------------------------------------------
+school_data_summary:
+  file: "res/events_full.csv"
+  rows: 153
+  distinct_item_codes: "26 / 51"
+  rows_by_group: {"C1 (mục 1.x)": 61, "C2 (2.x)": 14, "C3 (3.x)": 59, "C4 (4.x)": 16, "C5 (5.x)": 2, "P (6.x)": 1}
+  rows_by_matchability:
+    event_matchable_true: {rows: 127, distinct_codes: "11 / 21", items: {"1.6": 17, "1.9": 33, "2.2": 3, "2.3": 10, "3.1": 7, "3.2": 6, "3.3": 3, "3.5": 37, "3.8": 2, "4.3": 6, "4.5": 3}}
+    event_matchable_false: {rows: 26, distinct_codes: "15 / 30", items: {"1.1": 1, "1.2": 2, "1.3": 1, "1.4": 1, "1.7": 2, "1.8": 4, "2.1": 1, "3.7": 1, "3.14": 3, "4.1": 2, "4.4": 1, "4.7": 4, "5.1": 1, "5.3": 1, "6.1": 1}}
+  support_levels: {"strong (≥10 dòng)": 4, "moderate (3–9)": 9, "weak (1–2)": 13, "none (0)": 25}
+  imbalance:
+    - "Hai mục 1.9 (33 dòng) và 3.5 (37 dòng) chiếm 70/127 dòng sự kiện (55,1%); 1.6 (17) và 2.3 (10) là hai mục lớn tiếp theo."
+    - "13 mục chỉ có 1–2 dòng, 25 mục không có dòng nào."
+  not_covered_refs: ["1.5", "3.4", "3.6", "3.9", "3.10", "3.11", "3.12", "3.13", "4.2", "4.6", "4.8", "5.2", "5.4", "5.5", "5.6", "5.7", "5.8", "5.9", "5.10", "5.11", "6.2", "6.3", "6.4", "6.5", "6.6"]
+  role_split_title_pairs:
+    - {title: "Cuộc thi Coding Challenge", organizer: "ĐK CNTT", participant_row: 18, participant_item: "1.6", organizer_row: 23, organizer_item: "1.7"}
+    - {title: "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025", organizer: "ĐTN", participant_row: 22, participant_item: "1.6", organizer_row: 24, organizer_item: "1.7"}
+    - {title: "Đại hội chi Đoàn", organizer: "ĐK CNTT", participant_row: 113, participant_item: "3.5", organizer_row: 84, organizer_item: "3.14"}
+    - {title: "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026", organizer: "ĐK SH-CNSH", participant_row: 121, participant_item: "3.5", organizer_row: 85, organizer_item: "3.14"}
+    - {title: "Hạ Xanh Hy Vọng", organizer: "ĐK CNTT", participant_row: 141, participant_item: "4.3", organizer_row: 143, organizer_item: "4.4"}
+  near_duplicate_rows:
+    - {item: "1.8", organizer: "LCH CNTT", title: "Thành viên CLB Google Developer Group on Campus - HCMUS", rows: [26, 27], note: "Khác nhau duy nhất ở Vai_Tro: dòng 26 trống, dòng 27 là 'Tham gia'"}
+  caveats:
+    - "Toàn bộ là ví dụ DƯƠNG (đã được tính điểm hoặc điểm trừ 6.1); không có hoạt động bị loại → thiếu ví dụ cho nhãn NONE/NO_MATCH."
+    - "Mỗi dòng là cặp (hoạt động, mục); cùng một hoạt động có thể xuất hiện ở hai mục theo vai trò (5 cặp ở 1.6/1.7, 3.5/3.14, 4.3/4.4)."
+    - "Tên hoạt động ngắn và đã chuẩn hóa, không phải nội dung bài đăng đầy đủ; có dòng là kết quả/danh sách/hồ sơ (1.1–1.4, 2.1, 3.7, 4.1, 4.3 [139], 4.7 [147–150], 5.1 [151], 5.3 [152], 6.1 [153])."
+    - "Khoảng thời gian chỉ suy ra từ tên (HK1/25-26, HK2/25-26, HK3/25-26)."
+    - "Lệch theo đơn vị: CNTT (khoa: 27), LCH CNTT (12) và ĐK CNTT (10) chiếm 49/138 dòng có đơn vị (35,5%) → danh sách nghiêng về khoa Công nghệ thông tin; các khoa khác ít đại diện."
+  keyword_rules_baseline:
+    note: "keyword_rules.yaml (tầng 0) chạy trên 127 dòng sự kiện, chỉ dùng tên + đơn vị: đúng top-1 56 (44%), im lặng 50 (39%), sai 17 (13%); mục 3.5 chỉ đúng 3/37."
+    status: "luật cần cập nhật theo ranh giới đã làm rõ của 3.5, 3.3, 3.1, 1.9, 4.3/4.5 và tiên nghiệm theo đơn vị (xem scope_note, inclusion_rules, exclusion_rules từng mục)"
+
+# -----------------------------------------------------------------------------
+# TỪ VỰNG CHUẨN
+# -----------------------------------------------------------------------------
+levels: [lop, khoa, truong, dhqg, thanh_pho, quoc_gia, quoc_te]   # thấp → cao
+levels_note: "Thứ tự giữa dhqg và thanh_pho chỉ mang tính ước lệ; quy chế không phân biệt hai cấp này. Việc quy đổi mọi cấp từ trường trở lên về 'truong_tro_len' đã được người dùng xác nhận (Q8)."
+
+# Quy chế chỉ phân biệt 3 mức: cấp lớp, cấp khoa, "cấp trường trở lên".
+level_buckets:
+  lop: lop
+  khoa: khoa
+  truong: truong_tro_len
+  dhqg: truong_tro_len
+  thanh_pho: truong_tro_len
+  quoc_gia: truong_tro_len
+  quoc_te: truong_tro_len
+
+roles:
+  participant: "Tham gia / dự thi / dự sự kiện"
+  volunteer: "Tình nguyện viên"
+  organizer: "Thành viên Ban tổ chức (có xác nhận của Thường trực BTC)"
+  collaborator: "Cộng tác viên"
+  self: "Hồ sơ/thành tích cá nhân của sinh viên (không phải sự kiện)"
+  mobilized: "Được huy động lực lượng tham dự (vai trò ghi trong danh sách trường cho mục 3.3) — tính như người tham gia"
+  fundraiser: "Tham gia gây quỹ (vai trò ghi trong danh sách trường cho mục 4.5) — tính như người tham gia"
+role_verification_policy: "Phân loại bài đăng/hoạt động không chứng minh được vai trò cá nhân của sinh viên. Gán vai trò BTC/CTV/TNV/Huy động lực lượng và tính điểm thuộc thẩm quyền xác nhận (Module 7) + bộ tính điểm (Module 6)."
+roles_observed_in_school_list: {"(trống)": 86, "Tham gia": 57, "Ban tổ chức": 6, "Huy động lực lượng": 3, "Gây quỹ": 1}   # vai trò phần lớn bị bỏ trống → không suy ra vai trò cá nhân từ dữ liệu thiếu
+roles_by_item_observed:
+  "Tham gia": {"1.6": 11, "1.8": 1, "1.9": 7, "3.1": 2, "3.2": 5, "3.5": 25, "3.8": 1, "4.3": 4, "4.5": 1}
+  "Ban tổ chức": {"1.7": 2, "3.14": 3, "4.4": 1}
+  "Huy động lực lượng": {"3.3": 3}
+  "Gây quỹ": {"4.5": 1}
+
+# -----------------------------------------------------------------------------
+# ĐƠN VỊ TỔ CHỨC trong danh sách trường (tiên nghiệm phân loại và suy cấp tổ chức)
+# `level` là SUY LUẬN từ loại đơn vị, chỉ kiểm chứng trực tiếp một phần qua mục 3.1 (7 dòng); `meaning_guess` là suy đoán từ chữ viết tắt.
+# -----------------------------------------------------------------------------
+organizers:
+  source: "res/events_full.csv — cột Organizer (138/153 dòng có giá trị; 15 dòng để trống)"
+  level_evidence: "3.1: CTSV/HSV/không ghi = 10 điểm (cấp trường trở lên); LCH ĐC = 5 điểm (cấp khoa). 3.14: HSV/ĐK CNTT/ĐK SH-CNSH đều ghi 5 điểm (xung đột với mức 10 cho HSV cấp trường ở QĐ 2020 — xem Q11). 4.4: ĐK CNTT = 5 điểm (cấp khoa)."
+  note: "Đơn vị tổ chức chỉ là tín hiệu ngữ cảnh/tiên nghiệm, không tự động quyết định mục hoặc chứng minh cấp tổ chức khi chưa xác nhận."
+  entries:
+    "CNTT": {kind: khoa, level: khoa, rows: 27, top_items: {"1.9": 12, "1.6": 5, "2.3": 3, "3.5": 2}, all_items: {"1.9": 12, "1.6": 5, "2.3": 3, "3.5": 2, "3.3": 1, "3.8": 1, "4.5": 1, "4.7": 1, "5.3": 1}, meaning_guess: "Khoa Công nghệ thông tin"}
+    "CTSV": {kind: phong_ban, level: truong_tro_len, rows: 17, top_items: {"2.3": 6, "1.9": 4, "3.1": 3, "3.3": 1}, all_items: {"2.3": 6, "1.9": 4, "3.1": 3, "3.3": 1, "3.5": 1, "4.3": 1, "4.7": 1}, meaning_guess: "Phòng Công tác sinh viên"}
+    "LCH CNTT": {kind: lien_chi_hoi, level: khoa, rows: 12, top_items: {"1.9": 4, "1.8": 3, "1.6": 2, "3.5": 2}, all_items: {"1.9": 4, "1.8": 3, "1.6": 2, "3.5": 2, "3.2": 1}, meaning_guess: "Liên chi hội Công nghệ thông tin"}
+    "ĐTN": {kind: doan_truong, level: truong_tro_len, rows: 12, top_items: {"3.5": 6, "1.9": 3, "1.6": 1, "1.7": 1}, all_items: {"3.5": 6, "1.9": 3, "1.6": 1, "1.7": 1, "3.2": 1}, meaning_guess: "Đoàn Thanh niên (trường)"}
+    "ĐK CNTT": {kind: doan_khoa, level: khoa, rows: 10, top_items: {"3.5": 4, "4.3": 2, "1.6": 1, "1.7": 1}, all_items: {"3.5": 4, "4.3": 2, "1.6": 1, "1.7": 1, "3.14": 1, "4.4": 1}, meaning_guess: "Đoàn khoa Công nghệ thông tin"}
+    "HSV": {kind: hoi_sinh_vien, level: truong_tro_len, rows: 8, top_items: {"1.9": 3, "3.1": 2, "4.3": 2, "3.14": 1}, all_items: {"1.9": 3, "3.1": 2, "4.3": 2, "3.14": 1}, meaning_guess: "Hội Sinh viên (trường)"}
+    "ĐK SH-CNSH": {kind: doan_khoa, level: khoa, rows: 7, top_items: {"3.5": 4, "1.6": 1, "1.9": 1, "3.14": 1}, all_items: {"3.5": 4, "1.6": 1, "1.9": 1, "3.14": 1}, meaning_guess: "Đoàn khoa Sinh học - Công nghệ sinh học"}
+    "ĐK TTH": {kind: doan_khoa, level: khoa, rows: 6, top_items: {"3.5": 4, "1.9": 1, "4.5": 1}, all_items: {"3.5": 4, "1.9": 1, "4.5": 1}, meaning_guess: "Đoàn khoa Toán - Tin học"}
+    "ĐK HH": {kind: doan_khoa, level: khoa, rows: 5, top_items: {"3.5": 4, "4.5": 1}, all_items: {"3.5": 4, "4.5": 1}, meaning_guess: "Đoàn khoa Hóa học"}
+    "KHXHNV": {kind: khoa, level: khoa, rows: 4, top_items: {"3.5": 3, "1.6": 1}, all_items: {"3.5": 3, "1.6": 1}, meaning_guess: null, level_status: "uncertain_see_Q16"}
+    "SH-CNSH": {kind: khoa, level: khoa, rows: 4, top_items: {"4.7": 2, "1.9": 1, "3.8": 1}, all_items: {"4.7": 2, "1.9": 1, "3.8": 1}, meaning_guess: "Khoa Sinh học - Công nghệ sinh học"}
+    "LCH HH": {kind: lien_chi_hoi, level: khoa, rows: 3, top_items: {"3.2": 2, "3.5": 1}, all_items: {"3.2": 2, "3.5": 1}, meaning_guess: "Liên chi hội Hóa học"}
+    "U-Sci Hub": {kind: clb_hoac_du_an, level: null, rows: 3, top_items: {"1.9": 2, "3.3": 1}, all_items: {"1.9": 2, "3.3": 1}, meaning_guess: null, level_status: "uncertain_see_Q16"}
+    "CLB BEE": {kind: clb, level: null, rows: 2, top_items: {"1.6": 1, "1.9": 1}, all_items: {"1.6": 1, "1.9": 1}, meaning_guess: null, level_status: "uncertain_see_Q16"}
+    "CLB LLT": {kind: clb, level: null, rows: 2, top_items: {"3.5": 2}, all_items: {"3.5": 2}, meaning_guess: null, level_status: "uncertain_see_Q16"}
+    "LCH SH-CNSH": {kind: lien_chi_hoi, level: khoa, rows: 2, top_items: {"1.6": 1, "3.5": 1}, all_items: {"1.6": 1, "3.5": 1}, meaning_guess: "Liên chi hội Sinh học - Công nghệ sinh học"}
+    "LCH TTH": {kind: lien_chi_hoi, level: khoa, rows: 2, top_items: {"3.5": 2}, all_items: {"3.5": 2}, meaning_guess: "Liên chi hội Toán - Tin học"}
+    "LCH ĐC": {kind: lien_chi_hoi, level: khoa, rows: 2, top_items: {"3.1": 1, "3.5": 1}, all_items: {"3.1": 1, "3.5": 1}, meaning_guess: "Liên chi hội Địa chất"}
+    "TTH": {kind: khoa, level: khoa, rows: 2, top_items: {"1.6": 2}, all_items: {"1.6": 2}, meaning_guess: "Khoa Toán - Tin học"}
+    "Thuvien": {kind: don_vi_truong, level: truong_tro_len, rows: 2, top_items: {"1.8": 1, "4.3": 1}, all_items: {"1.8": 1, "4.3": 1}, meaning_guess: "Thư viện"}
+    "BCSL": {kind: ban_can_su_lop, level: lop, rows: 1, top_items: {"1.9": 1}, all_items: {"1.9": 1}, meaning_guess: "Ban cán sự lớp"}
+    "CLB SV5T": {kind: clb, level: null, rows: 1, top_items: {"3.2": 1}, all_items: {"3.2": 1}, meaning_guess: "CLB Sinh viên 5 tốt", level_status: "uncertain_see_Q16"}
+    "LCH VL-VLKT": {kind: lien_chi_hoi, level: khoa, rows: 1, top_items: {"3.2": 1}, all_items: {"3.2": 1}, meaning_guess: "Liên chi hội Vật lý - Vật lý kỹ thuật"}
+    "TTTT": {kind: don_vi_truong, level: null, rows: 1, top_items: {"2.3": 1}, all_items: {"2.3": 1}, meaning_guess: null, level_status: "uncertain_see_Q16"}
+    "ĐK KHCNVL": {kind: doan_khoa, level: khoa, rows: 1, top_items: {"1.6": 1}, all_items: {"1.6": 1}, meaning_guess: "Đoàn khoa Khoa học và Công nghệ Vật liệu"}
+    "ĐK MT": {kind: doan_khoa, level: khoa, rows: 1, top_items: {"1.6": 1}, all_items: {"1.6": 1}, meaning_guess: "Đoàn khoa Môi trường"}
+
+# -----------------------------------------------------------------------------
+# CÁC MỤC (ITEMS) — theo đúng thứ tự Phụ lục (51 mục)
+# -----------------------------------------------------------------------------
+items:
+
+  # ======================= NHÓM C1 — HỌC TẬP & NCKH (tối đa 30) ==============
+  C1.khong_vi_pham_quy_che_dao_tao:
+    ref: "1.1"
+    group: C1
+    tieu_chi: TC1
+    name: "Không vi phạm Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [15]
+      roles_seen: {"(trống)": 1}
+      organizers: {"(trống)": 1}
+      csv_rows: [1]
+      evidence_examples:
+        - {csv_row: 1, title: "Ý thức chấp hành Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường", organizer: null, role: null, points: 15}
+    scope_note: "Mục tuân thủ học vụ/khảo thí (không phải sự kiện đăng ký tham gia); điểm dựa trên hồ sơ kỷ luật thi cử của Trường."
+    uncertain:
+      - "Chỉ 1 dòng (mục tuân thủ); điểm 15 khớp rubric."
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 15
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: per_semester
+    repeatable: false
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Ý thức chấp hành Quy chế đào tạo, Quy định về trách nhiệm của cán bộ và người học trong các kỳ thi của Trường"
+
+  C1.diem_trung_binh_hoc_ky:
+    ref: "1.2"
+    group: C1
+    tieu_chi: TC2
+    name: "Điểm trung bình tích lũy"
+    name_quy_che: "Điểm trung bình tích lũy trong học kỳ"
+    kind: record
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 2
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [15]
+      roles_seen: {"(trống)": 2}
+      organizers: {"(trống)": 2}
+      csv_rows: [2, 3]
+      evidence_examples:
+        - {csv_row: 2, title: "Điểm trung bình tích lũy HK1/25-26", organizer: null, role: null, points: 15}
+        - {csv_row: 3, title: "Điểm trung bình tích lũy HK2/25-26", organizer: null, role: null, points: 15}
+    scope_note: "Hồ sơ học tập cá nhân (không phải bài đăng sự kiện)."
+    uncertain:
+      - "Danh sách trường ghi 'ĐTB tích lũy' (HK1/25-26, HK2/25-26): ghi đè câu trả lời Q4 ('ĐTB học kỳ'); cần xác nhận (Q12)."
+      - "Chỉ có mức tối đa (15); không đủ dữ liệu kiểm chứng các khoảng 5/7/10."
+    variant_by: band
+    metric: diem_trung_binh_tich_luy
+    bands:
+      - {from: 5.0, to: 6.5, points: 5}
+      - {from: 6.5, to: 8.0, points: 7}
+      - {from: 8.0, to: 9.0, points: 10}
+      - {from: 9.0, to: 10.0, to_inclusive: true, points: 15}
+    unit: flat
+    repeatable: false
+    notes: "Danh sách trường ghi 'ĐTB tích lũy' (HK1/25-26, HK2/25-26) → ghi đè Q4 (ĐTB học kỳ). Cần user xác nhận."
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Điểm trung bình tích lũy HK1/25-26"
+      - "Điểm trung bình tích lũy HK2/25-26"
+
+  C1.giu_xep_loai_xuat_sac:
+    ref: "1.3"
+    group: C1
+    tieu_chi: TC2
+    name: "Giữ xếp loại học tập Xuất sắc so với học kỳ trước đó"
+    kind: record
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"(trống)": 1}
+      organizers: {"(trống)": 1}
+      csv_rows: [4]
+      evidence_examples:
+        - {csv_row: 4, title: "Giữ xếp loại xuất sắc so với học kỳ trước", organizer: null, role: null, points: 5}
+    uncertain:
+      - "1 dòng, chỉ xác nhận mức 5."
+    variant_by: none
+    points: {self: {any: 5}}
+    unit: flat
+    repeatable: false
+    metric: xep_loai_hoc_tap
+    notes: "Đã xác nhận (Q4): là xếp loại học tập."
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Giữ xếp loại xuất sắc so với học kỳ trước"
+
+  C1.tang_diem_trung_binh:
+    ref: "1.4"
+    group: C1
+    tieu_chi: TC2
+    name: "Tăng điểm trung bình tích lũy so với học kỳ trước đó"
+    name_quy_che: "Tăng điểm trung bình tích lũy so với học kỳ trước đó"
+    kind: record
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [8]
+      roles_seen: {"(trống)": 1}
+      organizers: {"(trống)": 1}
+      csv_rows: [5]
+      evidence_examples:
+        - {csv_row: 5, title: "Tăng điểm trung bình tích lũy so với học kỳ trước", organizer: null, role: null, points: 8}
+    uncertain:
+      - "Trường ghi điểm tối đa 8 nhưng rubric 2020 có mức 10 → đang chặn bằng cap_points = 8; các mức 2/4/6 chưa được kiểm chứng (Q12)."
+      - "Trường ghi 'ĐTB tích lũy' (khác Q4b = ĐTB học kỳ)."
+    variant_by: band
+    metric: muc_tang_diem_trung_binh_tich_luy
+    cap_points: 8            # danh sách trường ghi điểm tối đa 8 (< 10 của quy chế 2020); engine áp dụng min(mức, cap_points)
+    notes: "Danh sách trường: điểm tối đa 8 và ghi 'ĐTB tích lũy' → ghi đè Q4b (ĐTB học kỳ); các mức 2/4/6 chưa kiểm chứng."
+    bands:
+      - {from: 0.1, to: 0.2, points: 2}
+      - {from: 0.2, to: 0.4, points: 4}
+      - {from: 0.4, to: 0.6, points: 6}
+      - {from: 0.6, to: 0.8, points: 8}
+      - {from: 0.8, to: null, points: 10}
+    unit: flat
+    repeatable: false
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Tăng điểm trung bình tích lũy so với học kỳ trước"
+
+  C1.de_tai_nckh:
+    ref: "1.5"
+    group: C1
+    tieu_chi: TC3
+    name: "Là tác giả của đề tài nghiên cứu khoa học (khóa luận, tiểu luận tốt nghiệp, tham gia Chương trình, Cuộc thi nghiên cứu khoa học từ cấp Khoa trở lên)"
+    kind: achievement
+    event_matchable: true            # bài đăng kêu gọi đăng ký chương trình/cuộc thi NCKH
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    scope_note: "Chỉ tính khi sinh viên là tác giả/đồng tác giả đề tài NCKH, khóa luận, tiểu luận tốt nghiệp hoặc nộp đề tài dự thi NCKH từ cấp Khoa trở lên."
+    inclusion_rules:
+      - "Thông báo đăng ký thực hiện đề tài NCKH sinh viên, khóa luận/tiểu luận tốt nghiệp hoặc cuộc thi giải thưởng NCKH (như Giải thưởng Euréka) yêu cầu nộp đề tài."
+    exclusion_rules:
+      - "Không tính các buổi seminar, tọa đàm hướng dẫn viết bài NCKH, chọn đề tài, hoặc chuỗi giới thiệu như 'Unitour - Hành Trình Euréka 2025' (dòng 60) → thuộc mục 1.9."
+      - "Không nhầm với cuộc thi học thuật dạng giải đề/thi đấu không có đề tài NCKH → mục 1.6."
+      - "Bài báo khoa học đã đăng tạp chí/hội thảo quốc tế hoặc quốc gia → mục 5.4 / 5.5."
+    confusable_with:
+      - {item: C1.sinh_hoat_hoc_thuat, reason: "Chuyên đề kỹ năng viết bài NCKH (dòng 47–48) và Unitour Euréka (dòng 60) nằm ở 1.9, không phải 1.5"}
+      - {item: C1.cuoc_thi_hoc_thuat, reason: "Cuộc thi giải thuật/CTF/trắc nghiệm chuyên môn thuộc 1.6, không phải đề tài NCKH"}
+    uncertain:
+      - "Không có dòng nào trong danh sách trường → chưa kiểm chứng việc cộng 15 điểm/đề tài ở năm học 2025–26 (Q15)."
+    points_condition: selection_or_completion
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 15}}
+    unit: per_item                   # điểm/đề tài
+    repeatable: true
+    conditions: ["Phải là tác giả của đề tài"]
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi Sinh viên nghiên cứu khoa học cấp Khoa"
+      - "Chương trình nghiên cứu khoa học dành cho sinh viên"
+      - "Đăng ký đề tài nghiên cứu khoa học sinh viên năm học mới"
+    keywords: ["đề tài nghiên cứu khoa học", "đề tài nckh", "sinh viên nghiên cứu khoa học", "đăng ký đề tài", "khóa luận tốt nghiệp", "tiểu luận tốt nghiệp", "giải thưởng euréka"]
+    negative_keywords: ["unitour", "hành trình euréka", "kỹ năng viết bài", "xác định đề tài"]
+
+  C1.cuoc_thi_hoc_thuat:
+    ref: "1.6"
+    group: C1
+    tieu_chi: TC3
+    name: "Tham gia cuộc thi học thuật từ cấp khoa trở lên (hoàn tất vòng đầu tiên của cuộc thi)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 17
+      support: strong          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"Tham gia": 11, "(trống)": 6}
+      organizers: {"CNTT": 5, "LCH CNTT": 2, "TTH": 2, "CLB BEE": 1, "KHXHNV": 1, "LCH SH-CNSH": 1, "ĐK CNTT": 1, "ĐK KHCNVL": 1, "ĐK MT": 1, "ĐK SH-CNSH": 1, "ĐTN": 1}
+      csv_rows: "6..22"
+    scope_note: "Cuộc thi học thuật chuyên môn (lập trình, ICPC, CTF/ATTT, AI/Digital Challenge, toán, tiếng Anh, khoa học chuyên ngành), bao gồm cả thi thử (Thi thử Toeic) và vòng thi chọn đội tuyển (Olympic Toán)."
+    inclusion_rules:
+      - "Thí sinh tham gia thi đấu các cuộc thi học thuật chuyên ngành/ngoại ngữ từ cấp Khoa trở lên (CTF, ICPC, Olympic Tin học/Toán, AI Challenge, Coding Challenge, Star Awards, ENG - aholic, Journal Hub, Microbiology Nova, Lốc Xanh, Digital Challenge...)."
+      - "Bao gồm thi thử học thuật ('Thi thử Toeic', dòng 14) và vòng thi chọn đội tuyển ('Thi chọn đội tuyển Olympic Toán...', dòng 16–17)."
+    exclusion_rules:
+      - "Nếu sinh viên là Ban tổ chức / Cộng tác viên (vd 'Cuộc thi Coding Challenge' dòng 23, 'Star Awards' dòng 24) → tính theo mục 1.7 thông qua xác nhận vai trò, không cộng trùng thí sinh 1.6."
+      - "Cuộc thi về chính trị, lịch sử, Mác-Lênin, tư tưởng Hồ Chí Minh, pháp luật, nội quy, an ninh mạng, văn hóa - văn nghệ, thể dục - thể thao → mục 3.1 (cấp trường trở lên) hoặc 3.5 (phong trào/cấp khoa)."
+      - "Hội thảo, workshop, ôn tập cuối kỳ, hoặc sự kiện giới thiệu như Unitour Euréka → mục 1.9."
+      - "Thành tích giải thưởng hoặc tư cách thành viên đội tuyển cấp thành trở lên sau thi → mục 5.1 / 5.3 / 3.6 (chưa rõ cơ chế cộng đồng thời với 1.6 — xem Q19)."
+    confusable_with:
+      - {item: C1.btc_cuoc_thi_hoc_thuat, reason: "Trùng tiêu đề sự kiện (Coding Challenge, Star Awards) khi khác vai trò Tham gia (1.6) vs Ban tổ chức (1.7)"}
+      - {item: C3.cuoc_thi_ct_vhvn_tdtt, reason: "Cả hai đều có từ 'Cuộc thi', phân biệt theo chủ đề học thuật chuyên môn (1.6) vs chính trị/pháp luật/văn hóa/thể thao (3.1)"}
+      - {item: C5.doi_tuyen_giai_thuong_cap_thanh, reason: "ICPC xuất hiện ở cả 1.6 (dòng 9, 11) và 5.3 (dòng 152)"}
+      - {item: C5.khen_thuong_thanh_tich, reason: "Olympic Tin học xuất hiện ở cả 1.6 (dòng 10) và 5.1 (dòng 151)"}
+    uncertain:
+      - "Danh sách có cả bài thi thử (Thi thử Toeic, dòng 14) và vòng chọn đội tuyển (Thi chọn đội tuyển Olympic Toán, dòng 16–17) tính ở 1.6 → ranh giới 'cuộc thi học thuật' thực tế rộng hơn lời văn."
+      - "ICPC xuất hiện ở cả 1.6 (tham gia, 5đ) và 5.3 (đội tuyển, 15đ); Olympic Tin học xuất hiện ở 1.6 (5đ) và 5.1 (10đ): chưa rõ có cộng đồng thời hay không (Q19)."
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 5}}
+    unit: per_item                   # điểm/cuộc thi
+    repeatable: true
+    role_items: {organizer: C1.btc_cuoc_thi_hoc_thuat, collaborator: C1.btc_cuoc_thi_hoc_thuat}
+    conditions: ["Hoàn tất vòng đầu tiên của cuộc thi"]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Cuộc thi ENG - aholic 2026"
+      - "Cuộc thi An toàn thông tin HCMUS CTF 2026"
+      - "Cuộc thi học thuật Thách Thức 2026"
+      - "Sinh viên thi đấu ICPC trường ĐH Khoa học tự nhiên"
+      - "Sinh viên thi đấu Olympic tin học sinh viên trường ĐH Khoa học tự nhiên"
+      - "Tham gia thi đấu ICPC các miền"
+      - "Digital Challenge năm 2025"
+      - "AI Challenge 2026"
+      - "Thi thử Toeic"
+      - "Cuộc thi học thuật Journal Hub 2026 The Health Era"
+      - "Thi chọn đội tuyển Olympic Toán sinh viên và học sinh năm 2026"
+      - "Cuộc thi Coding Challenge"
+      - "Cuộc thi học thuật Lốc Xanh"
+      - "Cuộc thi Microbiology Nova 2026"
+      - "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025"
+    keywords: ["cuộc thi học thuật", "olympic", "icpc", "ctf", "an toàn thông tin", "ai challenge", "coding challenge", "digital challenge", "thi thử toeic", "tiếng anh", "thi lập trình", "thi chọn đội tuyển", "thách thức", "cuộc thi toán", "cuộc thi sinh viên giỏi"]
+
+  C1.btc_cuoc_thi_hoc_thuat:
+    ref: "1.7"
+    group: C1
+    tieu_chi: TC3
+    name: "Thành viên Ban tổ chức / Cộng tác viên của một cuộc thi học thuật từ cấp khoa trở lên"
+    kind: role_variant
+    applies_to: [C1.cuoc_thi_hoc_thuat]
+    event_matchable: false
+    requires_role_context: true
+    role_context: ["Ban tổ chức", "Cộng tác viên"]
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 2
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [10]
+      roles_seen: {"Ban tổ chức": 2}
+      organizers: {"ĐK CNTT": 1, "ĐTN": 1}
+      csv_rows: [23, 24]
+      evidence_examples:
+        - {csv_row: 23, title: "Cuộc thi Coding Challenge", organizer: "ĐK CNTT", role: "Ban tổ chức", points: 10}
+        - {csv_row: 24, title: "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025", organizer: "ĐTN", role: "Ban tổ chức", points: 10}
+    scope_note: "Biến thể theo vai trò của mục 1.6. Không phân loại chỉ từ tên cuộc thi nếu thiếu vai trò Ban tổ chức / Cộng tác viên (hoặc bài tuyển BTC/CTV)."
+    uncertain:
+      - "Chỉ 2 dòng, cả hai là 10 điểm (Ban tổ chức); chưa có dòng cộng tác viên (rubric: 5 điểm)."
+    variant_by: none
+    min_level: khoa
+    points:
+      organizer: {any: 10}
+      collaborator: {any: 5}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Xác nhận của Thường trực Ban tổ chức"]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Cuộc thi Coding Challenge"
+      - "Cuộc thi trực tuyến Tiếng Anh trong sinh viên Star Awards năm 2025"
+
+  C1.cau_lac_bo_hoc_thuat:
+    ref: "1.8"
+    group: C1
+    tieu_chi: TC3
+    name: "Sinh hoạt thường xuyên tại các câu lạc bộ học thuật, các phòng thí nghiệm, thư viện"
+    kind: membership
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 4
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"(trống)": 3, "Tham gia": 1}
+      organizers: {"LCH CNTT": 3, "Thuvien": 1}
+      csv_rows: [25, 26, 27, 28]
+      evidence_examples:
+        - {csv_row: 25, title: "Thành viên CLB Design ITUS", organizer: "LCH CNTT", role: null, points: 5}
+        - {csv_row: 26, title: "Thành viên CLB Google Developer Group on Campus - HCMUS", organizer: "LCH CNTT", role: null, points: 5}
+        - {csv_row: 27, title: "Thành viên CLB Google Developer Group on Campus - HCMUS", organizer: "LCH CNTT", role: "Tham gia", points: 5}
+        - {csv_row: 28, title: "Tham gia sinh hoạt thường xuyên tại Thư viện", organizer: "Thuvien", role: null, points: 5}
+    scope_note: "Tư cách thành viên sinh hoạt thường xuyên (≥3 lần/tháng) tại CLB học thuật/phòng thí nghiệm/thư viện; khác với tham dự một buổi seminar đơn lẻ của CLB (1.9) hoặc làm tình nguyện viên hỗ trợ thư viện (4.3)."
+    exclusion_rules:
+      - "Một buổi seminar/workshop đơn lẻ do CLB học thuật tổ chức (vd 'Seminar học thuật Câu lạc bộ Nghiên cứu khoa học', dòng 39) → mục 1.9."
+      - "Tình nguyện viên hỗ trợ hoạt động Thư viện (dòng 140, 15đ) → mục 4.3."
+      - "CLB sở thích / đội nhóm giữ gìn trật tự (không phải học thuật) → mục 3.4."
+    uncertain:
+      - "4 dòng; 'Thành viên CLB Google Developer Group on Campus - HCMUS' xuất hiện 2 lần (dòng 26 vai trò trống và dòng 27 'Tham gia') → dữ liệu gần trùng."
+      - "Chưa rõ danh sách CLB học thuật được công nhận đầy đủ."
+    variant_by: none
+    points: {self: {any: 5}}
+    unit: per_semester
+    repeatable: false
+    conditions: ["Ít nhất sinh hoạt 3 lần/tháng"]
+    evidence: ["Xác nhận của các đơn vị"]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Thành viên CLB Design ITUS"
+      - "Thành viên CLB Google Developer Group on Campus - HCMUS"
+      - "Tham gia sinh hoạt thường xuyên tại Thư viện"
+
+  C1.sinh_hoat_hoc_thuat:
+    ref: "1.9"
+    group: C1
+    tieu_chi: TC3
+    name: "Tham gia hoặc tổ chức các buổi sinh hoạt, hội thảo chuyên đề học thuật, kỹ năng, nghiên cứu khoa học, tư vấn hướng nghiệp"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 33
+      support: strong          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"(trống)": 26, "Tham gia": 7}
+      organizers: {"CNTT": 12, "CTSV": 4, "LCH CNTT": 4, "HSV": 3, "ĐTN": 3, "U-Sci Hub": 2, "BCSL": 1, "CLB BEE": 1, "SH-CNSH": 1, "ĐK SH-CNSH": 1, "ĐK TTH": 1}
+      csv_rows: "29..61"
+    scope_note: "Sinh hoạt chuyên đề/hội thảo/tập huấn có nội dung học thuật, chuyên môn ngành, NCKH, ngoại ngữ học thuật, ôn tập học phần, kỹ năng nghề nghiệp/công nghệ, hướng nghiệp/tham quan doanh nghiệp, tập huấn BCSL hoặc sơ cứu tâm lý."
+    inclusion_rules:
+      - "Seminar học thuật, tọa đàm NCKH/học tập, science fair, trường hè chuyên môn trong trường (vd 'FIT@HCMUS Summer School...'), watch party công nghệ ('Watch Party NVIDIA GTC 2026')."
+      - "Workshop/chuyên đề kỹ thuật, AI, Prompt Engineering, công nghệ số, kỹ năng viết/định hướng NCKH, giới thiệu giải thưởng NCKH ('Unitour - Hành Trình Euréka 2025')."
+      - "Buổi ôn tập học phần / ngoại ngữ học thuật ('Tổ chức các buổi ôn tập cuối kỳ', 'Mid - Semester Revision', 'IELTS... Linearthinking', 'Vui cùng Vocabulary')."
+      - "Hướng nghiệp, tham quan doanh nghiệp ('Chương trình Người trong nghề', 'Tham quan công ty VNG'), kỹ năng mềm, nhân tài số, tập huấn BCSL, tập huấn sơ cứu tâm lý học đường."
+    exclusion_rules:
+      - "KHÔNG dùng làm mục gom (catch-all) cho workshop thủ công/nghệ thuật/giải trí hoặc talkshow tâm lý-cảm xúc phong trào ('Workshop Jewels of Joy', 'Workshop Uốn sắc màu, Vẽ yêu thương', 'Talkshow inside us', 'Tọa đàm Hành trang sinh viên năm Nhất - Nghệ thuật quản lý cảm xúc...', 'Chương trình Kết nối, Tham quan \"Let's connect\"') → thuộc mục 3.5."
+      - "KHÔNG bao gồm cuộc thi học thuật/thi thử/thi chọn đội tuyển → mục 1.6."
+      - "KHÔNG bao gồm đăng ký tác giả đề tài NCKH → mục 1.5."
+      - "KHÔNG bao gồm Ngày hội việc làm / Tư vấn tuyển sinh → mục 3.8."
+      - "KHÔNG bao gồm sự kiện có vai trò Huy động lực lượng ('Lễ Tổng kết ... HCMUS Future Leaders', dòng 94) → mục 3.3."
+      - "KHÔNG bao gồm sinh hoạt CLB/thư viện định kỳ (1.8), học lý luận chính trị/lễ kỷ niệm (3.5), hội thảo quốc tế tự ứng tuyển ở nước ngoài/liên trường (3.13), hay khóa học quảng cáo thương mại (NONE)."
+    confusable_with:
+      - {item: C3.hoat_dong_cap_lop, reason: "Đều có 'Workshop', 'Tọa đàm', 'Tham quan', 'Hành trang sinh viên năm Nhất'; 1.9 mang nội dung học thuật/NCKH/nghề nghiệp, còn 3.5 mang tính phong trào/cảm xúc/thủ công/kết nối"}
+      - {item: C1.cuoc_thi_hoc_thuat, reason: "Unitour Euréka (1.9) là sự kiện giới thiệu, khác với tham gia thi đấu học thuật (1.6)"}
+      - {item: C1.de_tai_nckh, reason: "Chuyên đề kỹ năng NCKH (1.9) chỉ là hội thảo hướng dẫn, chưa phải là tác giả đề tài (1.5)"}
+      - {item: C3.tu_van_tuyen_sinh_viec_lam, reason: "Người trong nghề / tham quan công ty (1.9) vs Ngày hội việc làm / Job Fair (3.8)"}
+      - {item: C3.huy_dong_luc_luong, reason: "Cùng dự án 'HCMUS Future Leaders': chuyên đề (dòng 55 → 1.9) vs lễ tổng kết huy động lực lượng (dòng 94 → 3.3)"}
+      - {item: NONE, reason: "'Watch Party NVIDIA GTC 2026' (dòng 61) chứa từ 'Party' nhưng là xem hội thảo công nghệ → 1.9, không phải tiệc giải trí NONE"}
+    uncertain:
+      - "Mục rất rộng (33 dòng): seminar, workshop, tập huấn kỹ năng, tham quan công ty, trường hè, watch party, ôn tập cuối kỳ do Ban cán sự lớp tổ chức → dễ nhầm với 3.5, 3.3, 1.6, 3.8 nếu không kiểm tra chủ đề học thuật/nghề nghiệp."
+      - "Quy chế 1.9 tính +5 cho cả 'Tham gia' và 'Tổ chức'; chưa thấy dòng 'Ban tổ chức' riêng ở 1.9 trong CSV."
+    variant_by: none
+    points:
+      participant: {any: 5}
+      organizer: {any: 5}
+    role_note: "QĐ 1028 gộp 'Tham gia hoặc tổ chức' cùng mức +5 điểm/hoạt động tại mục 1.9 (không tách mục role_variant riêng như 1.7)."
+    unit: per_activity
+    repeatable: true
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Tổ chức các buổi ôn tập cuối kỳ"
+      - "Mid - Semester Revision"
+      - "Chuyên đề Kỹ năng mềm khóa 2025"
+      - "Chương trình Người trong nghề"
+      - "Seminar Học thuật về một số nghiên cứu nổi bật của sinh viên Khoa CNTT"
+      - "Tham quan công ty VNG"
+      - "Trường hè \"FIT@HCMUS Summer School on Intelligent Agents and Agentic AI\""
+      - "Chương trình tập huấn kỹ năng Nhận biết và các bước sơ cứu tâm lý cho bạn cùng lớp khi gặp khó khăn tinh thần"
+      - "Hội nghị Tập huấn kỹ năng Ban Cán sự lớp 2025 - 2026"
+      - "Chuyên đề 01 Kỹ năng viết bài nghiên cứu khoa học thuộc Chuỗi chương trình Hành trình đồng hành cùng sinh viên trong học tập 2025–2026 – Đợt 02"
+      - "Tọa đàm Hành trang Sinh viên năm Nhất - Nghiên cứu khoa học và Khát vọng vươn mình của Sinh viên"
+      - "Workshop \"CS101\""
+      - "Science fair góc nhìn sáng tạo về khoa học"
+      - "Workshop Chinh phục IELTS thành công bằng phương pháp Linearthinking"
+      - "Workshop Gemini Mastery – Khai phóng tiềm năng nghiên cứu & kỹ thuật với Prompt Engineering"
+      - "Tuần lễ chuyển đổi số"
+      - "Unitour - Hành Trình Euréka 2025"
+      - "Watch Party NVIDIA GTC 2026"
+    keywords: ["seminar", "hội thảo học thuật", "workshop học thuật", "chuyên đề học thuật", "tư vấn hướng nghiệp", "người trong nghề", "tham quan công ty", "ôn tập cuối kỳ", "kỹ năng nghiên cứu khoa học", "tập huấn kỹ năng", "kỹ năng mềm", "science fair", "prompt engineering", "chuyển đổi số"]
+    negative_keywords: ["workshop uốn sắc màu", "jewels of joy", "talkshow inside us", "nghệ thuật quản lý cảm xúc", "let's connect", "ngày hội việc làm", "huy động lực lượng"]
+
+  # ======================= NHÓM C2 — NỘI QUY (tối đa 20) ======================
+  C2.khong_vi_pham_noi_quy:
+    ref: "2.1"
+    group: C2
+    tieu_chi: TC4
+    name: "Không vi phạm nội quy, quy chế, quy định của Nhà trường (không bao gồm các nội dung tại mục 1.1)"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [15]
+      roles_seen: {"(trống)": 1}
+      organizers: {"(trống)": 1}
+      csv_rows: [62]
+      evidence_examples:
+        - {csv_row: 62, title: "Ý thức chấp hành nội quy, quy chế", organizer: null, role: null, points: 15}
+    uncertain:
+      - "1 dòng, khớp rubric."
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 15
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: flat
+    repeatable: false
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Ý thức chấp hành nội quy, quy chế"
+
+  C2.danh_gia_mon_hoc:
+    ref: "2.2"
+    group: C2
+    tieu_chi: TC4
+    name: "Tham gia đánh giá trên 50% số môn đã đăng ký trong học kỳ (mọi sinh viên) và đánh giá khóa học (sinh viên năm cuối)"
+    kind: task
+    event_matchable: true            # thông báo mở đợt khảo sát đánh giá môn học/khóa học
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 3
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"(trống)": 3}
+      organizers: {"(trống)": 3}
+      csv_rows: [63, 64, 65]
+      evidence_examples:
+        - {csv_row: 63, title: "Tham gia đánh giá môn học", organizer: null, role: null, points: 5}
+        - {csv_row: 64, title: "Tham gia đánh giá môn học HK3/25-26", organizer: null, role: null, points: 5}
+        - {csv_row: 65, title: "Tham gia đánh giá môn học và khóa học HK1/25-26", organizer: null, role: null, points: 5}
+    scope_note: "Nhiệm vụ đánh giá môn học/khóa học trực tuyến cuối học kỳ (khác với khảo sát/điều tra xã hội ở 2.3)."
+    inclusion_rules:
+      - "Thông báo mở đợt lấy ý kiến đánh giá môn học / học phần / khóa học của Nhà trường theo học kỳ."
+    exclusion_rules:
+      - "Các khảo sát trải nghiệm học tập, chủ nhiệm lớp, KTX, chương trình GDTC, kỹ năng lập trình... → mục 2.3."
+      - "Trạng thái KHÔNG tham gia đánh giá môn học (−5đ) → mục điểm trừ 6.1 (chỉ áp dụng khi xác minh vi phạm, không dùng để gắn nhãn thông báo mở đợt đánh giá)."
+    confusable_with:
+      - {item: C2.khao_sat_dieu_tra, reason: "2.2 chỉ riêng đánh giá môn học/khóa học; mọi khảo sát khác của Trường/Khoa/ĐHQG thuộc 2.3"}
+      - {item: P.khai_bao_khao_sat, reason: "2.2 là thông báo thực hiện (+5); 6.1 là điểm trừ khi bỏ lỡ (−5)"}
+    uncertain:
+      - "Có dòng 'đánh giá môn học HK3/25-26' (dòng 64) → đánh giá ở học kỳ hè vẫn được liệt kê; chưa rõ tính vào học kỳ nào (rubric: học kỳ hè không tính điểm rèn luyện cho chương trình đại trà — xem Q22)."
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: flat
+    repeatable: false
+    conditions:
+      - "Đánh giá trên 50% số môn đã đăng ký trong học kỳ được đánh giá"
+      - "Sinh viên năm cuối: thêm đánh giá khóa học"
+    penalty_if_missed: P.khai_bao_khao_sat   # −5 theo danh sách trường
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Tham gia đánh giá môn học"
+      - "Tham gia đánh giá môn học HK3/25-26"
+      - "Tham gia đánh giá môn học và khóa học HK1/25-26"
+    keywords: ["đánh giá môn học", "khảo sát môn học", "lấy ý kiến sinh viên về môn học", "đánh giá khóa học", "đánh giá học phần"]
+
+  C2.khao_sat_dieu_tra:
+    ref: "2.3"
+    group: C2
+    tieu_chi: TC4
+    name: "Tham gia các đợt khảo sát, điều tra xã hội (trừ nội dung 2.2)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 10
+      support: strong          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"(trống)": 10}
+      organizers: {"CTSV": 6, "CNTT": 3, "TTTT": 1}
+      csv_rows: "66..75"
+    scope_note: "Các đợt khảo sát sinh viên (CTSV, Khoa, TTTT) về hoạt động chào tân sinh viên, kỹ năng, sử dụng AI, chủ nhiệm lớp, GDTC, trải nghiệm học tập, KTX, tuyến metro, khởi nghiệp ĐMST."
+    inclusion_rules:
+      - "Phiếu/đợt khảo sát hoặc điều tra xã hội do CTSV, Khoa, Nhà trường hoặc ĐHQG-HCM phát động (ngoài đánh giá môn học 2.2)."
+    exclusion_rules:
+      - "Khảo sát/đánh giá môn học và khóa học trực tuyến → mục 2.2."
+      - "Đóng góp dự thảo văn bản quy phạm pháp luật, văn bản nội bộ, chương trình đối thoại lãnh đạo → mục 3.10."
+    confusable_with:
+      - {item: C2.danh_gia_mon_hoc, reason: "QĐ 1028 ghi '(trừ nội dung 2.2)'; hiện vẫn giữ exclusive_with chờ xác nhận Q18"}
+      - {item: C3.gop_y_van_ban, reason: "Khảo sát ý kiến học tập/KTX/chủ nhiệm lớp nằm ở 2.3 (dòng 69–74), còn góp ý dự thảo văn bản/đối thoại lãnh đạo nằm ở 3.10"}
+    uncertain:
+      - "Chưa có dữ liệu về điểm trừ 6.1 khi bỏ lỡ khảo sát 2.3 (CSV chỉ gắn 6.1 với 2.2)."
+      - "Cần rà lại `exclusive_with: [C2.danh_gia_mon_hoc]`: lời văn QĐ 1028 '(trừ nội dung 2.2)' có thể là loại trừ phạm vi (không tính trùng 2.2 vào 2.3) chứ không cấm sinh viên hưởng cả 2.2 và 2.3 — giữ nguyên quy tắc chờ xác nhận (Q18)."
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_round
+    repeatable: true
+    penalty_if_missed: P.khai_bao_khao_sat   # CHƯA kiểm chứng: danh sách trường chỉ gắn điểm trừ với đánh giá môn học (2.2)
+    exclusive_with: [C2.danh_gia_mon_hoc]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Khảo sát hoạt động Chào Tân sinh viên 2025"
+      - "Khảo sát kỹ năng lập trình 2025"
+      - "Khảo sát sử dụng công cụ AI trong học tập"
+      - "Khảo sát mức độ hài lòng của sinh viên với hoạt động chủ nhiệm lớp"
+      - "Khảo sát phục vụ đề án đổi mới, chuẩn hóa chương trình môn học Giáo dục thể chất tại ĐHQG - HCM"
+      - "Khảo sát sự hài lòng của người học với trải nghiệm học tập tại Đại học Quốc gia Thành phố Hồ Chí Minh năm 2026"
+      - "Khảo sát thời gian hoạt động tuyến đường sắt đô thị số 1"
+      - "Khảo sát thực trạng và tiềm năng KN&ĐMST của người học tại ĐHQG - HCM"
+      - "Khảo sát thực trạng, nhu cầu, mức độ hài lòng và kỳ vọng của sinh viên đối với Ký túc xá Đại học Quốc gia Thành phố Hồ Chí Minh"
+      - "Khảo sát mức độ sẵn sàng của tân sinh viên đối với ngành học, trường học và kênh tư vấn hướng nghiệp - tuyển sinh năm 2025"
+    keywords: ["khảo sát", "điều tra xã hội", "điều tra", "phiếu khảo sát", "khảo sát thực trạng", "khảo sát mức độ hài lòng"]
+    negative_keywords: ["đánh giá môn học", "đánh giá khóa học", "góp ý dự thảo"]
+
+  # ======================= NHÓM C3 — CT-XH, VH-VN, TDTT (tối đa 25) ===========
+  C3.cuoc_thi_ct_vhvn_tdtt:
+    ref: "3.1"
+    group: C3
+    tieu_chi: TC5
+    name: "Tham gia cuộc thi về khoa học chính trị, khoa học Mác-Lênin, tư tưởng Hồ Chí Minh, lịch sử, văn hóa - văn nghệ, thể dục - thể thao (hoàn tất vòng đầu tiên)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 7
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5, 10]
+      roles_seen: {"(trống)": 5, "Tham gia": 2}
+      organizers: {"CTSV": 3, "HSV": 2, "LCH ĐC": 1, "(trống)": 1}
+      csv_rows: "76..82"
+    scope_note: "Cuộc thi/hội thi chính trị, nghị quyết, pháp luật, nội quy, an toàn/an ninh mạng, lịch sử, văn hóa quốc tế, văn nghệ, thể thao: cấp trường trở lên (CTSV, HSV, không ghi đơn vị) = 10đ; cấp khoa (LCH ĐC) = 5đ. Cần phân biệt cẩn thận với quiz/cuộc thi phong trào cấp khoa trong mục 3.5."
+    inclusion_rules:
+      - "Cuộc thi/hội thi chính thức về chính trị, Đảng, Nghị quyết (vd 'Hội thi Tìm hiểu nghị quyết số 57 - NQ - TW'), lịch sử ('Một dải non sông'), văn hóa ('International culture challenge'), văn nghệ, thể dục thể thao."
+      - "Thực tế 2025–26: các cuộc thi trực tuyến của CTSV về nội quy, tìm hiểu pháp luật, phòng chống lừa đảo/an ninh mạng (dòng 77–79) được xếp vào 3.1 (10đ)."
+    exclusion_rules:
+      - "Cuộc thi học thuật/lập trình/chuyên ngành/ngoại ngữ học thuật → mục 1.6."
+      - "Ngày hội sức khỏe thể chất cấp giấy chứng nhận ('Thanh niên khỏe', 'Hcmus Run', 'Thử thách bứt phá') → mục 3.2."
+      - "Sự kiện được huy động lực lượng cổ vũ/tham dự ('Giải Bóng đá Futsal... Huy động lực lượng', dòng 93) → mục 3.3."
+      - "Các cuộc thi/quiz trực tuyến do Đoàn khoa / LCH / KHXHNV tổ chức (vd 'Nghị quyết 57' dòng 102, 'Cultural Quintessence 4' dòng 105, 'Theo dấu chân Người' dòng 111, 'Nội quy trong tầm tay' dòng 116, 'phòng chống ma túy' dòng 122, 'Không gian mạng an toàn' dòng 125) thực tế đang nằm ở mục 3.5 (5đ) — ranh giới 3.1 cấp khoa vs 3.5 hiện còn mở (Q10), nếu thiếu thông tin cấp/đơn vị cần gắn NEEDS_REVIEW."
+      - "Hoạt động bên lề đồng hành cùng hội thi (dòng 128) → mục 3.5."
+    confusable_with:
+      - {item: C3.hoat_dong_cap_lop, reason: "Chồng lấn mạnh tại các cuộc thi/quiz trực tuyến cùng chủ đề (Nghị quyết 57, văn hóa quốc tế, nội quy, pháp luật, an ninh mạng): CTSV/HSV (10đ → 3.1) vs ĐK/LCH/KHXHNV (5đ → 3.5) và 1 ca LCH ĐC ở 3.1 (5đ, dòng 82)"}
+      - {item: C4.tuyen_truyen_phap_luat, reason: "Cuộc thi tìm hiểu pháp luật & an ninh mạng của CTSV (dòng 78–79) nằm ở 3.1 (10đ), không nằm ở 4.6"}
+      - {item: C3.chung_nhan_the_luc, reason: "Giải chạy/Thử thách sức khỏe cấp chứng nhận (3.2) vs giải thi đấu thể thao (3.1)"}
+      - {item: C1.cuoc_thi_hoc_thuat, reason: "Cuộc thi chuyên môn/STEM/tiếng Anh (1.6) vs chính trị/văn hóa/pháp luật/thể thao (3.1)"}
+    uncertain:
+      - "Chỉ 7 dòng; mức 5 (cấp khoa) có đúng 1 dòng (dòng 82, LCH ĐC), mức 10 có 6 dòng (dòng 76–81)."
+      - "Ít nhất 11 cuộc thi/quiz/thử thách trực tuyến cấp khoa hoặc KHXHNV (dòng 100–102, 105, 107–108, 111, 115–116, 122, 125) nằm ở mục 3.5 (5đ) thay vì 3.1 (cấp khoa 5đ) → trùng điểm 5 nhưng khác mã mục (Q10)."
+      - "Cuộc thi pháp luật / phòng chống lừa đảo / an ninh mạng do CTSV tổ chức được xếp vào 3.1 (10đ), không phải 4.6 (Q14)."
+    variant_by: level
+    min_level: khoa
+    points:
+      participant: {truong_tro_len: 10, khoa: 5}
+    unit: per_item                   # điểm/cuộc thi
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    level_evidence:                  # từ danh sách trường
+      truong_tro_len: {rows: 6, points: 10, organizers: ["CTSV", "HSV", "(trống)"]}
+      khoa: {rows: 1, points: 5, organizers: ["LCH ĐC"]}
+    conditions: ["Hoàn tất vòng đầu tiên của cuộc thi"]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Cuộc thi Vinh quang dưới cờ Đảng"
+      - "Cuộc thi trực tuyến \"HCMUS: Unlock the Rules\" 2026"
+      - "Cuộc thi trực tuyến \"Sinh viên Trường Đại học Khoa học tự nhiên tìm hiểu pháp luật\""
+      - "Cuộc thi tuyên truyền phòng chống lừa đảo trực tuyến, đảm bảo an toàn, an ninh mạng \"Không một mình – Cùng nhau an toàn trực tuyến\""
+      - "Hội thi Tìm hiểu nghị quyết số 57 - NQ - TW"
+      - "International culture challenge"
+      - "Cuộc thi Một dải non sông - 80 năm độc lập"
+    keywords: ["hội thi", "cuộc thi trực tuyến", "tìm hiểu pháp luật", "tìm hiểu nghị quyết", "an toàn thông tin", "an ninh mạng", "lừa đảo trực tuyến", "tư tưởng hồ chí minh", "mác-lênin", "lịch sử", "văn hóa", "văn nghệ", "hội thao", "giải bóng", "giải cờ", "cuộc thi thể thao"]
+
+  C3.chung_nhan_the_luc:
+    ref: "3.2"
+    group: C3
+    tieu_chi: TC5
+    name: "Nhận được giấy chứng nhận danh hiệu về sức khỏe thể chất trong các ngày hội thể dục thể thao (giải chạy bộ, thử thách sức khỏe, danh hiệu Thanh niên khỏe,…)"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 6
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"Tham gia": 5, "(trống)": 1}
+      organizers: {"LCH HH": 2, "CLB SV5T": 1, "LCH CNTT": 1, "LCH VL-VLKT": 1, "ĐTN": 1}
+      csv_rows: "86..91"
+    scope_note: "Các chương trình đạt danh hiệu/chứng nhận sức khỏe thể chất ('Thanh niên khỏe', 'Thử thách bứt phá', 'Hcmus Run')."
+    inclusion_rules:
+      - "Ngày hội thể dục thể thao, giải chạy bộ, thử thách thể lực/chỉ tiêu 'Thanh niên khỏe' cấp giấy chứng nhận."
+    exclusion_rules:
+      - "Giải thi đấu thể thao đối kháng/hội thao (bóng đá, cầu lông, cờ...) → mục 3.1 (hoặc 3.3 nếu là đi cổ vũ/huy động lực lượng như Futsal dòng 93)."
+      - "Giải chạy có tính chất gây quỹ từ thiện → cần xét thêm 4.5 (cặp dễ nhầm -> NEEDS_REVIEW nếu mập mờ)."
+    confusable_with:
+      - {item: C3.cuoc_thi_ct_vhvn_tdtt, reason: "Chứng nhận thể lực/chạy bộ (3.2) vs giải đấu thể thao (3.1)"}
+      - {item: C4.quyen_gop, reason: "Giải chạy kết hợp gây quỹ từ thiện"}
+    uncertain:
+      - "6 dòng cùng một họ sự kiện (Thanh niên khỏe, Hcmus Run, Thử thách bứt phá); chưa thấy loại 'giải thưởng TDTT' khác."
+      - "Chưa rõ BTC của Hcmus Run / Thanh niên khỏe có chuyển sang 3.14 hay không (chưa có dòng 3.14 tương ứng trong CSV)."
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Giấy chứng nhận danh hiệu về sức khỏe thể chất"]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Thanh niên khoẻ"
+      - "Thử thách bứt phá"
+      - "Thanh niên khỏe"
+      - "Thanh niên khỏe - đợt 2"
+      - "Thanh niên khỏe 2025"
+      - "Hcmus Run 2026"
+    keywords: ["thanh niên khỏe", "thanh niên khoẻ", "hcmus run", "giải chạy", "chạy bộ", "thử thách bứt phá", "thử thách sức khỏe", "ngày hội thể dục thể thao", "sức khỏe thể chất"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C3.huy_dong_luc_luong:
+    ref: "3.3"
+    group: C3
+    tieu_chi: TC5
+    name: "Tham gia các đợt huy động lực lượng cấp Trường, cấp Khoa"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 3
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"Huy động lực lượng": 3}
+      organizers: {"CNTT": 1, "CTSV": 1, "U-Sci Hub": 1}
+      csv_rows: [92, 93, 94]
+    scope_note: "Nhận diện bằng việc bài đăng/thông báo CÓ huy động sinh viên tham dự/cổ vũ/hỗ trợ (vai trò 'Huy động lực lượng'), không phải bằng loại sự kiện."
+    inclusion_rules:
+      - "Bài đăng hoặc đợt phân công có dấu hiệu 'huy động lực lượng', 'huy động sinh viên', 'triệu tập tham dự/cổ vũ' cho lễ, giải đấu, chương trình của Trường/Khoa."
+    exclusion_rules:
+      - "Nếu KHÔNG có huy động lực lượng: văn nghệ/lễ kỷ niệm rơi vào 3.5, giải thi đấu rơi vào 3.1, chuyên đề học thuật/dự án rơi vào 1.9 (vd cùng dự án HCMUS Future Leaders: chuyên đề ở dòng 55 thuộc 1.9, còn lễ tổng kết huy động ở dòng 94 thuộc 3.3)."
+      - "Hoạt động lao động tình nguyện vì cộng đồng → mục 4.3 (vd 'Tình nguyện hỗ trợ Đón Tân Sinh viên' dòng 137 thuộc 4.3)."
+    confusable_with:
+      - {item: C3.hoat_dong_cap_lop, reason: "Sự kiện văn nghệ/lễ nếu không có tín hiệu huy động lực lượng thường thuộc 3.5"}
+      - {item: C1.sinh_hoat_hoc_thuat, reason: "Cùng 'HCMUS Future Leaders': dòng 55 (1.9) vs dòng 94 (3.3)"}
+      - {item: C4.tinh_nguyen, reason: "Huy động hỗ trợ/tham dự lễ của Trường (3.3) vs tình nguyện cộng đồng (4.3)"}
+    uncertain:
+      - "3 dòng, cả 3 có vai trò 'Huy động lực lượng': mục này được xác định bởi việc sự kiện CÓ huy động sinh viên, không phải loại sự kiện (Futsal, lễ tổng kết, Let IT Shine)."
+      - "Dòng 94 do 'U-Sci Hub' tổ chức (cấp trong organizers là null) dù quy chế ghi min_level: khoa (Q16)."
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 5}}
+    role_alias: {mobilized: participant}
+    unit: per_activity
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Let IT Shine 2025"
+      - "Giải Bóng đá Futsal sinh viên ĐHQG - HCM năm 2025 - Trận nam ngày 08 - 11"
+      - "Lễ Tổng kết Khóa học thử nghiệm Đợt 1 – Dự án \"HCMUS Future Leaders\""
+    keywords: ["huy động lực lượng", "huy động sinh viên", "lực lượng hỗ trợ", "kêu gọi sinh viên tham gia hỗ trợ", "cổ vũ theo phân công"]
+
+  C3.clb_so_thich_doi_nhom:
+    ref: "3.4"
+    group: C3
+    tieu_chi: TC5
+    name: "Thành viên tích cực và sinh hoạt thường xuyên của một Câu lạc bộ sở thích cấp khoa trở lên; thành viên đội, nhóm được phân công giữ gìn an ninh, trật tự, nâng cao ý thức chấp hành nội quy, quy chế trong nhà trường"
+    kind: membership
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    scope_note: "Tư cách thành viên tích cực CLB sở thích hoặc đội/nhóm an ninh trật tự (không phải sự kiện đơn lẻ; CLB học thuật thuộc 1.8)."
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: none
+    min_level: khoa
+    points: {self: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Xác nhận của cấp quản lý Câu lạc bộ, đội, nhóm"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C3.hoat_dong_cap_lop:
+    ref: "3.5"
+    group: C3
+    tieu_chi: TC5
+    name: "Tham gia các hoạt động phong trào cấp Lớp, Khoa, Trường"
+    name_quy_che_2020: "Tham gia các hoạt động cấp lớp"
+    id_note: "Giữ id cũ (C3.hoat_dong_cap_lop) để không phá tham chiếu; nghĩa thực tế đã mở rộng theo danh sách trường 2025–26."
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 37
+      support: strong          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"Tham gia": 25, "(trống)": 12}
+      organizers: {"ĐTN": 6, "ĐK CNTT": 4, "ĐK HH": 4, "ĐK SH-CNSH": 4, "ĐK TTH": 4, "KHXHNV": 3, "CLB LLT": 2, "CNTT": 2, "LCH CNTT": 2, "LCH TTH": 2, "CTSV": 1, "LCH HH": 1, "LCH SH-CNSH": 1, "LCH ĐC": 1}
+      csv_rows: "95..131"
+    scope_note: "Hoạt động phong trào Đoàn–Hội và sinh hoạt chính trị–xã hội cấp Lớp, Khoa, Trường (mức phẳng 5đ), gồm: (1) chào mừng/kỷ niệm/hưởng ứng/khai giảng/hoạt động bên lề; (2) Đại hội chi Đoàn/chi Hội và lớp học tập Lý luận chính trị; (3) workshop/talkshow phi học thuật (thủ công, kết nối, quản lý cảm xúc); (4) các cuộc thi/quiz trực tuyến cấp khoa hoặc phong trào của Đoàn khoa/LCH/KHXHNV."
+    inclusion_rules:
+      - "Sinh hoạt lớp, Đại hội chi Đoàn/chi Hội (vai trò Tham gia), học tập/lớp bài Lý luận chính trị, lễ khai giảng, hoạt động hưởng ứng/kỷ niệm ngày lễ (20/11, 08/03, 01/05, 03/03, Ngày Pháp luật, 30 năm Hội/Đoàn, 96 năm thành lập Đảng)."
+      - "Talkshow/workshop phi học thuật về kỹ năng cảm xúc, thủ công, giao lưu kết nối ('Talkshow inside us', 'Workshop Jewels of Joy', 'Workshop Uốn sắc màu, Vẽ yêu thương', 'Tọa đàm... Nghệ thuật quản lý cảm xúc', 'Let's connect', 'Itogether')."
+      - "Cuộc thi trắc nghiệm trực tuyến/phong trào cấp khoa do ĐK/LCH/KHXHNV tổ chức (chính trị, tư tưởng HCM, văn hóa, nội quy, pháp luật, phòng chống ma túy, không gian mạng an toàn), và 'Ngày Chủ nhật xanh giai đoạn 1' (dòng 119)."
+    exclusion_rules:
+      - "Nếu là Ban tổ chức Đại hội chi Đoàn (dòng 84–85) → mục 3.14 thông qua `role_items`."
+      - "Nếu là seminar/workshop chuyên môn, AI/IT, NCKH, ôn tập thi, ngoại ngữ học thuật, hướng nghiệp → mục 1.9."
+      - "Nếu là cuộc thi chính trị/pháp luật/văn hóa/an ninh mạng cấp trường trở lên (CTSV, HSV) hoặc cuộc thi truyền thống 3.1 → mục 3.1 (10đ)."
+      - "Nếu là tuần sinh hoạt công dân đầu khóa/đầu năm/cuối khóa → mục 6.4 (bắt buộc, không cộng điểm)."
+      - "Nếu có huy động lực lượng tham dự (vai trò Huy động lực lượng) → mục 3.3."
+      - "Nếu là tiệc/liên hoan cá nhân hoặc quảng cáo thương mại ngoài trường → NONE (chú ý: 'Tất niên cán bộ' gắn lễ kỷ niệm 96 năm thành lập Đảng của ĐTN ở dòng 127 vẫn thuộc 3.5)."
+    confusable_with:
+      - {item: C3.cuoc_thi_ct_vhvn_tdtt, reason: "Quiz/cuộc thi trực tuyến cấp khoa (Nghị quyết 57, Cultural Quintessence, Nội quy, Pháp luật, Không gian mạng) nằm ở 3.5 (5đ) trong CSV, dễ lẫn với 3.1"}
+      - {item: C1.sinh_hoat_hoc_thuat, reason: "Workshop/Tọa đàm/Tham quan phi học thuật (3.5) vs học thuật/nghề nghiệp (1.9)"}
+      - {item: C3.btc_ctv_hoat_dong, reason: "Đại hội chi Đoàn xuất hiện ở cả 3.5 (Tham gia, dòng 113/121) và 3.14 (Ban tổ chức, dòng 84/85)"}
+      - {item: C4.tinh_nguyen, reason: "'Ngày Chủ nhật xanh giai đoạn 1' (dòng 119) nằm ở 3.5 thay vì tình nguyện 4.3"}
+      - {item: C4.tuyen_truyen_phap_luat, reason: "Các hoạt động ngày pháp luật/phòng chống ma túy cấp khoa (dòng 120, 122, 124) nằm ở 3.5 thay vì 4.6"}
+      - {item: P.sinh_hoat_cong_dan, reason: "'Học tập Lý luận chính trị' (3.5) khác với 'Tuần sinh hoạt công dân' (6.4)"}
+    uncertain:
+      - "Danh sách trường ghi 'hoạt động phong trào cấp Lớp, Khoa, Trường' (khác QĐ 2020: 'hoạt động cấp lớp') — mục lớn nhất (37 dòng) và đa dạng nhất."
+      - "Bao gồm cả cuộc thi/quiz cấp khoa, talkshow/workshop phi học thuật, kỷ niệm/chào mừng, Đại hội chi Đoàn (tham gia), khai giảng, học lý luận chính trị, Ngày Chủ nhật xanh."
+      - "Mọi dòng đều 5 điểm bất kể cấp (khoa, trường) → điểm phẳng; cần xác nhận ranh giới chính thức với 3.1, 1.9, 4.3, 4.6 (Q10, Q14, Q20)."
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    evidence: []              # danh sách trường không nêu; quy chế 2020 yêu cầu xác nhận BCS lớp/BCH Chi đoàn, Chi hội
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Talkshow inside us"
+      - "Workshop Jewels of Joy"
+      - "Workshop Uốn sắc màu, Vẽ yêu thương"
+      - "Chương trình Kết nối, Tham quan \"Let's connect\""
+      - "Tọa đàm Hành trang sinh viên năm Nhất - Nghệ thuật quản lý cảm xúc tại môi trường Đại học"
+      - "Chào mừng ngày nhà giáo Việt Nam 20 - 11"
+      - "Cuộc thi tìm hiểu về ngày Quốc tế lao động 01_05"
+      - "Cuộc thi trắc nghiệm trực tuyến Tìm hiểu Nghị quyết 57 - NQ/TW về đột phá phát triển khoa học, công nghệ, đổi mới sáng tạo và chuyển đổi số quốc gia"
+      - "Cuộc thi Tìm hiểu văn hóa Quốc tế Cultural Quintessence 4"
+      - "Quiz Master Nội quy trong tầm tay"
+      - "Cuộc thi Tìm hiểu pháp luật về phòng chống ma túy"
+      - "Thử thách trực tuyến - Không gian mạng an toàn - Ứng xử văn minh"
+      - "Ngày Chủ nhật xanh giai đoạn 1"
+      - "Đại hội chi Đoàn"
+      - "Khai giảng năm học 2025 - 2026"
+      - "Học tập Lý luận chính trị"
+      - "Cuộc thi trắc nghiệm trực tuyến Theo dấu chân Người"
+      - "Hoạt động TOGETHER ASEAN cùng nhau tìm hiểu văn hóa Đông Nam Á"
+    keywords: ["hoạt động phong trào", "sinh hoạt lớp", "hoạt động lớp", "chi đoàn", "chi hội", "đại hội chi đoàn", "đại hội chi hội", "chào mừng", "kỷ niệm", "hưởng ứng", "lý luận chính trị", "khai giảng", "chủ nhật xanh", "ngày pháp luật", "trắc nghiệm trực tuyến", "quản lý cảm xúc", "ban cán sự lớp"]
+
+  C3.doi_tuyen_cap_truong:
+    ref: "3.6"
+    group: C3
+    tieu_chi: TC5
+    name: "Là thành viên đội tuyển cấp trường hoặc cấp cao hơn của một cuộc thi/chương trình bất kỳ có quy mô tham dự từ 4 đội tuyển trở lên"
+    kind: achievement
+    event_matchable: true            # thông báo tuyển thành viên đội tuyển
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    scope_note: "Thông báo tuyển chọn/lập đội tuyển chính thức cấp Trường trở lên (≥4 đội tham dự); điểm chỉ tính khi được chọn vào đội tuyển."
+    exclusion_rules:
+      - "Vòng thi thử/thi chọn đội tuyển xét dưới góc độ tham gia cuộc thi học thuật cấp khoa/trường ('Thi chọn đội tuyển Olympic Toán...', dòng 16–17) hiện được ghi ở mục 1.6 (5đ)."
+      - "Thành tích đội tuyển ICPC cấp vùng/quốc gia/châu Á (dòng 152) được ghi ở mục 5.3 (15đ)."
+    confusable_with:
+      - {item: C1.cuoc_thi_hoc_thuat, reason: "Vòng thi chọn đội tuyển Olympic Toán nằm ở 1.6 (5đ)"}
+      - {item: C5.doi_tuyen_giai_thuong_cap_thanh, reason: "Đội tuyển ICPC nằm ở 5.3 (15đ), trùng mức 15đ với 3.6"}
+    uncertain:
+      - "Không có dòng nào; 'Đội tuyển ICPC' lại nằm ở 5.3 và 'Thi chọn đội tuyển Olympic Toán' nằm ở 1.6 (Q15, Q19)."
+    points_condition: selection_or_completion
+    variant_by: none
+    min_level: truong
+    points: {participant: {any: 15}}
+    unit: per_activity
+    repeatable: true
+    conditions: ["Cuộc thi/chương trình có quy mô tham dự từ 4 đội tuyển trở lên"]
+    anchors_status: draft
+    anchors:
+      - "Tuyển chọn thành viên đội tuyển Trường tham dự cuộc thi cấp thành phố"
+      - "Thông báo tuyển đội tuyển bóng chuyền của Trường"
+      - "Tuyển đội tuyển Olympic của Trường"
+    keywords: ["đội tuyển trường", "tuyển chọn đội tuyển", "đại diện trường tham dự"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C3.khong_vi_pham_te_nan:
+    ref: "3.7"
+    group: C3
+    tieu_chi: TC6
+    name: "Không có hành vi vi phạm hoặc che giấu các tệ nạn xã hội"
+    name_school_2025: "Tham gia phòng chống tội phạm và các tệ nạn xã hội"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [10]
+      roles_seen: {"(trống)": 1}
+      organizers: {"(trống)": 1}
+      csv_rows: [132]
+      evidence_examples:
+        - {csv_row: 132, title: "Tham gia phòng chống tội phạm và các tệ nạn xã hội", organizer: null, role: null, points: 10}
+    user_confirmed_note: "Giữ nguyên nhãn 3.7 đã được người dùng xác nhận dưới dạng mục tuân thủ (assumed_default, +10đ theo D1), không tự động biến thành nhãn sự kiện."
+    scope_note: "Mục tuân thủ thuộc TC6 (giữ nguyên nhãn 3.7 đã xác nhận). Không dùng cho các cuộc thi trực tuyến về pháp luật/ma túy/an ninh mạng (thuộc 3.1 hoặc 3.5)."
+    uncertain:
+      - "Tên hoạt động trong danh sách (dòng 132) là 'Tham gia phòng chống tội phạm và các tệ nạn xã hội', khác cách diễn đạt 'Không có hành vi vi phạm hoặc che giấu...' trong QĐ 2020 (cột Tieu_Chi_Quy_Che vẫn ghi lời văn tuân thủ 2020) — giữ assumed_default và chờ xác nhận bổ sung (Q21)."
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 10
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: flat
+    repeatable: false
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Tham gia phòng chống tội phạm và các tệ nạn xã hội"
+
+  C3.tu_van_tuyen_sinh_viec_lam:
+    ref: "3.8"
+    group: C3
+    tieu_chi: TC7
+    name: "Tham gia các đợt hoạt động tư vấn tuyển sinh, Ngày hội việc làm từ cấp Khoa trở lên"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 2
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"Tham gia": 1, "(trống)": 1}
+      organizers: {"CNTT": 1, "SH-CNSH": 1}
+      csv_rows: [133, 134]
+      evidence_examples:
+        - {csv_row: 133, title: "Ngày hội việc làm khoa CNTT", organizer: "CNTT", role: "Tham gia", points: 5}
+        - {csv_row: 134, title: "Ngày hội việc làm My Jobs năm 2026", organizer: "SH-CNSH", role: null, points: 5}
+    scope_note: "Ngày hội việc làm (Job Fair) và đợt hoạt động tư vấn tuyển sinh từ cấp Khoa trở lên."
+    inclusion_rules:
+      - "Ngày hội việc làm cấp Khoa/Trường, ngày hội kết nối tuyển dụng/nghề nghiệp, đợt tư vấn tuyển sinh/Open Day."
+    exclusion_rules:
+      - "Talkshow/chuyên đề hướng nghiệp đơn lẻ hoặc tham quan doanh nghiệp ('Người trong nghề', 'Tham quan công ty VNG') → mục 1.9."
+      - "Tin rao tuyển dụng việc làm part-time thương mại không thuộc đợt hoạt động của Khoa/Trường → NONE."
+    confusable_with:
+      - {item: C1.sinh_hoat_hoc_thuat, reason: "Job Fair (3.8) vs hội thảo hướng nghiệp / tham quan công ty (1.9)"}
+    uncertain:
+      - "Chỉ 2 dòng, cùng 5 điểm; đều là 'Ngày hội việc làm', chưa có dòng 'Tư vấn tuyển sinh' trong CSV."
+    variant_by: none
+    min_level: khoa
+    points: {participant: {any: 5}}
+    unit: per_round                  # điểm/đợt hoạt động
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: verified_partial
+    verified_anchors:
+      - "Ngày hội việc làm khoa CNTT"
+      - "Ngày hội việc làm My Jobs năm 2026"
+    draft_anchors:
+      - "Tư vấn tuyển sinh tại trường THPT"
+      - "Ngày hội việc làm của Trường"
+    anchors:
+      - "Ngày hội việc làm khoa CNTT"
+      - "Ngày hội việc làm My Jobs năm 2026"
+    keywords: ["tư vấn tuyển sinh", "ngày hội việc làm", "open day", "ngày hội tuyển sinh", "job fair", "career fair"]
+
+  C3.tim_hieu_lich_su_truong:
+    ref: "3.9"
+    group: C3
+    tieu_chi: TC7
+    name: "Tham gia các cuộc thi, chương trình tìm hiểu về lịch sử phát triển Nhà trường, các tổ chức đoàn thể trong Nhà trường và ĐHQG-HCM"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    scope_note: "Cuộc thi/chương trình chuyên biệt về lịch sử hình thành, truyền thống Nhà trường, Đoàn Thanh niên, Hội Sinh viên, ĐHQG-HCM."
+    exclusion_rules:
+      - "Cuộc thi lịch sử Đảng/Việt Nam/Nghị quyết/văn hóa ('Vinh quang dưới cờ Đảng', 'Một dải non sông') → mục 3.1."
+      - "Chương trình kỷ niệm ngày thành lập/dấu ấn Hội mang tính phong trào ('Hoạt động - 30 năm – Dấu ấn Hội' dòng 109, 'Chương trình kỷ niệm 30 năm hành trình tiếp nối...' dòng 126) thực tế được ghi ở mục 3.5."
+    uncertain:
+      - "Không có dòng nào (Q15); hoạt động kỷ niệm 30 năm của LCH/ĐTN trong CSV nằm ở mục 3.5."
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_activity
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi tìm hiểu lịch sử truyền thống của Trường"
+      - "Chương trình tìm hiểu về Hội Sinh viên Việt Nam"
+      - "Cuộc thi tìm hiểu về Đại học Quốc gia TP.HCM"
+    keywords: ["lịch sử phát triển nhà trường", "truyền thống nhà trường", "tìm hiểu về trường", "tìm hiểu đoàn thanh niên", "tìm hiểu hội sinh viên", "tìm hiểu đhqg"]
+
+  C3.gop_y_van_ban:
+    ref: "3.10"
+    group: C3
+    tieu_chi: TC7
+    name: "Tham gia đóng góp cho các đợt lấy ý kiến về văn bản quy phạm pháp luật các cấp, các văn bản nội bộ, các chương trình đối thoại với lãnh đạo nhằm xây dựng, phát triển Nhà trường và ĐHQG-HCM"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    scope_note: "Đợt lấy ý kiến góp ý dự thảo văn bản pháp luật/quy chế nội bộ hoặc chương trình đối thoại trực tiếp giữa sinh viên và lãnh đạo Trường/ĐHQG."
+    exclusion_rules:
+      - "Khảo sát trải nghiệm học tập, chủ nhiệm lớp, KTX, môn học GDTC... ('Khảo sát ...') → mục 2.3; đánh giá môn học → mục 2.2."
+    confusable_with:
+      - {item: C2.khao_sat_dieu_tra, reason: "Khảo sát ý kiến thường kỳ (2.3) vs góp ý dự thảo văn bản & đối thoại lãnh đạo (3.10)"}
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: none
+    points: {participant: {any: 5}}
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+    role_items: {organizer: C3.btc_ctv_hoat_dong, collaborator: C3.btc_ctv_hoat_dong}
+    anchors_status: draft
+    anchors:
+      - "Lấy ý kiến sinh viên về dự thảo quy chế của Trường"
+      - "Chương trình đối thoại giữa sinh viên và Ban Giám hiệu"
+      - "Góp ý dự thảo văn bản nội bộ của Trường"
+    keywords: ["đối thoại lãnh đạo", "đối thoại ban giám hiệu", "lấy ý kiến dự thảo", "góp ý dự thảo", "góp ý văn bản", "gặp gỡ lãnh đạo"]
+
+  C3.san_pham_truyen_thong:
+    ref: "3.11"
+    group: C3
+    tieu_chi: TC7
+    name: "Là tác giả, đồng tác giả của sản phẩm/dự án truyền thông nhằm giới thiệu, quảng bá hình ảnh về Trường hoặc ĐHQG-HCM, được đăng tải, chia sẻ trên các kênh thông tin chính thống của Nhà trường"
+    kind: achievement
+    event_matchable: true            # cuộc thi/chương trình kêu gọi sản phẩm truyền thông
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    points_condition: selection_or_completion
+    variant_by: none
+    points: {participant: {any: 15}}
+    unit: per_item                   # điểm/dự án
+    repeatable: true
+    conditions: ["Sản phẩm được đăng tải trên kênh thông tin chính thống của Nhà trường"]
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi sáng tạo nội dung quảng bá hình ảnh Trường"
+      - "Cuộc thi làm video giới thiệu về Trường"
+      - "Dự án truyền thông của sinh viên đăng trên fanpage của Trường"
+    keywords: ["quảng bá hình ảnh", "sản phẩm truyền thông", "dự án truyền thông", "video giới thiệu trường", "sáng tạo nội dung"]
+
+  C3.dai_bieu_duoc_tuyen_chon:
+    ref: "3.12"
+    group: C3
+    tieu_chi: TC7
+    name: "Được Nhà trường hoặc ĐHQG-HCM tuyển chọn là đại biểu chính thức tham gia các chương trình giao lưu, trao đổi văn hóa, học thuật trong khu vực và quốc tế"
+    kind: event
+    event_matchable: true
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    exclusion_rules:
+      - "Chương trình quốc tế do cá nhân tự ứng tuyển → mục 3.13."
+      - "Cuộc thi tìm hiểu văn hóa quốc tế trong trường ('International culture challenge', 'Cultural Quintessence 4') → mục 3.1 / 3.5."
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    points_condition: selection_or_completion
+    variant_by: none
+    points: {participant: {any: 15}}
+    unit: per_activity
+    repeatable: true
+    conditions: ["Được Nhà trường hoặc ĐHQG-HCM tuyển chọn là đại biểu chính thức"]
+    anchors_status: draft
+    anchors:
+      - "Tuyển chọn sinh viên tham gia chương trình giao lưu văn hóa quốc tế"
+      - "Chương trình trao đổi sinh viên do Trường cử đi"
+      - "Tuyển đại biểu tham dự chương trình giao lưu học thuật khu vực"
+    keywords: ["giao lưu văn hóa quốc tế", "trao đổi sinh viên", "đại biểu chính thức", "tuyển chọn đại biểu", "giao lưu học thuật khu vực"]
+
+  C3.dai_bieu_tu_ung_tuyen:
+    ref: "3.13"
+    group: C3
+    tieu_chi: TC7
+    name: "Là đại biểu tham gia các chương trình giao lưu, trao đổi văn hóa, học thuật, hội thảo khoa học mang tính quốc tế do cá nhân tự ứng tuyển"
+    kind: event
+    event_matchable: true
+    tier: 2
+    mvp_scope: recommend_apply
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    exclusion_rules:
+      - "Trường hè nội bộ do Khoa tổ chức ('Trường hè \"FIT@HCMUS Summer School on Intelligent Agents and Agentic AI\"', dòng 42) → thuộc mục 1.9."
+      - "Được Nhà trường hoặc ĐHQG-HCM tuyển chọn làm đại biểu chính thức → mục 3.12."
+    confusable_with:
+      - {item: C3.dai_bieu_duoc_tuyen_chon, reason: "Cơ chế tuyển chọn: Trường/ĐHQG cử đi (3.12) vs cá nhân tự ứng tuyển (3.13)"}
+      - {item: C1.sinh_hoat_hoc_thuat, reason: "Summer school nội bộ Khoa/Trường (1.9, dòng 42) vs chương trình quốc tế tự ứng tuyển (3.13)"}
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    points_condition: selection_or_completion
+    variant_by: none
+    points: {participant: {any: 10}}
+    unit: per_activity
+    repeatable: true
+    conditions: ["Cá nhân tự ứng tuyển"]
+    exclusive_with: [C3.dai_bieu_duoc_tuyen_chon]   # hai mục phân biệt theo cách được chọn
+    anchors_status: draft
+    anchors:
+      - "Hội thảo khoa học quốc tế dành cho sinh viên, đăng ký tự do"
+      - "Chương trình giao lưu quốc tế mở đơn ứng tuyển cá nhân"
+      - "Summer school quốc tế cho sinh viên"
+    keywords: ["hội thảo quốc tế", "tự ứng tuyển", "summer school quốc tế", "chương trình quốc tế", "international exchange"]
+
+  C3.btc_ctv_hoat_dong:
+    ref: "3.14"
+    group: C3
+    tieu_chi: TC7
+    name: "Thành viên Ban tổ chức / Cộng tác viên của các hoạt động nêu ở các mục từ 3.1 đến 3.13"
+    kind: role_variant
+    applies_to:
+      - C3.cuoc_thi_ct_vhvn_tdtt
+      - C3.huy_dong_luc_luong
+      - C3.hoat_dong_cap_lop
+      - C3.tu_van_tuyen_sinh_viec_lam
+      - C3.tim_hieu_lich_su_truong
+      - C3.gop_y_van_ban
+    applies_to_note: "Quy chế ghi 'toàn bộ các mục 3.1–3.13'; bổ sung C3.hoat_dong_cap_lop (3.5) theo bằng chứng thực tế dòng 84–85 (Đại hội chi Đoàn). Mục 3.2 (Hcmus Run) và 3.11–3.13 chưa thấy dữ liệu BTC trong CSV."
+    event_matchable: false
+    requires_role_context: true
+    role_context: ["Ban tổ chức", "Cộng tác viên"]
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 3
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"Ban tổ chức": 3}
+      organizers: {"HSV": 1, "ĐK CNTT": 1, "ĐK SH-CNSH": 1}
+      csv_rows: [83, 84, 85]
+      evidence_examples:
+        - {csv_row: 83, title: "Đại hội Đại biểu Hội Sinh viên Việt Nam Trường Đại học Khoa học tự nhiên, ĐHQG - HCM lần thứ XIII, nhiệm kỳ 2025 - 2028", organizer: "HSV", role: "Ban tổ chức", points: 5}
+        - {csv_row: 84, title: "Đại hội chi Đoàn", organizer: "ĐK CNTT", role: "Ban tổ chức", points: 5}
+        - {csv_row: 85, title: "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026", organizer: "ĐK SH-CNSH", role: "Ban tổ chức", points: 5}
+    scope_note: "Biến thể theo vai trò BTC/CTV cho nhóm hoạt động C3 (không phân loại chỉ từ tên hoạt động nếu thiếu xác nhận vai trò BTC/CTV)."
+    uncertain:
+      - "Cả 3 dòng đều 5 điểm, kể cả dòng 83 ('Đại hội Đại biểu Hội Sinh viên Việt Nam Trường … lần thứ XIII', HSV cấp trường) — mâu thuẫn với rubric 2020 (BTC cấp trường trở lên = 10). Giữ nguyên bảng điểm 2020 chờ xác nhận (Q11)."
+      - "Chưa có dòng cộng tác viên."
+    variant_by: level
+    points:
+      organizer:    {truong_tro_len: 10, khoa: 5, lop: 5}
+      collaborator: {truong_tro_len: 5, khoa: 3, lop: 0}   # cấp lớp: quy chế không quy định → tạm 0 điểm (Q6)
+    decisions:
+      - {role: collaborator, level_bucket: lop, points: 0, note: "Quy chế không nêu; người dùng chốt tạm thời không tính điểm (Q6)"}
+    unit: per_activity
+    points_conflict: "Danh sách trường: cả 3 dòng BTC đều 5 điểm, kể cả Đại hội đại biểu Hội Sinh viên cấp trường (dòng 83); rubric giữ 10 cho truong_tro_len chờ xác nhận (Q11)."
+    repeatable: true
+    evidence: ["Xác nhận của Thường trực Ban tổ chức"]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Đại hội Đại biểu Hội Sinh viên Việt Nam Trường Đại học Khoa học tự nhiên, ĐHQG - HCM lần thứ XIII, nhiệm kỳ 2025 - 2028"
+      - "Đại hội chi Đoàn"
+      - "Đại hội chi Đoàn nhiệm kỳ 2025 - 2026"
+
+  # ======================= NHÓM C4 — CỘNG ĐỒNG (tối đa 25) ====================
+  C4.khong_vi_pham_phap_luat:
+    ref: "4.1"
+    group: C4
+    tieu_chi: TC8
+    name: "Không vi phạm pháp luật"
+    kind: compliance
+    event_matchable: false
+    tier: 4
+    mvp_scope: assumed_default
+    verification: none
+    school_data:
+      rows: 2
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [10]
+      roles_seen: {"(trống)": 2}
+      organizers: {"(trống)": 2}
+      csv_rows: [135, 136]
+      evidence_examples:
+        - {csv_row: 135, title: "Chấp hành Luật Bảo hiểm y tế", organizer: null, role: null, points: 10}
+        - {csv_row: 136, title: "Ý thức chấp hành pháp luật", organizer: null, role: null, points: 10}
+    scope_note: "Gồm chấp hành Luật Bảo hiểm y tế và các quy định pháp luật khác (an toàn giao thông…); mục tuân thủ mặc định, không phải sự kiện."
+    uncertain:
+      - "Mục gồm 'Chấp hành Luật Bảo hiểm y tế' (dòng 135) và 'Ý thức chấp hành pháp luật' (dòng 136), cả hai đều ghi 10 điểm: chưa rõ tổng mục 4.1 là 10 hay 20 (Q21)."
+    conditions: ["Gồm chấp hành Luật Bảo hiểm y tế, an toàn giao thông… (danh sách trường)"]
+    reminder_candidates: ["Bảo hiểm y tế"]   # việc cần nhắc để không mất 10 điểm
+    default_assumption:
+      enabled: true              # mặc định coi như KHÔNG vi phạm (quyết định D1)
+      user_can_toggle: true
+      assumed_points: 10
+      ledger_source: assumed_default
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: flat
+    repeatable: false
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Chấp hành Luật Bảo hiểm y tế"
+      - "Ý thức chấp hành pháp luật"
+
+  C4.hien_mau:
+    ref: "4.2"
+    group: C4
+    tieu_chi: TC9
+    name: "Tham gia hiến máu tình nguyện"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    exclusion_rules:
+      - "Tình nguyện viên hỗ trợ tổ chức ngày hội hiến máu nhưng không trực tiếp hiến máu → mục 4.3 hoặc 4.4."
+    uncertain:
+      - "Không có dòng nào: không thấy hiến máu trong danh sách trường → chưa kiểm chứng 4.2 (+10) còn tồn tại và hiến máu được tính ở mục nào (Q14)."
+    variant_by: none
+    points: {participant: {any: 10}}
+    unit: per_activity
+    repeatable: true
+    evidence: ["Giấy chứng nhận hiến máu"]
+    anchors_status: draft
+    anchors:
+      - "Ngày hội hiến máu tình nguyện"
+      - "Chương trình Giọt hồng hiến máu nhân đạo"
+      - "Hiến máu tình nguyện do Hội Sinh viên tổ chức"
+    keywords: ["hiến máu", "giọt hồng", "hiến máu nhân đạo", "ngày hội hiến máu"]
+    notes: "Theo Q5: mỗi hoạt động cộng 1 lần, nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm."
+
+  C4.tinh_nguyen:
+    ref: "4.3"
+    group: C4
+    tieu_chi: TC9
+    name: "Là tình nguyện viên của các hoạt động, chương trình tình nguyện vì cộng đồng từ cấp lớp trở lên (đối với trong Nhà trường) hoặc tổ chức bởi đơn vị có tư cách pháp nhân và hoạt động trong khuôn khổ pháp luật"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 6
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5, 10, 15]
+      roles_seen: {"Tham gia": 4, "(trống)": 2}
+      organizers: {"HSV": 2, "ĐK CNTT": 2, "CTSV": 1, "Thuvien": 1}
+      csv_rows: "137..142"
+    scope_note: "Tình nguyện viên trực tiếp tham gia lao động cộng đồng / hỗ trợ trực tiếp (Mùa hè Xanh, Đón Tân Sinh viên, Hỗ trợ Thư viện, Hạ Xanh Hy Vọng, Trạm tuổi thơ, tiếp nhận quyên góp cho miền Trung). Điểm phụ thuộc thời lượng thực tế (5/10/15)."
+    inclusion_rules:
+      - "Chiến dịch tình nguyện cộng đồng (Mùa hè Xanh, Hạ Xanh Hy Vọng, Trạm tuổi thơ), tình nguyện đón Tân Sinh viên (dòng 137), tình nguyện viên hỗ trợ hoạt động Thư viện (dòng 140)."
+      - "Tình nguyện viên trực tiếp làm công tác tiếp nhận/điều phối hàng quyên góp ('Danh sách tình nguyện viên tiếp nhận quyên góp cho các tỉnh miền Trung', dòng 139 — lưu ý đây là danh sách kết quả)."
+    exclusion_rules:
+      - "Nếu chỉ đóng góp tiền/hiện vật hoặc tham gia gây quỹ ('Quyên góp...', 'Gây quỹ Hoạt động tình nguyện...') → mục 4.5 (3đ)."
+      - "Nếu là Ban tổ chức / Cộng tác viên ('Hạ Xanh Hy Vọng' vai trò Ban tổ chức, dòng 143) → mục 4.4."
+      - "Huy động lực lượng dự lễ/cổ vũ trong trường ('Let IT Shine', 'Futsal', 'HCMUS Future Leaders', dòng 92–94) → mục 3.3."
+      - "'Ngày Chủ nhật xanh giai đoạn 1' (dòng 119, ĐK SH-CNSH) thực tế nằm ở mục 3.5; sinh hoạt thường xuyên tại Thư viện (dòng 28) nằm ở mục 1.8."
+    confusable_with:
+      - {item: C4.quyen_gop, reason: "Dòng 139 ('Danh sách tình nguyện viên tiếp nhận quyên góp...') là 4.3 (5đ) vì làm TNV tiếp nhận; còn dòng 145 ('Gây quỹ Hoạt động tình nguyện...') là 4.5 (3đ)"}
+      - {item: C4.btc_ctv_tinh_nguyen, reason: "'Hạ Xanh Hy Vọng' xuất hiện ở cả 4.3 (Tham gia, dòng 141) và 4.4 (Ban tổ chức, dòng 143)"}
+      - {item: C3.hoat_dong_cap_lop, reason: "'Ngày Chủ nhật xanh giai đoạn 1' (dòng 119) được xếp vào 3.5 thay vì 4.3 (Q20)"}
+      - {item: C1.cau_lac_bo_hoc_thuat, reason: "Cùng đơn vị Thuvien: TNV hỗ trợ Thư viện (dòng 140 → 4.3, 15đ) vs sinh hoạt thường xuyên tại Thư viện (dòng 28 → 1.8, 5đ)"}
+    uncertain:
+      - "Điểm theo thời lượng (5/10/15) khớp rubric nhưng thời lượng thật của từng hoạt động chưa được ghi nhận trong CSV → chỉ kiểm chứng gián tiếp; phân loại là 4.3 không tự suy ra được số giờ làm việc của sinh viên."
+      - "Dòng 139 là 'Danh sách tình nguyện viên...' (dạng kết quả, không phải bài kêu gọi)."
+    variant_by: duration
+    duration_definition: "Thời gian lao động = thời gian thực tế làm việc với cộng đồng thụ hưởng"
+    duration_buckets:
+      lt_24h: "Dưới 24 giờ (ngắn hạn)"
+      "24h_to_lt_1w": "Từ 24 giờ đến dưới 01 tuần (trung hạn)"
+      ge_1w: "Từ 01 tuần trở lên (dài hạn)"
+    points:
+      volunteer: {lt_24h: 5, "24h_to_lt_1w": 10, ge_1w: 15}
+    role_alias: {participant: volunteer}
+    verified_points_examples:        # từ danh sách trường (thời lượng thật chưa ghi nhận)
+      - {csv_row: 138, name: "Chiến dịch Mùa hè Xanh năm 2026", points: 15}
+      - {csv_row: 140, name: "Tình nguyện viên Hỗ trợ hoạt động Thư viện", points: 15}
+      - {csv_row: 137, name: "Tình nguyện hỗ trợ Đón Tân Sinh viên khóa 2026", points: 10}
+      - {csv_row: 141, name: "Hạ Xanh Hy Vọng", points: 5}
+      - {csv_row: 142, name: "Trạm tuổi thơ", points: 5}
+      - {csv_row: 139, name: "Danh sách tình nguyện viên tiếp nhận quyên góp cho các tỉnh miền Trung", points: 5}
+    unit: per_activity
+    repeatable: true
+    role_items: {organizer: C4.btc_ctv_tinh_nguyen, collaborator: C4.btc_ctv_tinh_nguyen}
+    conditions:
+      - "Hoạt động tình nguyện vì cộng đồng từ cấp lớp trở lên (trong Nhà trường), hoặc do tổ chức có tư cách pháp nhân, hoạt động trong khuôn khổ pháp luật"
+      - "Có thời gian lao động thực tế với cộng đồng thụ hưởng"
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Tình nguyện hỗ trợ Đón Tân Sinh viên khóa 2026"
+      - "Chiến dịch Mùa hè Xanh năm 2026"
+      - "Danh sách tình nguyện viên tiếp nhận quyên góp cho các tỉnh miền Trung"
+      - "Tình nguyện viên Hỗ trợ hoạt động Thư viện"
+      - "Hạ Xanh Hy Vọng"
+      - "Trạm tuổi thơ"
+    keywords: ["tình nguyện", "tình nguyện viên", "mùa hè xanh", "xuân tình nguyện", "chiến dịch tình nguyện", "hỗ trợ đón tân sinh viên", "tiếp nhận quyên góp", "thiện nguyện", "vì cộng đồng", "tiếp sức mùa thi"]
+
+  C4.btc_ctv_tinh_nguyen:
+    ref: "4.4"
+    group: C4
+    tieu_chi: TC9
+    name: "Thành viên Ban tổ chức / Cộng tác viên của các hoạt động tình nguyện"
+    kind: role_variant
+    applies_to: [C4.tinh_nguyen]
+    event_matchable: false
+    requires_role_context: true
+    role_context: ["Ban tổ chức", "Cộng tác viên"]
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [5]
+      roles_seen: {"Ban tổ chức": 1}
+      organizers: {"ĐK CNTT": 1}
+      csv_rows: [143]
+      evidence_examples:
+        - {csv_row: 143, title: "Hạ Xanh Hy Vọng", organizer: "ĐK CNTT", role: "Ban tổ chức", points: 5}
+    scope_note: "Biến thể theo vai trò của mục 4.3. Chỉ gán khi có xác nhận vai trò Ban tổ chức / Cộng tác viên."
+    uncertain:
+      - "1 dòng (Ban tổ chức, 5 điểm, cấp khoa)."
+    variant_by: level
+    points:
+      organizer:    {truong_tro_len: 10, khoa: 5, lop: 5}
+      collaborator: {truong_tro_len: 5, khoa: 3, lop: 0}   # cấp lớp: quy chế không quy định → tạm 0 điểm (Q6)
+    decisions:
+      - {role: collaborator, level_bucket: lop, points: 0, note: "Quy chế không nêu; người dùng chốt tạm thời không tính điểm (Q6)"}
+    unit: per_activity
+    repeatable: true
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Hạ Xanh Hy Vọng"
+
+  C4.quyen_gop:
+    ref: "4.5"
+    group: C4
+    tieu_chi: TC9
+    name: "Tham gia các hoạt động quyên góp do các tổ chức, đơn vị trong trường hoặc ngoài trường phát động"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 3
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [3]
+      roles_seen: {"(trống)": 1, "Tham gia": 1, "Gây quỹ": 1}
+      organizers: {"CNTT": 1, "ĐK HH": 1, "ĐK TTH": 1}
+      csv_rows: [144, 145, 146]
+    scope_note: "Đóng góp, quyên góp, gây quỹ từ thiện (3đ/đợt); phân biệt với tình nguyện viên trực tiếp lao động/tiếp nhận quyên góp (mục 4.3)."
+    inclusion_rules:
+      - "Các đợt phát động quyên góp, gây quỹ từ thiện, đóng góp hiện vật/kinh phí cho chương trình tình nguyện (kể cả khi tiêu đề có cụm 'Hoạt động tình nguyện', vd dòng 145)."
+    exclusion_rules:
+      - "Tham gia làm tình nguyện viên trực tiếp tiếp nhận quyên góp hoặc phục vụ chiến dịch cộng đồng → mục 4.3."
+    confusable_with:
+      - {item: C4.tinh_nguyen, reason: "Dòng 145 ('Gây quỹ Hoạt động tình nguyện...') thuộc 4.5 (3đ), còn dòng 139 ('Danh sách tình nguyện viên tiếp nhận quyên góp...') thuộc 4.3 (5đ)"}
+    uncertain:
+      - "Vai trò 'Gây quỹ' (dòng 146) và 'Tham gia' (dòng 145) đều 3 điểm → vai trò không đổi điểm."
+    variant_by: none
+    points: {participant: {any: 3}}
+    role_alias: {fundraiser: participant}
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Quyên góp chương trình Bước chân yêu thương"
+      - "Gây quỹ Hoạt động tình nguyện HOHO DU KÝ Số 05 Ươm mầm tri thức"
+      - "Mầm xanh hy vọng"
+    keywords: ["quyên góp", "gây quỹ", "ủng hộ", "từ thiện", "đồng bào", "quỹ"]
+
+  C4.tuyen_truyen_phap_luat:
+    ref: "4.6"
+    group: C4
+    tieu_chi: TC10
+    name: "Tham gia các cuộc thi, chương trình tuyên truyền về Hiến pháp và các văn bản luật, đẩy lùi tệ nạn, phòng chống dịch bệnh các cấp hoặc do chính quyền, đoàn thể nơi cư trú phát động và tổ chức"
+    kind: event
+    event_matchable: true
+    tier: 1
+    mvp_scope: recommend
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    scope_note: "Theo QĐ 2020 là tuyên truyền Hiến pháp/pháp luật/đẩy lùi tệ nạn/phòng dịch (đặc biệt ở cộng đồng/nơi cư trú). Thực tế trong events_full.csv (0 dòng 4.6), các cuộc thi pháp luật/ma túy/an ninh mạng trong trường lại được xếp vào 3.1 (dòng 78–79) và 3.5 (dòng 120, 122, 124, 125)."
+    exclusion_rules:
+      - "Cảnh báo chồng lấn: cuộc thi tìm hiểu pháp luật/an ninh mạng do CTSV tổ chức → kiểm tra mục 3.1; cuộc thi/ngày pháp luật/phòng chống ma túy của Đoàn khoa → kiểm tra mục 3.5 (cờ NEEDS_REVIEW nếu không rõ đơn vị/cấp — xem Q14)."
+    confusable_with:
+      - {item: C3.cuoc_thi_ct_vhvn_tdtt, reason: "Dòng 78–79 (CTSV pháp luật, an toàn trực tuyến) nằm ở 3.1"}
+      - {item: C3.hoat_dong_cap_lop, reason: "Dòng 120, 122, 124, 125 (ĐK pháp luật, ma túy, không gian mạng) nằm ở 3.5"}
+    uncertain:
+      - "Không có dòng nào; hoạt động tuyên truyền pháp luật/phòng chống tệ nạn trong trường thực tế nằm ở 3.1 (10đ) và 3.5 (cấp khoa, 5đ) — cần xác nhận mục 4.6 còn áp dụng cho hoạt động nơi cư trú hay không (Q14)."
+    variant_by: none
+    points: {participant: {any: 10}}
+    unit: per_activity
+    repeatable: true
+    anchors_status: draft
+    anchors:
+      - "Cuộc thi tìm hiểu Hiến pháp và pháp luật"
+      - "Chương trình tuyên truyền phòng chống ma túy"
+      - "Chiến dịch tuyên truyền phòng chống dịch bệnh"
+      - "Cuộc thi tìm hiểu pháp luật do địa phương phát động"
+    keywords: ["hiến pháp", "tuyên truyền pháp luật", "chính quyền địa phương", "nơi cư trú", "phòng chống dịch bệnh", "đẩy lùi tệ nạn", "an toàn giao thông"]
+
+  C4.ban_can_su_lop:
+    ref: "4.7"
+    group: C4
+    tieu_chi: TC10
+    name: "Được đánh giá hoàn thành tốt nhiệm vụ trở lên đối với vai trò là thành viên Ban cán sự lớp trong năm học"
+    name_school_2025: "Hoàn thành tốt nhiệm vụ Ban cán sự lớp, Cán bộ Đoàn - Hội"
+    kind: status
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 4
+      support: moderate          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [10]
+      roles_seen: {"(trống)": 4}
+      organizers: {"SH-CNSH": 2, "CNTT": 1, "CTSV": 1}
+      csv_rows: [147, 148, 149, 150]
+      evidence_examples:
+        - {csv_row: 147, title: "Ban cán sự hoàn thành tốt nhiệm vụ", organizer: "CNTT", role: null, points: 10}
+        - {csv_row: 148, title: "Ban cán sự lớp hoàn thành tốt nhiệm vụ trở lên", organizer: "CTSV", role: null, points: 10}
+        - {csv_row: 149, title: "Danh sách ban cán sự lớp hoàn thành tốt nhiệm vụ", organizer: "SH-CNSH", role: null, points: 10}
+        - {csv_row: 150, title: "Hoàn thành tốt nhiệm vụ Ban cán sự", organizer: "SH-CNSH", role: null, points: 10}
+    scope_note: "Danh sách kết quả/trạng thái đánh giá hoàn thành tốt nhiệm vụ Ban cán sự lớp (không phải bài đăng sự kiện; khác với 'Hội nghị Tập huấn kỹ năng Ban Cán sự lớp' ở mục 1.9 dòng 45)."
+    exclusion_rules:
+      - "Hội nghị tập huấn kỹ năng cho Ban cán sự lớp (dòng 45) → mục 1.9."
+      - "Không hoàn thành nhiệm vụ Ban cán sự / cán bộ Đoàn-Hội (−5đ) → mục 6.3."
+    uncertain:
+      - "4 dòng; cột Tieu_Chi_Quy_Che trong CSV ghi 'Hoàn thành tốt nhiệm vụ Ban cán sự lớp, Cán bộ Đoàn - Hội' (QĐ 2020 chỉ ghi Ban cán sự lớp, còn 4 tiêu đề thực tế chỉ nhắc Ban cán sự — xem Q20)."
+      - "Các dòng là bài đăng danh sách kết quả, không phải sự kiện."
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester               # + 10 điểm tại học kỳ đánh giá
+    repeatable: false
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Ban cán sự hoàn thành tốt nhiệm vụ"
+      - "Ban cán sự lớp hoàn thành tốt nhiệm vụ trở lên"
+      - "Danh sách ban cán sự lớp hoàn thành tốt nhiệm vụ"
+      - "Hoàn thành tốt nhiệm vụ Ban cán sự"
+
+  C4.doan_vien_dang_vien_xuat_sac:
+    ref: "4.8"
+    group: C4
+    tieu_chi: TC10
+    name: "Được đánh giá phân loại một trong 2 danh hiệu: Đoàn viên hoàn thành xuất sắc nhiệm vụ; Đảng viên hoàn thành tốt nhiệm vụ"
+    kind: status
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester               # + 10 điểm tại học kỳ đánh giá
+    repeatable: false
+
+  # ======================= NHÓM C5 — KHUYẾN KHÍCH (tối đa 30) =================
+  C5.khen_thuong_thanh_tich:
+    ref: "5.1"
+    group: C5
+    tieu_chi: TC11
+    name: "Thành tích xuất sắc trong các kỳ thi, cuộc thi, học tập và rèn luyện; nhận được các hình thức khen thưởng"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [10]
+      roles_seen: {"(trống)": 1}
+      organizers: {"(trống)": 1}
+      csv_rows: [151]
+      evidence_examples:
+        - {csv_row: 151, title: "Thành tích tại Kỳ thi Olympic Tin học Sinh viên HCMUS năm 2025", organizer: null, role: null, points: 10}
+    scope_note: "Thành tích/khen thưởng đạt được sau kỳ thi (result/achievement, không phải bài kêu gọi đăng ký thi 1.6)."
+    exclusion_rules:
+      - "Việc đăng ký/tham gia thi đấu Olympic Tin học (dòng 10) thuộc mục 1.6 (5đ); thành tích đạt được (dòng 151) thuộc 5.1 (10đ) — cần minh chứng giải/giấy khen cá nhân."
+    uncertain:
+      - "1 dòng ('Thành tích tại Kỳ thi Olympic Tin học Sinh viên HCMUS năm 2025', 10đ): không biết thuộc bậc nào trong 6 bậc của rubric (giấy khen Hiệu trưởng hay bằng khen tổ chức đoàn thể đều 10)."
+      - "Chưa rõ mức cộng đồng thời giữa 1.6 (tham gia) và 5.1 (thành tích) (Q19)."
+    variant_by: award_tier
+    points:
+      self:
+        huy_chuong_quoc_te: 20            # HCV/HCB/HCĐ Olympic, kỳ thi học thuật, nghiên cứu cấp quốc tế
+        huy_chuong_quoc_gia: 15           # tương tự, cấp quốc gia
+        bang_khen_giam_doc_dhqg_hoac_ubnd_tinh_tp: 15
+        bang_khen_to_chuc_doan_the: 10
+        giay_khen_hieu_truong: 10
+        giay_khen_doan_the_chinh_quyen_tu_cap_xa: 5
+    unit: per_occurrence             # điểm/lần
+    repeatable: true
+    count_rule: "Chỉ tính một hình thức khen thưởng cao nhất đối với một nội dung khen thưởng"
+    exclusive_with: [C5.giai_thuong_cuoc_thi]
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Thành tích tại Kỳ thi Olympic Tin học Sinh viên HCMUS năm 2025"
+
+  C5.giai_thuong_cuoc_thi:
+    ref: "5.2"
+    group: C5
+    tieu_chi: TC11
+    name: "Đạt giải thưởng trong các cuộc thi, sân chơi từ cấp khoa trở lên"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: award_tier
+    min_level: khoa
+    points:
+      self:
+        vo_dich_dac_biet_nhat: 5          # Giải Vô địch, Giải Đặc biệt, Giải Nhất
+        nhi_ba_khuyen_khich_phu: 3        # Giải Nhì, Ba, Khuyến khích và các giải phụ (nếu có)
+    unit: per_occurrence
+    repeatable: true
+    count_rule: "Chỉ tính giải thưởng cao nhất"
+    exclusive_with: [C5.khen_thuong_thanh_tich]   # không áp dụng các trường hợp tại 5.1
+
+  C5.doi_tuyen_giai_thuong_cap_thanh:
+    ref: "5.3"
+    group: C5
+    tieu_chi: TC11
+    name: "Là thành viên đội tuyển tham dự kỳ thi Olympic / kỳ thi học thuật cấp thành trở lên; là thành viên của nhóm hoặc cá nhân đạt giải thưởng học thuật, sản phẩm nghiên cứu, sáng tạo, ứng dụng, khởi nghiệp từ cấp thành trở lên"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [15]
+      roles_seen: {"(trống)": 1}
+      organizers: {"CNTT": 1}
+      csv_rows: [152]
+      evidence_examples:
+        - {csv_row: 152, title: "Đội tuyển ICPC Bắc, Trung, Nam, Quốc gia, Châu Á", organizer: "CNTT", role: null, points: 15}
+    scope_note: "Thành tích/tư cách thành viên đội tuyển cấp thành trở lên (post-hoc achievement/roster, khác bài tham gia thi đấu 1.6 hoặc thông báo tuyển đội tuyển 3.6)."
+    uncertain:
+      - "1 dòng (dòng 152: Đội tuyển ICPC Bắc, Trung, Nam, Quốc gia, Châu Á, 15đ), khớp rubric; chưa rõ có cộng đồng thời với 1.6 (dòng 9, 11) hoặc chồng lấn với 3.6 hay không (Q19)."
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: per_activity
+    repeatable: true
+    notes: "Đã xác nhận (Q7): 'cấp thành' = cấp thành phố. Theo Q5: mỗi hoạt động cộng 1 lần, tổng bị chặn bởi trần nhóm C5."
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Đội tuyển ICPC Bắc, Trung, Nam, Quốc gia, Châu Á"
+
+  C5.bai_bao_quoc_te:
+    ref: "5.4"
+    group: C5
+    tieu_chi: TC11
+    name: "Là tác giả/đồng tác giả của bài báo khoa học đăng trên tạp chí quốc tế uy tín hoặc hội thảo khoa học cấp quốc tế"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: none
+    points: {self: {any: 25}}
+    unit: per_item                   # điểm/bài tại học kỳ được đăng bài
+    repeatable: true
+    conditions: ["Tính tại học kỳ được đăng bài"]
+
+  C5.bai_bao_quoc_gia:
+    ref: "5.5"
+    group: C5
+    tieu_chi: TC11
+    name: "Là tác giả/đồng tác giả của bài báo đăng trên các tạp chí khoa học trong nước có uy tín hoặc hội thảo khoa học cấp quốc gia"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: none
+    points: {self: {any: 15}}
+    unit: per_item
+    repeatable: true
+    conditions: ["Tính tại học kỳ được đăng bài"]
+
+  C5.giai_thuong_to_chuc:
+    ref: "5.6"
+    group: C5
+    tieu_chi: TC11
+    name: "Đạt giải thưởng do các tổ chức chính phủ, phi chính phủ, tổ chức đa quốc gia (được cấp phép hoạt động tại Việt Nam) trao tặng"
+    kind: achievement
+    event_matchable: false
+    tier: 3
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_item                   # điểm/giải thưởng
+    repeatable: true
+
+  C5.hoc_bong_vuot_kho:
+    ref: "5.7"
+    group: C5
+    tieu_chi: TC12
+    name: "Nhận học bổng do tổ chức có tư cách pháp nhân trao tặng vì tinh thần vượt khó, phấn đấu vươn lên; hoặc không được học bổng nhưng được Hội đồng cấp Khoa thống nhất đề xuất"
+    kind: status
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q15)."
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester               # tại học kỳ được trao tặng học bổng
+    repeatable: false
+
+  C5.mo_coi:
+    ref: "5.8"
+    group: C5
+    tieu_chi: TC13
+    name: "Mồ côi cả cha lẫn mẹ"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (mục nhạy cảm, ngoài phạm vi MVP)."
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 20}}
+    unit: per_semester
+    repeatable: false
+    notes: "Thông tin nhạy cảm do Nhà trường/CTSV xác nhận; hệ thống KHÔNG suy đoán, KHÔNG hỏi và KHÔNG lưu vào hồ sơ người dùng ở dạng nhận diện được."
+
+  C5.khuyet_tat:
+    ref: "5.9"
+    group: C5
+    tieu_chi: TC13
+    name: "Sinh viên khuyết tật, khó khăn trong đi lại và sinh hoạt"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (nhạy cảm)."
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester
+    repeatable: false
+    notes: "Thông tin nhạy cảm — xử lý như mục 5.8."
+
+  C5.ho_ngheo:
+    ref: "5.10"
+    group: C5
+    tieu_chi: TC13
+    name: "Hộ nghèo, hộ cận nghèo được hưởng chính sách theo quy định của Bộ Giáo dục & Đào tạo"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (nhạy cảm)."
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester
+    repeatable: false
+    notes: "Thông tin nhạy cảm — xử lý như mục 5.8."
+
+  C5.mien_giam_hoc_phi:
+    ref: "5.11"
+    group: C5
+    tieu_chi: TC13
+    name: "Được miễn giảm học phí (không bao gồm trường hợp tại 03 nội dung trên)"
+    kind: special_circumstance
+    sensitive: true
+    event_matchable: false
+    tier: 5
+    mvp_scope: out_of_scope
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (nhạy cảm)."
+    auto_recommend: false
+    variant_by: none
+    points: {self: {any: 10}}
+    unit: per_semester
+    repeatable: false
+    exclusive_with: [C5.mo_coi, C5.khuyet_tat, C5.ho_ngheo]
+    notes: "Thông tin nhạy cảm — xử lý như mục 5.8."
+
+  # ======================= NHÓM P — ĐIỂM TRỪ (không giới hạn) =================
+  P.khai_bao_khao_sat:
+    ref: "6.1"
+    group: P
+    name: "Không tham gia hoặc cung cấp thông tin không chính xác các khai báo, điều tra xã hội do Nhà trường yêu cầu"
+    name_school_2025: "Không tham gia đánh giá môn học (Điểm trừ: Vi phạm quy định đánh giá môn học / nội quy nhà trường)"
+    applies_to_items: [C2.danh_gia_mon_hoc]   # theo danh sách trường; liên kết với C2.khao_sat_dieu_tra (2020) chưa được kiểm chứng
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 1
+      support: weak          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+      points_seen: [-5]
+      roles_seen: {"(trống)": 1}
+      organizers: {"(trống)": 1}
+      csv_rows: [153]
+      evidence_examples:
+        - {csv_row: 153, title: "Không tham gia đánh giá môn học", organizer: null, role: null, points: -5}
+    scope_note: "Điểm trừ −5 khi không tham gia đánh giá môn học (theo dòng 153 của danh sách trường); lời văn 2020 là không tham gia/khai báo sai điều tra xã hội."
+    uncertain:
+      - "Trường ghi điểm trừ −5 cho 'Không tham gia đánh giá môn học' (gắn với 2.2), khác lời văn 2020 (khảo sát/điều tra xã hội, gắn với 2.3) (Q13)."
+      - "6.2 đến 6.6 không có dòng nào."
+    variant_by: none
+    points: {self: {any: -5}}
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+    anchors_status: verified_from_school_list
+    anchors:
+      - "Không tham gia đánh giá môn học"
+
+  P.ngoai_tru:
+    ref: "6.2"
+    group: P
+    name: "Không thực hiện khai báo, xác nhận ngoại trú theo quy định"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q13)."
+    variant_by: none
+    points: {self: {any: -15}}
+    unit: per_semester
+    repeatable: false
+
+  P.khong_hoan_thanh_nhiem_vu_can_bo:
+    ref: "6.3"
+    group: P
+    name: "Không hoàn thành nhiệm vụ trong vai trò là Ban cán sự lớp, cán bộ Đoàn thanh niên – Hội Sinh viên các cấp"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q13)."
+    variant_by: none
+    points: {self: {any: -5}}
+    unit: per_occurrence             # điểm/lần
+    repeatable: true
+
+  P.sinh_hoat_cong_dan:
+    ref: "6.4"
+    group: P
+    name: "Không tham gia đầy đủ tuần sinh hoạt công dân đầu khóa, đầu năm học và cuối khóa"
+    kind: mandatory_event
+    event_matchable: true            # sự kiện BẮT BUỘC: tham dự để TRÁNH bị trừ điểm
+    tier: 4
+    mvp_scope: remind
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    exclusion_rules:
+      - "Không nhầm với 'Học tập Lý luận chính trị' / 'Lớp các bài Lý luận chính trị' (dòng 129, 131 → mục 3.5) hay 'Hội nghị Tập huấn kỹ năng Ban Cán sự lớp' (dòng 45 → mục 1.9)."
+    uncertain:
+      - "Không có dòng nào: tuần sinh hoạt công dân không xuất hiện trong danh sách trường (Q13)."
+    mandatory: true
+    variant_by: outcome
+    points:
+      self:
+        khong_tham_gia_du_noi_dung: -20            # không tham gia đủ nội dung theo yêu cầu
+        tham_gia_nhung_khong_thu_hoach_hoac_khong_dat: -10   # tham gia đầy đủ nhưng không làm / làm không đạt bài thu hoạch
+    unit: per_round                  # điểm/đợt
+    repeatable: true
+    notes: "Quy chế KHÔNG cộng điểm cho tuần sinh hoạt công dân; chỉ trừ nếu bỏ lỡ. Nên xử lý là nhắc nhở ưu tiên cao, không phải đề xuất 'kiếm điểm'."
+    anchors_status: draft
+    anchors:
+      - "Tuần sinh hoạt công dân đầu khóa dành cho tân sinh viên"
+      - "Tuần sinh hoạt công dân đầu năm học"
+      - "Tuần sinh hoạt công dân cuối khóa"
+    keywords: ["sinh hoạt công dân", "tuần sinh hoạt công dân", "bài thu hoạch", "sinh hoạt công dân đầu khóa", "sinh hoạt công dân cuối khóa"]
+
+  P.ky_luat_khien_trach:
+    ref: "6.5"
+    group: P
+    name: "Bị kỷ luật ở mức Khiển trách"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q13)."
+    variant_by: none
+    points: {self: {any: -10}}
+    unit: per_semester               # trong học kỳ nhận Quyết định kỷ luật
+    repeatable: false
+
+  P.ky_luat_canh_cao:
+    ref: "6.6"
+    group: P
+    name: "Bị kỷ luật ở mức Cảnh cáo"
+    kind: penalty
+    event_matchable: false
+    tier: 4
+    mvp_scope: track_later
+    verification: none
+    school_data:
+      rows: 0
+      support: none          # strong ≥ 10 dòng | moderate 3–9 | weak 1–2 | none 0
+    uncertain:
+      - "Không có dòng nào (Q13)."
+    variant_by: none
+    points: {self: {any: -20}}
+    unit: per_semester               # trong học kỳ nhận Quyết định kỷ luật
+    repeatable: false
+
+# -----------------------------------------------------------------------------
+# NHÃN ĐẶC BIỆT CHO BỘ PHÂN LOẠI (NGOÀI 51 MỤC TÍNH ĐIỂM)
+# -----------------------------------------------------------------------------
+meta_labels:
+  NONE:
+    aliases: ["NO_MATCH"]
+    name: "Không tính điểm rèn luyện (NONE / NO_MATCH)"
+    is_rubric_criterion: false
+    description: "Sự kiện/bài đăng không thuộc mục nào của Phụ lục: giải trí thuần túy cá nhân, thương mại, quảng cáo, tuyển dụng part-time ngoài trường."
+    school_data:
+      rows: 0
+      support: none
+      note: "events_full.csv chỉ chứa các dòng được ghi nhận ĐRL (không có ví dụ âm cho NONE/NO_MATCH — xem Q17)."
+    inclusion_rules:
+      - "Quảng cáo thương mại, khuyến mãi/voucher/bán vé giải trí, tiệc liên hoan cá nhân ngoài kế hoạch Đoàn–Hội, tin tuyển dụng việc làm thêm ngoài trường, khóa học kỹ năng thương mại của trung tâm bên ngoài."
+    exclusion_rules:
+      - "Cẩn trọng với các từ khóa 'party', 'tất niên', 'liên hoan': 'Watch Party NVIDIA GTC 2026' (dòng 61) thuộc mục 1.9; 'Chương trình kỷ niệm 96 năm thành lập Đảng Cộng sản Hồ Chí Minh và Tất niên cán bộ' (dòng 127) thuộc mục 3.5."
+      - "Tin 'Ngày hội việc làm' do Khoa/Trường tổ chức (dòng 133–134) thuộc mục 3.8, không phải quảng cáo tuyển dụng NONE."
+    anchors_status: draft
+    anchors:
+      - "Tiệc liên hoan cuối năm của lớp"
+      - "Quảng cáo khóa học kỹ năng của trung tâm bên ngoài"
+      - "Khuyến mãi, bán vé sự kiện giải trí thương mại"
+      - "Buổi gặp mặt giao lưu giải trí không nằm trong kế hoạch của Đoàn - Hội"
+    keywords: ["khuyến mãi", "giảm giá", "mua vé", "giá vé", "voucher", "quảng cáo", "tuyển dụng việc làm part-time", "liên hoan tự phát", "tiệc cá nhân"]
+    negative_keywords: ["watch party", "tất niên cán bộ", "ngày hội việc làm", "đoàn thanh niên", "hội sinh viên"]
+
+  NEEDS_REVIEW:
+    name: "Cần kiểm duyệt / Chưa đủ chắc chắn để gán nhãn tự động"
+    is_rubric_criterion: false
+    maps_to_classifier_status: "pending_review"
+    description: "Nhãn định tuyến (routing/gating) khi văn bản có độ tin cậy thấp, khoảng cách top-1 và top-2 hẹp, thiếu ngữ cảnh vai trò/đơn vị/huy động lực lượng, hoặc rơi vào các cặp mục chồng lấn trong dữ liệu trường."
+    school_data:
+      note: "Không phải mục tính điểm trong Module 6; Module 3 đưa vào hàng đợi kiểm duyệt trước khi gán mục ĐRL chính thức."
+    trigger_conditions:
+      - "Độ tin cậy hiệu chỉnh dưới ngưỡng chấp nhận hoặc Stage 1 / Stage 2 xung đột (D-2)."
+      - "Tiêu đề trùng giữa vai trò Tham gia và Ban tổ chức nhưng thiếu thông tin Vai_Tro (1.6 vs 1.7, 3.5 vs 3.14, 4.3 vs 4.4)."
+      - "Thiếu dấu hiệu xác nhận 'Huy động lực lượng' trên sự kiện có thể rơi vào 3.3 vs 3.5 / 1.9 / 3.1."
+      - "Thiếu thông tin cấp tổ chức hoặc đơn vị trên cuộc thi chính trị/pháp luật/văn hóa/an ninh mạng (3.1 vs 3.5 vs 4.6)."
+      - "Workshop/talkshow/chuyên đề/tham quan không rõ tính học thuật-nghề nghiệp (1.9) hay phong trào-cảm xúc-thủ công (3.5)."
+      - "Hoạt động tình nguyện có yếu tố quyên góp/gây quỹ (4.3 vs 4.5) hoặc Chủ nhật xanh (3.5 vs 4.3)."
+      - "Bài đăng dạng kết quả/danh sách/vinh danh ('Danh sách...', 'Thành tích...') thay vì lời kêu gọi tham gia (post_types.result_announcement)."
+    known_confusable_pairs_from_school_data:
+      - [C3.cuoc_thi_ct_vhvn_tdtt, C3.hoat_dong_cap_lop, "3.1 vs 3.5: cuộc thi/quiz trực tuyến cùng chủ đề (Nghị quyết 57, văn hóa quốc tế, nội quy, pháp luật, an ninh mạng)"]
+      - [C1.sinh_hoat_hoc_thuat, C3.hoat_dong_cap_lop, "1.9 vs 3.5: workshop/tọa đàm/tham quan học thuật-nghề nghiệp vs phong trào-cảm xúc-thủ công"]
+      - [C1.cuoc_thi_hoc_thuat, C1.sinh_hoat_hoc_thuat, "1.6 vs 1.9: thi đấu/thi thử/chọn đội tuyển vs hội thảo/Unitour/ôn tập"]
+      - [C3.huy_dong_luc_luong, C3.hoat_dong_cap_lop, "3.3 vs 3.5/1.9: phân biệt qua trạng thái Huy động lực lượng (vd HCMUS Future Leaders)"]
+      - [C4.tinh_nguyen, C4.quyen_gop, "4.3 vs 4.5: tình nguyện viên tiếp nhận quyên góp (dòng 139) vs gây quỹ hoạt động tình nguyện (dòng 145)"]
+      - [C4.tuyen_truyen_phap_luat, C3.cuoc_thi_ct_vhvn_tdtt, "4.6 vs 3.1/3.5: tuyên truyền pháp luật/an ninh mạng trong trường hiện nằm ở 3.1 và 3.5"]
+      - [C1.cuoc_thi_hoc_thuat, C1.btc_cuoc_thi_hoc_thuat, "1.6 vs 1.7 (và 3.5 vs 3.14, 4.3 vs 4.4): trùng tiêu đề khi khác Vai_Tro"]
+
+# -----------------------------------------------------------------------------
+# QUY TẮC CHUNG (Điều 7, Điều 8, Điều 9)
+# -----------------------------------------------------------------------------
+global_rules:
+  classification:                    # Điều 7
+    - {label: xuat_sac, name: "Xuất sắc", from: 90, to: 100}
+    - {label: tot, name: "Tốt", from: 80, to: 89}
+    - {label: kha, name: "Khá", from: 65, to: 79}
+    - {label: trung_binh, name: "Trung bình", from: 50, to: 64}
+    - {label: yeu, name: "Yếu", from: 35, to: 49}
+    - {label: kem, name: "Kém", from: null, to: 35, to_inclusive: false}
+  classification_note: "Quy chế dùng các khoảng nguyên (vd 80–89, 65–79); cách xếp loại điểm không nguyên (vd 89,5) cần CTSV xác nhận."
+  discipline_effects:                # Điều 8.1–8.4
+    khien_trach: {max_classification: kha, note: "Trong thời gian bị kỷ luật khiển trách, kết quả không vượt quá loại Khá"}
+    canh_cao: {max_classification: trung_binh, note: "Trong thời gian bị kỷ luật cảnh cáo, kết quả không vượt quá loại Trung bình"}
+    dinh_chi_hoc_tap: {evaluated: false, note: "Không đánh giá trong thời gian bị đình chỉ"}
+    buoc_thoi_hoc: {evaluated: false}
+  special_cases:                     # Điều 8.5–8.9
+    nghi_hoc_tam_thoi_hoac_khong_dang_ky_hoc_phan: {fixed_score: 50, classification: trung_binh}
+    hai_chuong_trinh: "Đánh giá tại đơn vị quản lý chương trình thứ nhất, lấy nhận xét đơn vị thứ hai làm căn cứ"
+    chuyen_truong: "Được bảo lưu kết quả rèn luyện nếu được Hiệu trưởng hai cơ sở đồng ý"
+    tot_nghiep_tre_tien_do: "Không vi phạm pháp luật/không bị kỷ luật thì không áp điểm trừ trong học kỳ trễ tiến độ; chưa đủ điều kiện tốt nghiệp thì không đánh giá"
+    uu_tien_hoan_canh_dac_biet: "Sinh viên khuyết tật/mồ côi/hoàn cảnh đặc biệt khó khăn có xác nhận của địa phương được ưu tiên, khuyến khích, cộng điểm"
+    truong_hop_khac: "Hội đồng đánh giá cấp Trường xem xét và quyết định (Điều 8.12)"
+  course_level_bonuses:              # Điều 8.10–8.11: cộng vào điểm toàn khóa, KHÔNG vào điểm học kỳ
+    thu_khoa_dau_ra: {points: 10, scope: toan_khoa, condition: "Không vi phạm kỷ luật trong toàn bộ quá trình học"}
+    giai_quoc_gia_tro_len: {points: 5, scope: toan_khoa, condition: "Đạt giải kỳ thi cấp Quốc gia trở lên và không vi phạm nội quy, quy chế hoặc bị kỷ luật trong toàn bộ quá trình học"}
+  process:                           # Điều 9 — hữu ích cho Module 5 (nhắc việc)
+    sinh_vien_tu_danh_gia: "Mỗi học kỳ, sinh viên tự đánh giá theo Phụ lục"
+    don_vi_cap_nhat: "Cuối mỗi tháng và cuối mỗi học kỳ, Khoa/Đoàn thanh niên/Hội Sinh viên cập nhật thành tích và danh sách tham gia"
+    phan_hoi_trong_ngay: 15          # kể từ khi CTSV công bố kết quả dự kiến qua email sinh viên
+    cong_bo_chinh_thuc: "Qua email sinh viên và hệ thống theo dõi điểm rèn luyện"
+
+# -----------------------------------------------------------------------------
+# CÁC CÂU HỎI ĐÃ ĐƯỢC TRẢ LỜI (để truy vết quyết định)
+# -----------------------------------------------------------------------------
+resolved_questions:
+  - {id: Q1, topic: "Hiệu lực văn bản", answer: "Quy chế đã hết hiệu lực nhưng dùng làm cơ sở cho MVP đồ án", applied_in: "meta.validity"}
+  - {id: Q2, topic: "Điểm sàn học kỳ", answer: "Điểm trừ không giới hạn; điểm học kỳ thấp nhất là 0", applied_in: "scoring.floor, scoring.formula"}
+  - {id: Q3, topic: "Thứ tự áp trần và điểm trừ", answer: "Áp trần từng nhóm trước, sau đó mới trừ điểm", applied_in: "scoring.formula_status"}
+  - {id: Q4, topic: "Mục 1.2 / 1.3", answer: "1.2 là ĐTB học kỳ; 1.3 là xếp loại học tập", applied_in: "C1.diem_trung_binh_hoc_ky, C1.giu_xep_loai_xuat_sac", status: "SUPERSEDED một phần — danh sách trường ghi 1.2 là ĐTB tích lũy (xem Q12)"}
+  - {id: Q5, topic: "Mục không ghi đơn vị", answer: "Mỗi hoạt động cộng 1 lần; nhiều hoạt động được nhưng tổng bị chặn bởi trần nhóm lớn", applied_in: "scoring.repeat_rule; mục 3.2, 3.4, 3.6, 4.2, 5.3"}
+  - {id: Q6, topic: "Cộng tác viên cấp lớp", answer: "Tạm thời không tính điểm (0)", applied_in: "C3.btc_ctv_hoat_dong, C4.btc_ctv_tinh_nguyen"}
+  - {id: Q7, topic: "Mục 5.3 'cấp thành'", answer: "Đúng, là cấp thành phố", applied_in: "C5.doi_tuyen_giai_thuong_cap_thanh"}
+  - {id: Q4b, topic: "Mục 1.4", answer: "Dùng ĐTB học kỳ (như mục 1.2)", applied_in: "C1.tang_diem_trung_binh", status: "SUPERSEDED — danh sách trường ghi ĐTB tích lũy và điểm tối đa 8 (xem Q12)"}
+  - {id: Q8, topic: "Quy đổi cấp", answer: "Cấp ĐHQG, thành phố, quốc gia, quốc tế tính chung là 'cấp trường trở lên'", applied_in: "level_buckets"}
+
+decisions:
+  - {id: D1, topic: "Giả định mặc định cho nhóm tuân thủ", decision: "Mặc định coi là KHÔNG vi phạm (mục 1.1, 2.1, 3.7, 4.1); sinh viên có thể tắt", applied_in: "default_assumption, capabilities.ledger.baseline"}
+  - {id: D2, topic: "Chức năng tự khai báo", decision: "Tự khai báo hoạt động/thành tích/minh chứng sẽ mở rộng sau MVP", applied_in: "mvp_scope: track_later; post_types.result_announcement: deferred", note: "Người soạn suy ra bài kết quả/vinh danh cũng để sau; điều chỉnh nếu hiểu sai"}
+
+# -----------------------------------------------------------------------------
+# CÂU HỎI CÒN MỞ (CẦN CON NGƯỜI / CTSV XÁC NHẬN)
+# -----------------------------------------------------------------------------
+open_questions:
+  - id: Q10
+    topic: "Mục 3.5 và ranh giới với 3.1"
+    question: "Xác nhận 3.5 là mục 'hoạt động phong trào cấp Lớp, Khoa, Trường' (mọi cấp đều 5 điểm) và là nơi ghi nhận phần lớn cuộc thi/quiz cấp khoa; tiêu chí phân định dứt khoát giữa 3.1 cấp khoa (dòng 82, 5đ) và 3.5 (5đ) cho cuộc thi cấp khoa là gì?"
+  - id: Q11
+    topic: "Mục 3.14"
+    question: "Ban tổ chức sự kiện cấp trường (Đại hội đại biểu Hội Sinh viên, dòng 83) chỉ 5 điểm trong danh sách trường; rubric 2020 đang giữ 10 cho 'trường trở lên'. Điểm đúng là bao nhiêu?"
+  - id: Q12
+    topic: "Mục 1.2 / 1.4 (thay Q4, Q4b)"
+    question: "Danh sách trường ghi ĐTB tích lũy (1.2) và điểm tối đa 8 cho 1.4. Có chính thức dùng ĐTB tích lũy và các mức tăng điểm của 1.4 (2/4/6/…/8) theo khung hiện hành là gì?"
+  - id: Q13
+    topic: "Mục 6.1 và 6.2–6.6"
+    question: "6.1 hiện là −5 khi không đánh giá môn học (gắn với 2.2, không phải khảo sát 2.3). Các điểm trừ còn lại 6.2–6.6 (không có dữ liệu) có giữ nguyên không?"
+  - id: Q14
+    topic: "Mục 4.2 (hiến máu) và 4.6"
+    question: "Không có dòng nào cho 4.2 và 4.6. Hiến máu có còn được cộng +10 ở mã 4.2 không? Tuyên truyền pháp luật có còn tách ở 4.6 không khi các hoạt động trong trường đang nằm ở 3.1 và 3.5?"
+  - id: Q15
+    topic: "Mục không có dữ liệu"
+    question: "25 mục không có dòng nào (1.5, 3.4, 3.6, 3.9–3.13, 4.2, 4.6, 4.8, 5.2, 5.4–5.11, 6.2–6.6) có còn áp dụng đầy đủ và giữ mức điểm như QĐ 2020 không?"
+  - id: Q16
+    topic: "Viết tắt và cấp của đơn vị tổ chức"
+    question: "Xác nhận tên đầy đủ và cấp tổ chức của KHXHNV (hiện đang suy đoán khoa từ dữ liệu 3.5/1.6), TTTT, U-Sci Hub (có mặt ở 3.3 dù level=null), CLB BEE, CLB LLT, CLB SV5T; và xác nhận tất cả 'ĐK' / 'LCH' đều ở cấp khoa?"
+  - id: Q17
+    topic: "Phạm vi dữ liệu và thiếu ví dụ NONE"
+    question: "events_full.csv (153 dòng, 35,5% từ khối CNTT) có đại diện đủ mọi loại hoạt động năm học 2025–26 hay chỉ một phần? Cần bổ sung danh sách hoạt động KHÔNG được tính điểm để làm ví dụ verified cho NONE/NO_MATCH."
+  - id: Q18
+    topic: "Mục 2.3 exclusive_with C2.danh_gia_mon_hoc"
+    question: "QĐ 1028 ghi mục 2.3 '(trừ nội dung 2.2)' là loại trừ phạm vi phân loại hay loại trừ cộng điểm đồng thời trong Module 6? Hiện `exclusive_with` trên 2.3 đang chặn cộng 2.3 nếu sinh viên đã có 2.2."
+  - id: Q19
+    topic: "Cộng dồn 1.6 với 5.1 / 5.3 / 3.6"
+    question: "ICPC xuất hiện ở cả 1.6 (dòng 9, 11: 5đ) và 5.3 (dòng 152: 15đ); Olympic Tin học xuất hiện ở cả 1.6 (dòng 10: 5đ) và 5.1 (dòng 151: 10đ); thi chọn đội tuyển Olympic Toán ở 1.6 (dòng 16–17) còn thành viên đội tuyển ở 3.6 (15đ). Sinh viên có được cộng đồng thời tham gia (1.6) và đội tuyển/thành tích (3.6/5.1/5.3) không?"
+  - id: Q20
+    topic: "Mục 3.5 vs 4.3 ('Ngày Chủ nhật xanh') và phạm vi 4.7"
+    question: "Dòng 119 ('Ngày Chủ nhật xanh giai đoạn 1') được xếp vào 3.5 thay vì 4.3; cột Tieu_Chi_Quy_Che của 4.7 ghi thêm 'Cán bộ Đoàn - Hội' ngoài QĐ 2020. Cần CTSV/Đoàn-Hội xác nhận."
+  - id: Q21
+    topic: "Mục 4.1 (10đ hay 20đ) và cách diễn đạt mục 3.7"
+    question: "Mục 4.1 có 2 dòng đều ghi 10đ ('Chấp hành Luật Bảo hiểm y tế' và 'Ý thức chấp hành pháp luật') — tổng tối đa mục 4.1 là 10 hay 20? Đồng thời xác nhận mục 3.7 (dòng 132 'Tham gia phòng chống tội phạm và các tệ nạn xã hội') vẫn giữ bản chất mục tuân thủ mặc định (+10đ) như người dùng đã xác nhận."
+  - id: Q22
+    topic: "Mục 2.2 học kỳ hè HK3/25-26 và dòng trùng 1.8"
+    question: "Dòng 64 ('Tham gia đánh giá môn học HK3/25-26') tính vào học kỳ chính nào đối với chương trình đại trà? Và xác nhận dòng 26–27 (1.8, GDG on Campus) là trùng dữ liệu do khác Vai_Tro."
+  - id: Q23
+    topic: "Mục 3.14 với 3.2 và biên 1.9 vs 3.5"
+    question: "Xác nhận BTC/CTV của các hoạt động thể lực như Hcmus Run (3.2) có tính vào 3.14 không, và chuẩn hóa tiêu chí phân biệt workshop/tọa đàm học thuật (1.9) với workshop/talkshow phong trào-cảm xúc-thủ công (3.5)."
+  - id: Q9
+    topic: "Nguồn dữ liệu minh chứng"
+    question: "Danh sách sinh viên tham gia sự kiện và vai trò do Khoa/Đoàn/Hội cập nhật theo kênh nào (file, hệ thống)? Có API/biểu mẫu nào để Module 6–7 đối chiếu không? (người dùng sẽ cung cấp sau)"
+
+# -----------------------------------------------------------------------------
+# VIỆC CẦN LÀM TIẾP
+# -----------------------------------------------------------------------------
+next_steps:
+  - "Hoàn thiện bộ ví dụ âm thực tế (NONE/NO_MATCH) và văn bản bài đăng gốc (kèm description, organizer, role) để kiểm thử P2 & định chuẩn ngưỡng NEEDS_REVIEW."
+  - "Cập nhật res/keyword_rules.yaml đồng bộ với ranh giới mới của 1.9, 3.1, 3.5, 3.8, 4.3/4.5 và tổ chức lại organizer_priors."
+  - "Sinh lại rubric_prototypes.json / rubric_embeddings.npy hoặc ClsIndex từ rubric.yaml và dữ liệu đầy đủ sau khi người dùng giải đáp Q9–Q23."
+  - "Sau khi giải quyết Q9–Q23 và đối chiếu quy chế hiện hành của Trường, cập nhật meta.validity và meta.status."
