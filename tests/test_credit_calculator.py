@@ -1,4 +1,4 @@
-"""Unit and SQLite integration tests for `[CRD]` (`utility/credit_calculator.py`)."""
+"""Unit and SQLite integration tests for `[CRD]` (`src/utility/credit_calculator.py`)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from database import DRLDatabaseManager
-from utility.credit_calculator import (
+from src.utility.credit_calculator import (
     CreditCalculator,
     CreditEstimate,
     credit_calc,

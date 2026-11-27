@@ -1,4 +1,4 @@
-"""[CRD] Credit Calculation Module (`utility/credit_calculator.py`).
+"""[CRD] Credit Calculation Module (`src/utility/credit_calculator.py`).
 
 Implements the CRD responsibilities defined in `SYSTEM_ARCHITECTURE.md`:
 1. `credit_calc(event_or_id, role='participant') -> int`:

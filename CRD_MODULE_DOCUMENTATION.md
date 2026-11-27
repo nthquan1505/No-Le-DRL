@@ -1,8 +1,8 @@
-# CRD Module (`utility/credit_calculator.py`) — Implementation Summary & Classification Sync Guide
+# CRD Module (`src/utility/credit_calculator.py`) — Implementation Summary & Classification Sync Guide
 
 ## 1. Executive Summary
 
-This document summarizes the implementation of the **CRD (Credit Calculation)** module on `deploy_server` in [`utility/credit_calculator.py`](utility/credit_calculator.py) according to [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md) and **HCMUS Regulation 1028/QĐ-KHTN-CTSV**, and defines how to synchronize **CRD** with the **CLF (Classification)** module.
+This document summarizes the implementation of the **CRD (Credit Calculation)** module on `deploy_server` in [`src/utility/credit_calculator.py`](src/utility/credit_calculator.py) according to [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md) and **HCMUS Regulation 1028/QĐ-KHTN-CTSV**, and defines how to synchronize **CRD** with the **CLF (Classification)** module.
 
 ### Why `feat/module-6-credits` Was Replaced
 An audit of the standalone prototype on branch `feat/module-6-credits` (`credits.py`, `server.py`, `index.html`) found that:
@@ -10,11 +10,11 @@ An audit of the standalone prototype on branch `feat/module-6-credits` (`credits
 2. It lacked the **`gain_calc` (`[0..1]`)** recommendation scoring function.
 3. It was disconnected from `drl_database.db` and `DRLDatabaseManager` (`events`, `users`, `event_subscription`, `rubric`).
 
-All three gaps are resolved in [`utility/credit_calculator.py`](utility/credit_calculator.py).
+All three gaps are resolved in [`src/utility/credit_calculator.py`](src/utility/credit_calculator.py).
 
 ---
 
-## 2. What Was Implemented in `utility/credit_calculator.py`
+## 2. What Was Implemented in `src/utility/credit_calculator.py`
 
 ### 2.1. Deterministic Credit Calculation (`credit_calc` & `estimate_event_credit`)
 `credit_calc(event_or_id, role='participant', *, db=None) -> int` accepts either an `event_id` (`int`, queried from `drl_database.db`) or an event dictionary (`Mapping[str, Any]`), alongside the user's participation `role`:
@@ -72,7 +72,7 @@ flowchart LR
     DB --> CRDU2["CRD(U) Completion<br/>finalize_completed_subscriptions()<br/>-> credit & users.credits"]
 ```
 
-`utility/credit_calculator.py` natively supports **two synchronization contracts** with Classification (`CLF`), depending on whether `CLF` outputs a 1-based category (`1..5` in `drl_database.db`) or a fine-grained rubric sub-item (`"<major>.<minor>"` from the `module-3` kNN pipeline).
+`src/utility/credit_calculator.py` natively supports **two synchronization contracts** with Classification (`CLF`), depending on whether `CLF` outputs a 1-based category (`1..5` in `drl_database.db`) or a fine-grained rubric sub-item (`"<major>.<minor>"` from the `module-3` kNN pipeline).
 
 ### 3.1. Contract A — SQLite Database Sync (`SYSTEM_ARCHITECTURE.md`)
 In the central server pipeline (`backend/scheduler.py`), **always run `CLF(S)` immediately before `CRD(S)`**:
@@ -81,16 +81,16 @@ In the central server pipeline (`backend/scheduler.py`), **always run `CLF(S)` i
    - `keywords`, `topic`, `format`, `award` populated
    - `category = NULL`, `min_credit = NULL`
    *(Note: If an existing event's content or category is updated by `EXT(S)`, reset `min_credit = NULL` so `CRD(S)` recomputes it.)*
-2. **`CLF(S)` (`utility/classification.py`)** queries `SELECT * FROM events WHERE is_cancelled = 0 AND category IS NULL`:
+2. **`CLF(S)` (`src/utility/classification.py`)** queries `SELECT * FROM events WHERE is_cancelled = 0 AND category IS NULL`:
    - Classifies the event into `events.category` $\in \{1, 2, 3, 4, 5\}$ (`Muc 1..5`).
    - If the event is non-credit or mandatory penalty-avoidance (`6.4` Tuần SHCD) or `NO_MATCH`, leaves `events.category = NULL`.
-3. **`CRD(S)` (`utility/credit_calculator.py`)** runs `update_missing_min_credits()`:
+3. **`CRD(S)` (`src/utility/credit_calculator.py`)** runs `update_missing_min_credits()`:
    - When `events.category` is `1..5`, `infer_rubric_item(event)` **locks sub-item resolution strictly inside that category** (`1` $\rightarrow$ `1.5/1.6/1.8/1.9`, `2` $\rightarrow$ `2.2/2.3`, `3` $\rightarrow$ `3.1..3.13`, `4` $\rightarrow$ `4.2/4.3/4.5/4.6`, `5` $\rightarrow$ `5.1..5.7`) using `title`, `description`, `topic`, `format`, and `keywords`.
    - Populates `events.min_credit` (`INT >= 0`).
 
 ```python
 from database import get_drl_db
-from utility.credit_calculator import (
+from src.utility.credit_calculator import (
     finalize_completed_subscriptions,
     gain_calc,
     update_missing_min_credits,
@@ -130,7 +130,7 @@ If integrating the Hierarchical 2-Stage kNN classifier (`src/classification` on 
 }
 ```
 
-`infer_rubric_item(event)` in [`utility/credit_calculator.py`](utility/credit_calculator.py#L430-L462) already reads this contract directly:
+`infer_rubric_item(event)` in [`src/utility/credit_calculator.py`](src/utility/credit_calculator.py#L430-L462) already reads this contract directly:
 1. **Direct In-Memory Handoff**:
    - If `event["classification"]["status"]` is `"NO_MATCH"`, `"SKIPPED_NOT_EVENT"`, or `"REJECTED"` $\rightarrow$ `CRD` immediately returns `0` credit and `Gain = 0.0` (`is_credit_eligible = False`).
    - If `event["classification"]["predicted_criterion_ref"]` (or top-level `rubric_item_id` / `predicted_criterion_ref`) is a valid ref such as `"1.6"`, `"3.1"`, `"4.3"`, or `"6.4"` $\rightarrow$ `CRD` **skips keyword category guessing** and uses that exact sub-item directly while still applying `CRD`'s role redirection (`'host'` $\rightarrow$ `1.7`/`3.14`/`4.4`, `'collaborator'` $\rightarrow$ `1.7`/`3.14`/`4.4`), level/duration variants, explicit points, and caps.

@@ -153,7 +153,7 @@ No-Le-DRL/
 │   ├── __init__.py                  # Exports DRLDatabaseManager, get_drl_db & helper functions
 │   └── drl_db_manager.py            # Thread-safe Singleton SQLite manager (WAL, FKs, retries, CRUD, fallbacks)
 │
-└── utility/                         # Core domain module implementations & shared helper functions
+└── src/utility/                     # Core domain module implementations & shared helper functions
     ├── __init__.py
     ├── ingestion.py                 # [ING] Facebook fanpage crawler & client email inbox collector
     ├── extraction.py                # [EXT] LLM post/media extractor, keyword fallback & deduplication/updates

@@ -43,7 +43,7 @@ WEBAPP_DATABASE_URL = f"sqlite:///{WEBAPP_DB_PATH.as_posix()}"
 
 # DRL System Architecture Database (tables: events, users, event_subscription, fanpages, notifications, rubric)
 DRL_DB_PATH = BASE_DIR / "drl_database.db"
-DRL_DATABASE_URL = f"sqlite:///{DRL_DB_PATH.as_posix()}"
+DRL_DATABASE_URL = os.environ.get("DRL_DATABASE_URL", "").strip() or f"sqlite:///{DRL_DB_PATH.as_posix()}"
 
 # RSS XML Output Directory
 FEEDS_DIR = BASE_DIR / "feeds"
