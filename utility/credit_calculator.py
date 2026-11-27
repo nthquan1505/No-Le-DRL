@@ -702,9 +702,31 @@ def extract_duration_bucket(event: Mapping[str, Any]) -> Optional[str]:
 
 
 def infer_rubric_item(event: Mapping[str, Any]) -> Tuple[Optional[str], Optional[int]]:
-    """Infer `(rubric_item_id, category)` from an event record's fields and optional `category` (`1..5`)."""
-    # Allow explicit canonical rubric item override if present on dict
-    explicit_sub = event.get("rubric_item_id") or event.get("sub_code")
+    """Infer `(rubric_item_id, category)` from CLF output or event record fields.
+
+    Supports three synchronization contracts with Classification (`CLF`):
+    1. Fine-grained sub-item ref (`rubric_item_id`, `sub_code`, `predicted_criterion_ref`,
+       or `event["classification"]["predicted_criterion_ref"]` from Module 3 kNN classifier).
+    2. Database category (`events.category` in `1..5` populated by `CLF(S)` in `drl_database.db`),
+       narrowing resolution to sub-items within that category.
+    3. Standalone fallback inference from `title`, `description`, `topic`, `format`, `keywords`, `award`
+       when `CLF` has not classified the event yet.
+    """
+    cls_obj = event.get("classification")
+    if isinstance(cls_obj, Mapping):
+        cls_status = str(cls_obj.get("status") or "").upper()
+        if cls_status in ("NO_MATCH", "SKIPPED_NOT_EVENT", "REJECTED"):
+            return None, None
+        cls_ref = cls_obj.get("predicted_criterion_ref") or cls_obj.get("rubric_item_id")
+        if isinstance(cls_ref, str) and cls_ref.strip() in RUBRIC_ITEMS:
+            sub_id = cls_ref.strip()
+            return sub_id, RUBRIC_ITEMS[sub_id]["category"]
+
+    explicit_sub = (
+        event.get("rubric_item_id")
+        or event.get("sub_code")
+        or event.get("predicted_criterion_ref")
+    )
     if isinstance(explicit_sub, str) and explicit_sub.strip() in RUBRIC_ITEMS:
         sub_id = explicit_sub.strip()
         return sub_id, RUBRIC_ITEMS[sub_id]["category"]
@@ -1400,7 +1422,7 @@ class CreditCalculator:
     def update_missing_min_credits(self, *, backfill_null_category: bool = False) -> int:
         """CRD(S) workflow step 3: populate `events.min_credit` for active events where `min_credit IS NULL`."""
         rows = self.db.fetch_all(
-            "SELECT * FROM events WHERE is_cancelled = 0 AND min_credit IS NULL ORDER BY event_id ASC;",
+            "SELECT * FROM events WHERE is_cancelled = FALSE AND min_credit IS NULL ORDER BY event_id ASC;",
             table="events",
         )
         updated = 0

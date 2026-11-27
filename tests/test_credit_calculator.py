@@ -183,6 +183,27 @@ class TestCreditCalcAndRoles(unittest.TestCase):
         self.assertEqual(est.credit, 0)
         self.assertEqual(gain_calc(ev_shcd, user_credits=[0, 0, 0, 0, 0]), 0.0)
 
+    def test_classification_sync_contracts(self) -> None:
+        # 1. Module-3 nested `classification` payload (`predicted_criterion_ref`)
+        ev_cls_pred = {
+            "event_id": 112,
+            "title": "Sự kiện bất kỳ",
+            "sources": "organizer: Đoàn Trường",
+            "classification": {"status": "PREDICTED", "predicted_criterion_ref": "3.1"},
+        }
+        self.assertEqual(credit_calc(ev_cls_pred, role="participant"), 10)
+        self.assertEqual(credit_calc(ev_cls_pred, role="host"), 10)
+        self.assertEqual(credit_calc(ev_cls_pred, role="collaborator"), 5)
+
+        # 2. Module-3 `NO_MATCH` abstention -> 0 points & Gain = 0.0
+        ev_cls_nomatch = {
+            "event_id": 113,
+            "title": "Thông báo lịch thi cuối kỳ",
+            "classification": {"status": "NO_MATCH", "predicted_criterion_ref": None},
+        }
+        self.assertEqual(credit_calc(ev_cls_nomatch, role="participant"), 0)
+        self.assertEqual(gain_calc(ev_cls_nomatch, user_credits=[0, 0, 0, 0, 0]), 0.0)
+
 
 class TestGainCalcFormula(unittest.TestCase):
     """Verify exact Gain formula in `[0, 1]` from Module 6 specification."""
