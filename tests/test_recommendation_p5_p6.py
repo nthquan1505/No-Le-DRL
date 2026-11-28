@@ -452,7 +452,7 @@ class TestDemoModule6AndP5P6(unittest.TestCase):
 
 
 class TestRealDatasetPipelineIntegration(unittest.TestCase):
-    """Run real 108-event batch pool (39 PREDICTED + 908 sample embeddings) across all 4 demo personas."""
+    """Run real classified event pool (+ 908 sample embeddings) across all 4 demo personas."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -460,11 +460,15 @@ class TestRealDatasetPipelineIntegration(unittest.TestCase):
         cls.sample_embeddings = np.load(DEFAULT_SAMPLE_EMB_PATH)
         cls.embedder = _DeterministicStubEmbedder()
         cls.credit_provider = DemoCreditProvider()
+        cls.predicted_count = sum(
+            1 for c in cls.candidates if c.classification.get("status") == "PREDICTED"
+        )
+        cls.not_predicted_count = len(cls.candidates) - cls.predicted_count
 
-    def test_candidate_pool_has_108_total_and_39_predicted(self) -> None:
-        self.assertEqual(len(self.candidates), 108)
-        pred_count = sum(1 for c in self.candidates if c.classification.get("status") == "PREDICTED")
-        self.assertEqual(pred_count, 39)
+    def test_candidate_pool_has_db_events_and_predicted_subset(self) -> None:
+        self.assertGreater(len(self.candidates), 0)
+        self.assertGreater(self.predicted_count, 0)
+        self.assertEqual(self.predicted_count + self.not_predicted_count, len(self.candidates))
         self.assertEqual(self.sample_embeddings.shape, (908, 384))
 
     def test_all_four_demo_personas_execute_cleanly(self) -> None:
@@ -477,8 +481,8 @@ class TestRealDatasetPipelineIntegration(unittest.TestCase):
                 credit_provider=self.credit_provider,
             )
             ps = res["pipeline_summary"]
-            self.assertEqual(ps["excluded_not_predicted"], 69)
-            expected_pred = 40 if pid == "mandatory_shcd_test" else 39
+            self.assertEqual(ps["excluded_not_predicted"], self.not_predicted_count)
+            expected_pred = self.predicted_count + (1 if pid == "mandatory_shcd_test" else 0)
             self.assertEqual(ps["predicted_events_entered_p5"], expected_pred)
             self.assertEqual(ps["eligible_after_p5"] + ps["dropped_by_p5"], expected_pred)
 

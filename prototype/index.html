@@ -41,20 +41,31 @@
           </button>
           <button class="nav-tab" role="tab" aria-selected="false" data-tab="events">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <circle cx="4" cy="6" r="1" />
-              <circle cx="4" cy="12" r="1" />
-              <circle cx="4" cy="18" r="1" />
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
             </svg>
-            <span>Danh sách 108 sự kiện</span>
+            <span id="navEventsLabel">Sự kiện DB</span>
           </button>
           <button class="nav-tab" role="tab" aria-selected="false" data-tab="recommend">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
-            <span>Đề xuất hoạt động (Demo)</span>
+            <span>Đề xuất · Scoring (P5–P6)</span>
+          </button>
+          <button class="nav-tab" role="tab" aria-selected="false" data-tab="mmr">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="4" y1="21" x2="4" y2="14" />
+              <line x1="4" y1="10" x2="4" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12" y2="3" />
+              <line x1="20" y1="21" x2="20" y2="16" />
+              <line x1="20" y1="12" x2="20" y2="3" />
+              <line x1="1" y1="14" x2="7" y2="14" />
+              <line x1="9" y1="8" x2="15" y2="8" />
+              <line x1="17" y1="16" x2="23" y2="16" />
+            </svg>
+            <span>Bộ chọn MMR (P7)</span>
           </button>
         </nav>
 
@@ -205,7 +216,7 @@
       </section>
 
       <!-- ================================================================
-           TAB 2: BATCH 108 EVENTS BROWSER (data/events.json)
+           TAB 2: DATABASE EVENTS BROWSER (drl_database.db · bảng events)
       ================================================================= -->
       <section id="tab-events" class="tab-panel" role="tabpanel">
         <div class="card events-toolbar">
@@ -215,43 +226,54 @@
               id="batchSearchInput"
               type="search"
               class="input-text search-input"
-              placeholder="Tìm theo post_id, tên sự kiện, mã mục..."
-              aria-label="Tìm kiếm trong 108 sự kiện"
+              placeholder="Tìm theo db_id, tên sự kiện, mã mục..."
+              aria-label="Tìm kiếm trong sự kiện từ database"
             />
-            <button id="btnRerunPipeline" type="button" class="btn btn-ghost">Chạy lại Pipeline</button>
+            <select id="batchSampleVec" class="input-text mono" style="width:auto;min-width:140px" title="Vector Nhánh Sample khi chạy lại DB Pipeline">
+              <option value="title">Sample: title</option>
+              <option value="title_description" selected>Sample: title+desc</option>
+              <option value="title_description_format">Sample: title+desc+fmt</option>
+            </select>
+            <select id="batchRubricVec" class="input-text mono" style="width:auto;min-width:140px" title="Vector Nhánh Rubric khi chạy lại DB Pipeline">
+              <option value="title">Rubric: title</option>
+              <option value="title_description" selected>Rubric: title+desc</option>
+              <option value="title_description_format">Rubric: title+desc+fmt</option>
+            </select>
+            <button id="btnRerunPipeline" type="button" class="btn btn-ghost">Chạy lại Pipeline (DB)</button>
           </div>
         </div>
 
         <div class="split-layout">
           <div class="card batch-list-card">
             <div class="batch-list-head">
-              <h2 class="card-title">Danh sách sự kiện</h2>
+              <h2 class="card-title">Danh sách sự kiện từ <code class="mono">drl_database.db</code></h2>
               <span id="batchCountLabel" class="mono text-muted">0 sự kiện</span>
             </div>
             <div id="batchEventsList" class="batch-events-list"></div>
           </div>
 
           <div id="batchDetailPane" class="result-col">
-            <div class="card empty-state">Chọn một sự kiện ở cột bên trái để xem kết quả phân loại và ước tính điểm ĐRL.</div>
+            <div class="card empty-state">Chọn một sự kiện ở cột bên trái để xem kết quả phân loại và ước tính điểm ĐRL (Demo Module 6).</div>
           </div>
         </div>
       </section>
 
       <!-- ================================================================
-           TAB 3: RECOMMENDATION DEMO (P4 Demo + Demo M4/M6 + P5 + P6)
+           TAB 3: RECOMMENDATION SCORING (P4 Demo + Demo M4/M6 + P5 + P6, CHƯA MMR)
       ================================================================= -->
       <section id="tab-recommend" class="tab-panel" role="tabpanel">
         <div class="split-layout rec-split-layout">
-          <!-- Left Column: Demo Control Panel -->
+          <!-- Left Column: Scoring Control Panel (NO MMR controls here) -->
           <div class="card rec-control-card">
             <div class="card-header">
               <div class="card-title-row">
-                <h1 class="card-title">Cấu hình Demo Đề xuất</h1>
-                <span class="badge badge-teal mono">PREDICTED only</span>
+                <h1 class="card-title">Cấu hình Scoring Đề xuất (P5–P6)</h1>
+                <span class="badge badge-teal mono">DB · Chưa MMR</span>
               </div>
               <p class="helper-text">
-                Kiểm thử <strong>P4</strong> (User Profile gọn), <strong>Demo M4</strong> (lịch &amp; di chuyển),
-                <strong>Demo M6</strong> (điểm &amp; trần), <strong>P5</strong> (lọc cứng), <strong>P6</strong> (chấm điểm) và <strong>P7</strong> (chọn danh sách MMR).
+                Kiểm thử <strong>P4</strong> (User Profile), <strong>Demo M4</strong> (lịch &amp; di chuyển),
+                <strong>Demo M6</strong> (điểm &amp; trần từ <code>rubric.yaml</code>), <strong>P5</strong> (lọc cứng) và <strong>P6</strong> (chấm điểm xếp hạng thuần).
+                Chế độ chọn lọc đa dạng <strong>MMR (P7)</strong> được tách riêng ở tab <strong>Bộ chọn MMR (P7)</strong>.
               </p>
             </div>
 
@@ -262,18 +284,17 @@
             </div>
 
             <form id="recForm" class="form-stack">
-              <!-- Input Data Source -->
+              <!-- Database Source Info Strip (strictly drl_database.db) -->
               <div class="rec-section">
-                <div class="rec-section-title">0. Nguồn sự kiện &amp; Embedding (4 trường)</div>
-                <div class="form-field">
-                  <label for="recDataSource">Nguồn dữ liệu đầu vào</label>
-                  <select id="recDataSource" class="input-text">
-                    <option value="json" selected>Fixture JSON (events.json + classification_events.json)</option>
-                    <option value="database">Database SQLite (drl_database.db · bảng events)</option>
-                  </select>
-                </div>
-                <div id="recEmbeddingHint" class="helper-text mono" style="margin-top:6px;font-size:11.5px">
-                  Event vector: passage: title + description + topic + format
+                <div class="rec-section-title">0. Nguồn sự kiện Database &amp; Embedding (4 trường)</div>
+                <div id="recDbSourceBox" class="db-source-box">
+                  <div class="badge-row">
+                    <span class="badge badge-teal mono" id="recDbCountBadge">drl_database.db · 0 sự kiện</span>
+                    <span class="badge badge-muted mono">Demo M6 (rubric.yaml)</span>
+                  </div>
+                  <div id="recEmbeddingHint" class="helper-text mono" style="margin-top:6px;font-size:11.5px">
+                    Event vector (passage): title + description + topic + format
+                  </div>
                 </div>
               </div>
 
@@ -472,62 +493,95 @@
                 </div>
               </details>
 
-              <!-- P7 MMR List Selection -->
-              <details class="collapsible-box" open>
-                <summary class="collapsible-summary">
-                  <span>6. Chọn danh sách P7 (<code class="mono">MMR + 1 slot khám phá</code>)</span>
-                  <span id="recMmrSummaryBadge" class="badge badge-teal mono">Top-5 · λ=0.70</span>
-                </summary>
-                <div class="collapsible-body">
-                  <label class="checkbox-row">
-                    <input id="recMmrEnabled" type="checkbox" checked />
-                    <span>Bật chọn danh sách đa dạng <strong>MMR</strong> (thay cho Top-N thuần P6)</span>
-                  </label>
-                  <div class="form-row-3">
-                    <div class="form-field">
-                      <label for="recMmrTopN" class="mono">Top-N</label>
-                      <input id="recMmrTopN" type="number" min="1" max="30" step="1" value="5" class="input-text mono" />
-                    </div>
-                    <div class="form-field">
-                      <label for="recMmrLambda" class="mono">λ (Liên quan)</label>
-                      <input id="recMmrLambda" type="number" min="0" max="1" step="0.05" value="0.70" class="input-text mono" />
-                    </div>
-                    <div class="form-field">
-                      <label for="recMmrAlpha" class="mono">α (Ngữ nghĩa)</label>
-                      <input id="recMmrAlpha" type="number" min="0" max="1" step="0.05" value="0.70" class="input-text mono" />
-                    </div>
-                  </div>
-                  <div class="form-field">
-                    <label for="recMmrCosineMode">Kéo dải cosine cặp E5 (chống nén vector)</label>
-                    <select id="recMmrCosineMode" class="input-text">
-                      <option value="pool_minmax" selected>Min-Max theo tập ứng viên (pool_minmax)</option>
-                      <option value="fixed">Dải cố định [0.72, 0.92] (fixed)</option>
-                      <option value="none">Không kéo dải — cosine thô (none)</option>
-                    </select>
-                  </div>
-                  <div class="checkbox-stack">
-                    <label class="checkbox-row">
-                      <input id="recMmrExplore" type="checkbox" checked />
-                      <span>Dành <strong>1 slot cuối cho Khám phá</strong> (<code>SEL_EXPLORATION</code>, khi N ≥ 3)</span>
-                    </label>
-                    <label class="checkbox-row">
-                      <input id="recMmrPinMandatory" type="checkbox" checked />
-                      <span>Ghim hoạt động bắt buộc (<code>6.4</code>) lên đầu danh sách</span>
-                    </label>
-                  </div>
-                </div>
-              </details>
-
               <div class="form-row-2">
-                <button id="btnRecRun" type="submit" class="btn btn-primary btn-full">Chạy Đề Xuất (P5–P7 MMR)</button>
+                <button id="btnRecRun" type="submit" class="btn btn-primary btn-full">Chạy Scoring (P5–P6)</button>
                 <button id="btnRecReset" type="button" class="btn btn-ghost btn-full">Đặt lại mặc định</button>
               </div>
             </form>
           </div>
 
-          <!-- Right Column: Pipeline KPIs, Ranked P6 Cards & P5 Dropped Diagnostics -->
+          <!-- Right Column: Pure P6 Scoring List (BEFORE MMR) & P5 Dropped Diagnostics -->
           <div id="recResultPane" class="result-col">
-            <div class="card empty-state">Đang tải cấu hình Demo Recommendation...</div>
+            <div class="card empty-state">Đang tải danh sách Scoring từ drl_database.db...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           TAB 4: DEDICATED P7 MMR SELECTOR (CHẾ ĐỘ CHỌN LỌC ĐA DẠNG RIÊNG)
+      ================================================================= -->
+      <section id="tab-mmr" class="tab-panel" role="tabpanel">
+        <div class="split-layout rec-split-layout">
+          <!-- Left Column: MMR Selector Control Panel -->
+          <div class="card rec-control-card">
+            <div class="card-header">
+              <div class="card-title-row">
+                <h1 class="card-title">Bộ chọn danh sách MMR (P7)</h1>
+                <span id="recMmrSummaryBadge" class="badge badge-teal mono">Top-5 · λ=0.70</span>
+              </div>
+              <p class="helper-text">
+                Chức năng tách riêng để đa dạng hóa Top-N từ tập ứng viên đã chấm điểm <strong>Scoring P6</strong> (từ <code>drl_database.db</code>) bằng <strong>Maximal Marginal Relevance + 1 slot Khám phá</strong>.
+              </p>
+            </div>
+
+            <!-- Active Scoring Profile Summary (synced from Tab 3) -->
+            <div class="rec-section">
+              <div class="card-title-row" style="margin-bottom:6px">
+                <div class="rec-section-title" style="margin-bottom:0">Hồ sơ đầu vào (đồng bộ từ Tab 3)</div>
+                <button id="btnBackToScoring" type="button" class="btn btn-ghost btn-sm">← Chỉnh ở Tab 3</button>
+              </div>
+              <div id="mmrProfileSummary" class="db-source-box helper-text">
+                Đang đồng bộ cấu hình Scoring P6...
+              </div>
+            </div>
+
+            <form id="mmrForm" class="form-stack">
+              <div class="rec-section">
+                <div class="rec-section-title">Tham số Bộ chọn MMR (P7)</div>
+                <div class="form-row-3">
+                  <div class="form-field">
+                    <label for="recMmrTopN" class="mono">Top-N</label>
+                    <input id="recMmrTopN" type="number" min="1" max="30" step="1" value="5" class="input-text mono" />
+                  </div>
+                  <div class="form-field">
+                    <label for="recMmrLambda" class="mono">λ (Liên quan)</label>
+                    <input id="recMmrLambda" type="number" min="0" max="1" step="0.05" value="0.70" class="input-text mono" />
+                  </div>
+                  <div class="form-field">
+                    <label for="recMmrAlpha" class="mono">α (Ngữ nghĩa)</label>
+                    <input id="recMmrAlpha" type="number" min="0" max="1" step="0.05" value="0.70" class="input-text mono" />
+                  </div>
+                </div>
+                <div class="form-field" style="margin-top:8px">
+                  <label for="recMmrCosineMode">Kéo dải cosine cặp E5 (chống nén vector)</label>
+                  <select id="recMmrCosineMode" class="input-text">
+                    <option value="pool_minmax" selected>Min-Max theo tập ứng viên (pool_minmax)</option>
+                    <option value="fixed">Dải cố định [0.72, 0.92] (fixed)</option>
+                    <option value="none">Không kéo dải — cosine thô (none)</option>
+                  </select>
+                </div>
+                <div class="checkbox-stack" style="margin-top:10px">
+                  <label class="checkbox-row">
+                    <input id="recMmrExplore" type="checkbox" checked />
+                    <span>Dành <strong>1 slot cuối cho Khám phá</strong> (<code>SEL_EXPLORATION</code>, khi N ≥ 3)</span>
+                  </label>
+                  <label class="checkbox-row">
+                    <input id="recMmrPinMandatory" type="checkbox" checked />
+                    <span>Ghim hoạt động bắt buộc (<code>6.4</code>) lên đầu danh sách</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-row-2">
+                <button id="btnMmrRun" type="submit" class="btn btn-primary btn-full">Chạy Chọn lọc MMR (P7)</button>
+                <button id="btnMmrReset" type="button" class="btn btn-ghost btn-full">Mặc định MMR</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Right Column: MMR Metrics, P6 vs MMR Comparison & Selected Cards -->
+          <div id="mmrResultPane" class="result-col">
+            <div class="card empty-state">Bấm <strong>Chạy Chọn lọc MMR (P7)</strong> để so sánh Top-N sau MMR với bảng Scoring gốc P6.</div>
           </div>
         </div>
       </section>

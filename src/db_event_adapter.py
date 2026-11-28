@@ -204,6 +204,19 @@ def fetch_school_rubric_from_db(
     )
 
 
+def _extract_organizer_from_sources(sources_raw: Any) -> str:
+    """Extract clean organizer name from `events.sources` (handles `'... | organizer: <Name>'`)."""
+    text = str(sources_raw or "").strip()
+    if not text:
+        return ""
+    m = re.search(r"\borganizer\s*:\s*(.+)$", text, re.IGNORECASE)
+    if m:
+        extracted = m.group(1).strip()
+        if extracted:
+            return extracted
+    return text
+
+
 def db_row_to_classification_event(row: Dict[str, Any]) -> Dict[str, Any]:
     """Map one `events` SQLite row into the canonical Classification input dictionary."""
     eid = row.get("event_id")
@@ -214,6 +227,9 @@ def db_row_to_classification_event(row: Dict[str, Any]) -> Dict[str, Any]:
     keywords = decode_json_list(row.get("keywords"))
     target_audience = decode_json_list(row.get("target_audience"))
     images_url = decode_json_list(row.get("images_url"))
+    start_dt = row.get("event_start_datetime")
+    date_str = str(start_dt)[:10] if isinstance(start_dt, str) and len(start_dt) >= 10 else None
+    organizer = _extract_organizer_from_sources(row.get("sources"))
 
     return {
         "event_id": int(eid) if eid is not None else None,
@@ -226,13 +242,14 @@ def db_row_to_classification_event(row: Dict[str, Any]) -> Dict[str, Any]:
         "topic": [str(t) for t in topics if t is not None],
         "format": [str(f) for f in formats if f is not None],
         "category": [str(t) for t in topics if t is not None],  # compatibility alias
-        "organizer": str(row.get("sources") or ""),
+        "organizer": organizer,
         "sources": row.get("sources"),
+        "date": date_str,
         "is_online": is_online,
         "online_mode": "online" if is_online else "offline",
         "reg_start_datetime": row.get("reg_start_datetime"),
         "reg_end_datetime": row.get("reg_end_datetime"),
-        "start_datetime": row.get("event_start_datetime"),
+        "start_datetime": start_dt,
         "end_datetime": row.get("event_end_datetime"),
         "location": row.get("location"),
         "coordinate": row.get("coordinate"),
@@ -282,7 +299,7 @@ def db_row_to_event_normalized(row: Dict[str, Any]) -> EventNormalized:
         event_id=f"db_{eid}" if eid is not None else "db_unknown",
         title=str(row.get("title") or ""),
         description=str(row.get("description") or ""),
-        organizer=str(row.get("sources") or ""),
+        organizer=_extract_organizer_from_sources(row.get("sources")),
         start_datetime=row.get("event_start_datetime"),
         end_datetime=row.get("event_end_datetime"),
         reg_start_datetime=row.get("reg_start_datetime"),
@@ -325,7 +342,6 @@ def compute_events_fingerprint(events: Sequence[Dict[str, Any]]) -> str:
             {
                 "idx": idx,
                 "id": ev.get("event_id", ev.get("post_id")),
-                "updated_at": ev.get("updated_at"),
                 "title": ev.get("title"),
                 "description": ev.get("description"),
                 "topic": ev.get("topic", ev.get("category")),

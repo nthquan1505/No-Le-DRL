@@ -24,7 +24,7 @@ paths:
   output_run_report_md: outputs/classification_run_report.md
 
 input_source:
-  mode: json                         # "database" (drl_database.db) | "json" (offline fixture)
+  mode: database                     # "database" (drl_database.db) | "json" (offline legacy fixture)
   only_unclassified: false           # when mode=database: true -> WHERE category IS NULL
   exclude_cancelled: true            # when mode=database: WHERE is_cancelled = 0
   write_back_category: true          # when mode=database: update events.category (1..5) for PREDICTED

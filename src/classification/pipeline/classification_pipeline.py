@@ -287,6 +287,7 @@ class ClassificationPipeline:
             "total_input_events": len(assets.events),
             "embedded_events_count": int(multi_set.metadata["embedded_events_count"]),
             "skipped_events_count": int(multi_set.metadata["skipped_events_count"]),
+            "query_embeddings_reused": bool(multi_set.reused_from_cache),
             "status_counts": status_counts,
             "db_categories_updated": db_categories_updated,
             "asset_validation_passed": asset_validation.all_passed,

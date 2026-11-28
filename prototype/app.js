@@ -57,16 +57,19 @@ const state = {
   batchSearchQuery: "",
   selectedBatchPostId: null,
   selectedBatchEventDetail: null,
-  // Tab 3: Recommendation Demo state
+  // Tab 3 (Scoring P5-P6) & Tab 4 (MMR Selector P7) state
   recBootstrap: null,
   recLastResult: null,
   recActivePersonaId: "balanced_cs1",
-  recSubTab: "selected", // "selected" | "ranked" | "dropped"
+  recSubTab: "ranked", // "ranked" (pre-MMR Scoring) | "dropped"
   recDropReasonFilter: "ALL",
   recParticipatedIds: [],
   recHiddenIds: [],
   recWeeklySlots: [],
   recBusyIntervals: [],
+  mmrLastResult: null,
+  mmrSubTab: "selected", // "selected" (P7 MMR) | "ranked" (pre-MMR P6 comparison)
+  mmrNeedsRefresh: true,
 };
 
 function escapeHtml(value) {
@@ -445,6 +448,12 @@ function syncDefaultParams() {
   if ($("#paramRubricVec")) {
     $("#paramRubricVec").value = dp.rubric_branch_vector || "title_description";
   }
+  if ($("#batchSampleVec")) {
+    $("#batchSampleVec").value = dp.sample_branch_vector || "title_description";
+  }
+  if ($("#batchRubricVec")) {
+    $("#batchRubricVec").value = dp.rubric_branch_vector || "title_description";
+  }
 }
 
 async function runLiveClassify(options = {}) {
@@ -484,6 +493,10 @@ function renderBatchBrowser() {
   const summary = state.dualBranchSummary;
   const counts = (summary && summary.status_counts) || {};
   const totalCount = state.dualBranchEvents.length;
+  const navLbl = $("#navEventsLabel");
+  if (navLbl) {
+    navLbl.textContent = `Sự kiện DB (${totalCount})`;
+  }
   const skippedOrNoMatch = (counts.NO_MATCH || 0) + (counts.SKIPPED_NOT_EVENT || 0);
 
   const pills = [
@@ -759,21 +772,14 @@ function applyRecPersona(personaId) {
 function updateRecMmrSummaryBadge() {
   const badge = $("#recMmrSummaryBadge");
   if (!badge) return;
-  const enabled = $("#recMmrEnabled") ? $("#recMmrEnabled").checked : true;
   const topN = Number($("#recMmrTopN")?.value || 5);
   const lam = Number($("#recMmrLambda")?.value ?? 0.7);
-  if (!enabled) {
-    badge.textContent = `Tắt (Top-${topN} P6)`;
-    badge.className = "badge badge-muted mono";
-  } else {
-    badge.textContent = `Top-${topN} · λ=${lam.toFixed(2)}`;
-    badge.className = "badge badge-teal mono";
-  }
+  badge.textContent = `Top-${topN} · λ=${lam.toFixed(2)}`;
+  badge.className = "badge badge-teal mono";
 }
 
 function applyMmrDefaultsToForm(defaults) {
   const d = defaults || (state.recBootstrap && state.recBootstrap.mmr_defaults) || {};
-  if ($("#recMmrEnabled")) $("#recMmrEnabled").checked = d.enabled !== false;
   if ($("#recMmrTopN")) $("#recMmrTopN").value = d.top_n ?? 5;
   if ($("#recMmrLambda")) $("#recMmrLambda").value = d.lambda_param ?? 0.7;
   if ($("#recMmrAlpha")) $("#recMmrAlpha").value = d.alpha_semantic ?? 0.7;
@@ -783,7 +789,7 @@ function applyMmrDefaultsToForm(defaults) {
   updateRecMmrSummaryBadge();
 }
 
-function buildRecPayloadFromForm() {
+function buildRecPayloadFromForm({ includeMmr = false } = {}) {
   const chips = Array.from(document.querySelectorAll("#recChipsGrid input:checked")).map(
     (inp) => inp.value
   );
@@ -802,8 +808,8 @@ function buildRecPayloadFromForm() {
   const budgetRaw = $("#recMaxBudget").value.trim();
   const travelRaw = $("#recMaxTravel").value.trim();
 
-  return {
-    data_source: $("#recDataSource") ? $("#recDataSource").value : "json",
+  const payload = {
+    data_source: "database",
     user_id: state.recActivePersonaId || "demo_user",
     cohort: $("#recCohort").value.trim() || null,
     interest_chips: chips,
@@ -837,16 +843,21 @@ function buildRecPayloadFromForm() {
     weight_preset: weightPreset,
     custom_weights: customWeights,
     interest_calibration_mode: $("#recInterestMode").value,
-    mmr: {
-      enabled: $("#recMmrEnabled") ? $("#recMmrEnabled").checked : true,
-      top_n: Math.max(1, Number($("#recMmrTopN")?.value || 5)),
-      lambda_param: Number($("#recMmrLambda")?.value ?? 0.7),
-      alpha_semantic: Number($("#recMmrAlpha")?.value ?? 0.7),
-      cosine_rescale_mode: $("#recMmrCosineMode") ? $("#recMmrCosineMode").value : "pool_minmax",
-      enable_exploration_slot: $("#recMmrExplore") ? $("#recMmrExplore").checked : true,
-      pin_mandatory: $("#recMmrPinMandatory") ? $("#recMmrPinMandatory").checked : true,
-    },
+    mmr: includeMmr
+      ? {
+          enabled: true,
+          top_n: Math.max(1, Number($("#recMmrTopN")?.value || 5)),
+          lambda_param: Number($("#recMmrLambda")?.value ?? 0.7),
+          alpha_semantic: Number($("#recMmrAlpha")?.value ?? 0.7),
+          cosine_rescale_mode: $("#recMmrCosineMode") ? $("#recMmrCosineMode").value : "pool_minmax",
+          enable_exploration_slot: $("#recMmrExplore") ? $("#recMmrExplore").checked : true,
+          pin_mandatory: $("#recMmrPinMandatory") ? $("#recMmrPinMandatory").checked : true,
+        }
+      : {
+          enabled: false,
+        },
   };
+  return payload;
 }
 
 function renderRecEventCard(ev, { cal, isMmrView }) {
@@ -1065,99 +1076,68 @@ function renderRecEventCard(ev, { cal, isMmrView }) {
   `;
 }
 
+function renderMmrProfileSummary() {
+  const box = $("#mmrProfileSummary");
+  if (!box) return;
+  const res = state.recLastResult || state.mmrLastResult;
+  if (!res) {
+    box.innerHTML = `Chưa có dữ liệu Scoring P6. Hãy chạy Scoring hoặc bấm <strong>Chạy Chọn lọc MMR (P7)</strong>.`;
+    return;
+  }
+  const sum = res.pipeline_summary || {};
+  const w = (res.profile_used && res.profile_used.weights) || {};
+  const m6 = res.demo_module6_state || {};
+  box.innerHTML = `
+    <div class="badge-row" style="margin-bottom:6px">
+      <span class="badge badge-teal mono">drl_database.db · ${sum.eligible_after_p5 ?? 0} ứng viên P6</span>
+      <span class="badge badge-muted mono">Mốc: ${fmtShortDateTime(sum.reference_now)}</span>
+    </div>
+    <div class="mono" style="font-size:11.5px">
+      ĐRL (Demo M6): <strong>${m6.current_total ?? 0}/${m6.target_total ?? 85}đ</strong> ·
+      w=(${fmtOptNum(w.w1_gain, 2)}, ${fmtOptNum(w.w2_interest, 2)}, ${fmtOptNum(w.w3_fit, 2)}, ${fmtOptNum(w.w4_urgency, 2)})
+    </div>
+  `;
+}
+
 function renderRecommendationResults() {
   const res = state.recLastResult;
   const pane = $("#recResultPane");
   if (!res) {
-    pane.innerHTML = `<div class="card empty-state">Bấm <strong>Chạy Đề Xuất (P5–P7 MMR)</strong> để xem kết quả.</div>`;
+    pane.innerHTML = `<div class="card empty-state">Bấm <strong>Chạy Scoring (P5–P6)</strong> để xem bảng xếp hạng chưa MMR.</div>`;
     return;
   }
 
   const sum = res.pipeline_summary || {};
   const cal = res.interest_calibration || {};
   const m6 = res.demo_module6_state || {};
-  const mmr = res.mmr_selection || null;
-  const mmrCfg = (mmr && mmr.config) || {};
-  const mmrMetrics = (mmr && mmr.metrics) || {};
-  const simCal = (mmr && mmr.similarity_calibration) || {};
-  const selected = res.selected_events || [];
   const ranked = res.ranked_events || [];
   const dropped = res.dropped_events || [];
   const reasonCounts = sum.drop_reason_counts || {};
-
-  const dataSourceLabel =
-    sum.data_source === "database" ? "drl_database.db (events)" : "Fixture JSON (108 sự kiện)";
   const embFields = (cal.event_embedding_fields || ["title", "description", "topic", "format"]).join(" + ");
-
-  const ildGain = Number(mmrMetrics.ild_gain || 0);
-  const ildGainTxt = `${ildGain >= 0 ? "+" : ""}${fmtOptNum(ildGain, 3)}`;
-  const mmrGroupsTxt = (mmrMetrics.mmr_groups || []).join(", ") || "—";
-  const p6GroupsTxt = (mmrMetrics.p6_topn_groups || []).join(", ") || "—";
-  const simRangeTxt =
-    simCal.raw_cos_min != null && simCal.raw_cos_max != null
-      ? `[${fmtOptNum(simCal.raw_cos_min, 3)}, ${fmtOptNum(simCal.raw_cos_max, 3)}]`
-      : "—";
-
-  const mmrBannerHtml = mmr
-    ? `
-      <div class="rec-mmr-banner">
-        <div>
-          <div class="kpi-label">P7 · Chọn danh sách MMR</div>
-          <div class="kpi-val mono text-teal" style="font-size:13.5px">
-            Top-${selected.length} ${mmr.enabled ? `(λ=${fmtOptNum(mmrCfg.lambda_param, 2)}, α=${fmtOptNum(mmrCfg.alpha_semantic, 2)})` : "(đang tắt)"}
-          </div>
-          <div class="helper-text" style="font-size:11px">
-            Ghim: ${mmr.mandatory_count} · MMR: ${mmr.relevance_count} · Khám phá: ${mmr.exploration_count}
-          </div>
-        </div>
-        <div>
-          <div class="kpi-label">Đa dạng ILD (MMR vs P6)</div>
-          <div class="kpi-val mono" style="font-size:13.5px">
-            ${fmtOptNum(mmrMetrics.mmr_ild, 3)} <span class="text-muted" style="font-size:11.5px">vs ${fmtOptNum(mmrMetrics.p6_topn_ild, 3)}</span>
-          </div>
-          <div class="helper-text mono" style="font-size:11px;color:${ildGain >= 0 ? "var(--color-primary-hover)" : "#9A3412"}">
-            ΔILD = ${ildGainTxt} · Sem ILD = ${fmtOptNum(mmrMetrics.mmr_semantic_ild, 3)}
-          </div>
-        </div>
-        <div>
-          <div class="kpi-label">Phủ nhóm ĐRL (MMR vs P6)</div>
-          <div class="kpi-val mono" style="font-size:13.5px">
-            ${mmrMetrics.mmr_group_coverage ?? 0} nhóm <span class="text-muted" style="font-size:11.5px">vs ${mmrMetrics.p6_topn_group_coverage ?? 0}</span>
-          </div>
-          <div class="helper-text mono" style="font-size:11px">
-            [${escapeHtml(mmrGroupsTxt)}] vs [${escapeHtml(p6GroupsTxt)}]
-          </div>
-        </div>
-        <div>
-          <div class="kpi-label">Cosine cặp E5 (${escapeHtml(simCal.mode_applied || "raw")})</div>
-          <div class="kpi-val mono" style="font-size:13.5px">${simRangeTxt}</div>
-          <div class="helper-text mono" style="font-size:11px">
-            Avg P6: ${fmtOptNum(mmrMetrics.mmr_avg_score, 3)} vs ${fmtOptNum(mmrMetrics.p6_topn_avg_score, 3)}
-          </div>
-        </div>
-      </div>
-    `
-    : "";
 
   const kpiHtml = `
     <div class="card">
       <div class="card-title-row">
-        <h2 class="card-title">Tổng quan Pipeline (P4 → M4/M6 → P5 → P6 → P7 MMR)</h2>
-        <span class="mono text-muted" style="font-size:12px">${escapeHtml(res.elapsed_ms)} ms · mốc ${fmtShortDateTime(sum.reference_now)}</span>
+        <h2 class="card-title">Danh sách Scoring P6 · Chưa áp dụng MMR (P4 → Demo M4/M6 → P5 → P6)</h2>
+        <div class="badge-row">
+          <span class="mono text-muted" style="font-size:12px">${escapeHtml(res.elapsed_ms)} ms · mốc ${fmtShortDateTime(sum.reference_now)}</span>
+          <button type="button" class="btn btn-primary btn-sm" data-open-mmr="1">Mở Bộ chọn MMR (P7) →</button>
+        </div>
       </div>
       <div class="badge-row" style="margin-top:8px">
-        <span class="badge ${sum.data_source === "database" ? "badge-orange" : "badge-teal"} mono">Nguồn: ${escapeHtml(dataSourceLabel)}</span>
+        <span class="badge badge-teal mono">Nguồn: drl_database.db (${sum.total_batch_events ?? 0} sự kiện)</span>
         <span class="badge badge-muted mono">Event vec (${escapeHtml((cal.event_embedding_prefix || "passage: ").trim())}): ${escapeHtml(embFields)}</span>
+        <span class="badge badge-muted mono">Module 6: DemoCreditProvider</span>
       </div>
       <div class="rec-kpi-grid" style="margin-top:12px">
         <div class="kpi-box">
-          <div class="kpi-label">Đầu vào PREDICTED</div>
+          <div class="kpi-label">Đầu vào PREDICTED (DB)</div>
           <div class="kpi-val mono text-teal">${sum.predicted_events_entered_p5} <span class="text-muted" style="font-size:12px">/ ${sum.total_batch_events}</span></div>
           <div class="helper-text" style="font-size:11px">Bỏ ${sum.excluded_not_predicted} chưa PREDICTED</div>
         </div>
         <div class="kpi-box">
-          <div class="kpi-label">Đạt P5 → Chọn P7</div>
-          <div class="kpi-val mono text-teal">${selected.length} <span class="text-muted" style="font-size:12px">/ ${sum.eligible_after_p5}</span></div>
+          <div class="kpi-label">Đạt P5 (Xếp hạng P6)</div>
+          <div class="kpi-val mono text-teal">${sum.eligible_after_p5}</div>
           <div class="helper-text" style="font-size:11px">Bị lọc cứng P5: ${sum.dropped_by_p5}</div>
         </div>
         <div class="kpi-box">
@@ -1172,15 +1152,10 @@ function renderRecommendationResults() {
         </div>
       </div>
 
-      ${mmrBannerHtml}
-
       <div class="rec-subtabs" style="margin-top:14px">
         <div class="status-filter-pills">
-          <button type="button" class="filter-pill ${state.recSubTab === "selected" ? "active" : ""}" data-rec-subtab="selected">
-            Danh sách P7 · MMR (${selected.length})
-          </button>
           <button type="button" class="filter-pill ${state.recSubTab === "ranked" ? "active" : ""}" data-rec-subtab="ranked">
-            Xếp hạng thuần P6 (${ranked.length})
+            Xếp hạng Scoring P6 · Chưa MMR (${ranked.length})
           </button>
           <button type="button" class="filter-pill ${state.recSubTab === "dropped" ? "active" : ""}" data-rec-subtab="dropped">
             Bị lọc cứng P5 · Vì sao bị loại? (${dropped.length})
@@ -1194,16 +1169,14 @@ function renderRecommendationResults() {
   `;
 
   let bodyHtml = "";
-  if (state.recSubTab === "selected" || state.recSubTab === "ranked") {
-    const isMmrView = state.recSubTab === "selected";
-    const list = isMmrView ? selected : ranked;
-    if (!list.length) {
+  if (state.recSubTab === "ranked") {
+    if (!ranked.length) {
       bodyHtml =
-        sum.data_source === "database" && Number(sum.total_batch_events || 0) === 0
-          ? `<div class="card empty-state"><strong>Database <code>drl_database.db</code> hiện đang trống (0 sự kiện trong bảng <code>events</code>).</strong><br/>Pipeline đã sẵn sàng: ngay khi scraper ghi sự kiện vào bảng <code>events</code> và chạy phân loại, hệ thống sẽ tự động embed 4 trường (<code>title + description + topic + format</code>), lọc P5, chấm điểm P6 và chọn đa dạng P7 MMR tại đây.</div>`
+        Number(sum.total_batch_events || 0) === 0
+          ? `<div class="card empty-state"><strong>Database <code>drl_database.db</code> hiện đang trống (0 sự kiện trong bảng <code>events</code>).</strong></div>`
           : `<div class="card empty-state">Không có sự kiện nào vượt qua bộ lọc cứng P5. Hãy xem tab <strong>Bị lọc cứng P5</strong> hoặc nới lỏng ràng buộc (mốc ngày, ngân sách, trần C1, lịch học).</div>`;
     } else {
-      bodyHtml = list.map((ev) => renderRecEventCard(ev, { cal, isMmrView })).join("");
+      bodyHtml = ranked.map((ev) => renderRecEventCard(ev, { cal, isMmrView: false })).join("");
     }
   } else {
     const reasonKeys = Object.keys(reasonCounts).sort((a, b) => reasonCounts[b] - reasonCounts[a]);
@@ -1267,42 +1240,204 @@ function renderRecommendationResults() {
   }
 
   pane.innerHTML = kpiHtml + bodyHtml;
+  renderMmrProfileSummary();
+}
+
+function renderMmrResults() {
+  const res = state.mmrLastResult;
+  const pane = $("#mmrResultPane");
+  if (!pane) return;
+  if (!res) {
+    pane.innerHTML = `<div class="card empty-state">Bấm <strong>Chạy Chọn lọc MMR (P7)</strong> để đa dạng hóa danh sách từ bảng Scoring P6.</div>`;
+    return;
+  }
+
+  const sum = res.pipeline_summary || {};
+  const cal = res.interest_calibration || {};
+  const mmr = res.mmr_selection || null;
+  const mmrCfg = (mmr && mmr.config) || {};
+  const mmrMetrics = (mmr && mmr.metrics) || {};
+  const simCal = (mmr && mmr.similarity_calibration) || {};
+  const selected = res.selected_events || [];
+  const ranked = res.ranked_events || [];
+
+  const ildGain = Number(mmrMetrics.ild_gain || 0);
+  const ildGainTxt = `${ildGain >= 0 ? "+" : ""}${fmtOptNum(ildGain, 3)}`;
+  const mmrGroupsTxt = (mmrMetrics.mmr_groups || []).join(", ") || "—";
+  const p6GroupsTxt = (mmrMetrics.p6_topn_groups || []).join(", ") || "—";
+  const simRangeTxt =
+    simCal.raw_cos_min != null && simCal.raw_cos_max != null
+      ? `[${fmtOptNum(simCal.raw_cos_min, 3)}, ${fmtOptNum(simCal.raw_cos_max, 3)}]`
+      : "—";
+
+  const mmrBannerHtml = mmr
+    ? `
+      <div class="rec-mmr-banner" style="margin-top:10px">
+        <div>
+          <div class="kpi-label">P7 · Chọn danh sách MMR</div>
+          <div class="kpi-val mono text-teal" style="font-size:13.5px">
+            Top-${selected.length} (λ=${fmtOptNum(mmrCfg.lambda_param, 2)}, α=${fmtOptNum(mmrCfg.alpha_semantic, 2)})
+          </div>
+          <div class="helper-text" style="font-size:11px">
+            Ghim: ${mmr.mandatory_count} · MMR: ${mmr.relevance_count} · Khám phá: ${mmr.exploration_count}
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">Đa dạng ILD (MMR vs P6)</div>
+          <div class="kpi-val mono" style="font-size:13.5px">
+            ${fmtOptNum(mmrMetrics.mmr_ild, 3)} <span class="text-muted" style="font-size:11.5px">vs ${fmtOptNum(mmrMetrics.p6_topn_ild, 3)}</span>
+          </div>
+          <div class="helper-text mono" style="font-size:11px;color:${ildGain >= 0 ? "var(--color-primary-hover)" : "#9A3412"}">
+            ΔILD = ${ildGainTxt} · Sem ILD = ${fmtOptNum(mmrMetrics.mmr_semantic_ild, 3)}
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">Phủ nhóm ĐRL (MMR vs P6)</div>
+          <div class="kpi-val mono" style="font-size:13.5px">
+            ${mmrMetrics.mmr_group_coverage ?? 0} nhóm <span class="text-muted" style="font-size:11.5px">vs ${mmrMetrics.p6_topn_group_coverage ?? 0}</span>
+          </div>
+          <div class="helper-text mono" style="font-size:11px">
+            [${escapeHtml(mmrGroupsTxt)}] vs [${escapeHtml(p6GroupsTxt)}]
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">Cosine cặp E5 (${escapeHtml(simCal.mode_applied || "raw")})</div>
+          <div class="kpi-val mono" style="font-size:13.5px">${simRangeTxt}</div>
+          <div class="helper-text mono" style="font-size:11px">
+            Avg P6: ${fmtOptNum(mmrMetrics.mmr_avg_score, 3)} vs ${fmtOptNum(mmrMetrics.p6_topn_avg_score, 3)}
+          </div>
+        </div>
+      </div>
+    `
+    : "";
+
+  const compareRowsCount = Math.min(selected.length, ranked.length);
+  const compareTableHtml =
+    compareRowsCount > 0
+      ? `
+        <details style="margin-top:12px" open>
+          <summary class="helper-text" style="cursor:pointer;font-weight:700">So sánh nhanh Top-${compareRowsCount}: Scoring gốc P6 (chưa MMR) vs Sau MMR (P7)</summary>
+          <table class="mmr-compare-table">
+            <thead>
+              <tr>
+                <th style="width:48px">#</th>
+                <th>Scoring gốc P6 (chưa MMR)</th>
+                <th>Sau chọn lọc MMR (P7)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Array.from({ length: compareRowsCount }, (_, i) => {
+                const rawEv = ranked[i];
+                const mmrEv = selected[i];
+                const st = mmrEv.selection_trace || {};
+                const changed = rawEv.event_id !== mmrEv.event_id;
+                const isExp = st.slot_type === "exploration";
+                const rowClass = isExp ? "explore-row" : changed ? "changed-row" : "";
+                const shiftTxt =
+                  Number(st.rank_delta || 0) > 0
+                    ? `↑+${st.rank_delta}`
+                    : Number(st.rank_delta || 0) < 0
+                      ? `↓${st.rank_delta}`
+                      : "=";
+                return `
+                  <tr class="${rowClass}">
+                    <td class="mono"><strong>#${i + 1}</strong></td>
+                    <td>
+                      <span class="badge badge-muted mono">${escapeHtml(rawEv.rubric_item_id || "?")} (${escapeHtml(rawEv.parent_group_id || "?")})</span>
+                      <span class="mono text-muted" style="font-size:11px">${fmtOptNum(rawEv.score_total, 3)}</span>
+                      <div style="margin-top:3px;font-weight:600">${escapeHtml(rawEv.title)}</div>
+                    </td>
+                    <td>
+                      <span class="badge ${isExp ? "badge-purple" : "badge-teal"} mono">${escapeHtml(isExp ? "KHÁM PHÁ" : st.slot_type === "mandatory" ? "GHIM" : "MMR")} · ${escapeHtml(mmrEv.rubric_item_id || "?")} (${escapeHtml(mmrEv.parent_group_id || "?")})</span>
+                      <span class="mono text-muted" style="font-size:11px">${fmtOptNum(mmrEv.score_total, 3)} · ${escapeHtml(shiftTxt)} (P6 #${st.p6_rank ?? i + 1})</span>
+                      <div style="margin-top:3px;font-weight:600">${escapeHtml(mmrEv.title)}</div>
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </details>
+      `
+      : "";
+
+  const headerHtml = `
+    <div class="card">
+      <div class="card-title-row">
+        <h2 class="card-title">Kết quả Bộ chọn MMR (P7 · Đa dạng hóa Top-N)</h2>
+        <span class="mono text-muted" style="font-size:12px">${escapeHtml(res.elapsed_ms)} ms · ${selected.length} / ${sum.eligible_after_p5 ?? 0} ứng viên P6</span>
+      </div>
+      ${mmrBannerHtml}
+      ${compareTableHtml}
+      <div class="rec-subtabs" style="margin-top:14px">
+        <div class="status-filter-pills">
+          <button type="button" class="filter-pill ${state.mmrSubTab === "selected" ? "active" : ""}" data-mmr-subtab="selected">
+            Danh sách sau MMR · Top-${selected.length}
+          </button>
+          <button type="button" class="filter-pill ${state.mmrSubTab === "ranked" ? "active" : ""}" data-mmr-subtab="ranked">
+            Scoring gốc P6 · Chưa MMR (${ranked.length})
+          </button>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-back-scoring="1">← Về trang Scoring (Tab 3)</button>
+      </div>
+    </div>
+  `;
+
+  const isMmrView = state.mmrSubTab === "selected";
+  const list = isMmrView ? selected : ranked;
+  const bodyHtml = list.length
+    ? list.map((ev) => renderRecEventCard(ev, { cal, isMmrView })).join("")
+    : `<div class="card empty-state">Không có sự kiện đủ điều kiện P5 để chọn lọc MMR. Hãy điều chỉnh ràng buộc ở Tab 3 (Scoring).</div>`;
+
+  pane.innerHTML = headerHtml + bodyHtml;
+  renderMmrProfileSummary();
 }
 
 async function runRecommendationQuery() {
   const btn = $("#btnRecRun");
-  btn.disabled = true;
+  if (btn) btn.disabled = true;
   try {
-    const payload = buildRecPayloadFromForm();
+    const payload = buildRecPayloadFromForm({ includeMmr: false });
     const res = await apiPost("/api/recommendation/run", payload);
     state.recLastResult = res;
+    state.mmrNeedsRefresh = true;
     renderRecommendationResults();
   } catch (err) {
-    showToast(`Lỗi chạy đề xuất: ${err.message}`);
+    showToast(`Lỗi chạy Scoring: ${err.message}`);
   } finally {
-    btn.disabled = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function runMmrQuery() {
+  const btn = $("#btnMmrRun");
+  if (btn) btn.disabled = true;
+  try {
+    const payload = buildRecPayloadFromForm({ includeMmr: true });
+    const res = await apiPost("/api/recommendation/mmr", payload);
+    state.mmrLastResult = res;
+    state.recLastResult = res;
+    state.mmrNeedsRefresh = false;
+    renderMmrResults();
+    renderRecommendationResults();
+  } catch (err) {
+    showToast(`Lỗi chạy MMR: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
 function initRecommendationControls(recBoot) {
   state.recBootstrap = recBoot;
 
-  // Update data source dropdown with live counts & embedding fields
-  const dsSelect = $("#recDataSource");
-  if (dsSelect) {
-    const stats = recBoot.pool_stats || {};
-    const jsonOpt = dsSelect.querySelector('option[value="json"]');
-    const dbOpt = dsSelect.querySelector('option[value="database"]');
-    if (jsonOpt) {
-      jsonOpt.textContent = `Fixture JSON (${stats.total_events ?? 0} sự kiện · ${stats.predicted_count ?? 0} PREDICTED)`;
-    }
-    if (dbOpt) {
-      dbOpt.textContent = `Database SQLite (drl_database.db · ${stats.db_active_events_count ?? 0} sự kiện)`;
-    }
+  const stats = recBoot.pool_stats || {};
+  const dbBadge = $("#recDbCountBadge");
+  if (dbBadge) {
+    dbBadge.textContent = `${recBoot.db_path || "drl_database.db"} · ${stats.db_active_events_count ?? 0} sự kiện · ${stats.predicted_count ?? 0} PREDICTED`;
   }
   const embHint = $("#recEmbeddingHint");
   if (embHint && Array.isArray(recBoot.rec_embedding_fields)) {
-    embHint.textContent = `Event vector: passage: ${recBoot.rec_embedding_fields.join(" + ")}`;
+    embHint.textContent = `Event vector (passage): ${recBoot.rec_embedding_fields.join(" + ")}`;
   }
 
   // Personas
@@ -1366,8 +1501,12 @@ function initRecommendationControls(recBoot) {
 
 function setupListeners() {
   document.querySelectorAll(".nav-tab").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      switchTab(btn.dataset.tab);
+    btn.addEventListener("click", async () => {
+      const target = btn.dataset.tab;
+      switchTab(target);
+      if (target === "mmr" && (state.mmrNeedsRefresh || !state.mmrLastResult)) {
+        await runMmrQuery();
+      }
     });
   });
 
@@ -1445,33 +1584,37 @@ function setupListeners() {
   $("#btnRerunPipeline").addEventListener("click", async () => {
     const btn = $("#btnRerunPipeline");
     btn.disabled = true;
-    btn.textContent = "Đang chạy...";
+    btn.textContent = "Đang chạy DB...";
     try {
-      const res = await apiPost("/api/dual-branch/run", {});
+      const res = await apiPost("/api/dual-branch/run", {
+        sample_branch: $("#batchSampleVec") ? $("#batchSampleVec").value : undefined,
+        rubric_branch: $("#batchRubricVec") ? $("#batchRubricVec").value : undefined,
+      });
       state.dualBranchSummary = res.dual_branch_events.summary;
       state.dualBranchEvents = res.dual_branch_events.events;
       renderBatchBrowser();
       if (state.selectedBatchPostId) {
         await selectBatchEvent(state.selectedBatchPostId);
       }
+      const recBoot = await apiGet("/api/recommendation/bootstrap");
+      state.recBootstrap = recBoot;
+      const stats = recBoot.pool_stats || {};
+      if ($("#recDbCountBadge")) {
+        $("#recDbCountBadge").textContent = `${recBoot.db_path || "drl_database.db"} · ${stats.db_active_events_count ?? 0} sự kiện · ${stats.predicted_count ?? 0} PREDICTED`;
+      }
+      await runRecommendationQuery();
       showToast(
-        `Pipeline hoàn tất: ${res.status_counts.PREDICTED} PREDICTED, ${res.status_counts.NEEDS_REVIEW} NEEDS_REVIEW`
+        `DB Pipeline hoàn tất: ${res.status_counts.PREDICTED} PREDICTED, ${res.status_counts.NEEDS_REVIEW} NEEDS_REVIEW`
       );
     } catch (err) {
       showToast(`Lỗi chạy pipeline: ${err.message}`);
     } finally {
       btn.disabled = false;
-      btn.textContent = "Chạy lại Pipeline";
+      btn.textContent = "Chạy lại Pipeline (DB)";
     }
   });
 
-  // --- Tab 3: Recommendation Demo Listeners ---
-  if ($("#recDataSource")) {
-    $("#recDataSource").addEventListener("change", async () => {
-      await runRecommendationQuery();
-    });
-  }
-
+  // --- Tab 3: Scoring (P5-P6) Listeners ---
   $("#recPersonaBar").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-persona-id]");
     if (!btn) return;
@@ -1553,7 +1696,7 @@ function setupListeners() {
     });
   });
 
-  ["#recMmrEnabled", "#recMmrTopN", "#recMmrLambda", "#recMmrAlpha"].forEach((sel) => {
+  ["#recMmrTopN", "#recMmrLambda", "#recMmrAlpha"].forEach((sel) => {
     const el = $(sel);
     if (el) {
       el.addEventListener("input", updateRecMmrSummaryBadge);
@@ -1568,10 +1711,31 @@ function setupListeners() {
 
   $("#btnRecReset").addEventListener("click", async () => {
     applyRecPersona("balanced_cs1");
-    applyMmrDefaultsToForm();
     await runRecommendationQuery();
-    showToast("Đã đặt lại cấu hình Demo Recommendation mặc định");
+    showToast("Đã đặt lại cấu hình Scoring mặc định");
   });
+
+  // --- Tab 4: Dedicated MMR Selector (P7) Listeners ---
+  if ($("#mmrForm")) {
+    $("#mmrForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await runMmrQuery();
+    });
+  }
+
+  if ($("#btnMmrReset")) {
+    $("#btnMmrReset").addEventListener("click", async () => {
+      applyMmrDefaultsToForm();
+      await runMmrQuery();
+      showToast("Đã đặt lại tham số MMR mặc định");
+    });
+  }
+
+  if ($("#btnBackToScoring")) {
+    $("#btnBackToScoring").addEventListener("click", () => {
+      switchTab("recommend");
+    });
+  }
 
   $("#recUserActionState").addEventListener("click", async (e) => {
     if (!e.target.closest("#btnRecClearActions")) return;
@@ -1582,6 +1746,11 @@ function setupListeners() {
   });
 
   $("#recResultPane").addEventListener("click", async (e) => {
+    if (e.target.closest("button[data-open-mmr]")) {
+      switchTab("mmr");
+      await runMmrQuery();
+      return;
+    }
     const subBtn = e.target.closest("button[data-rec-subtab]");
     if (subBtn) {
       state.recSubTab = subBtn.dataset.recSubtab;
@@ -1612,6 +1781,38 @@ function setupListeners() {
       showToast(`Đã ẩn ${eid} → P5 xử lý (sự kiện bắt buộc vẫn được giữ lại)`);
     }
   });
+
+  if ($("#mmrResultPane")) {
+    $("#mmrResultPane").addEventListener("click", async (e) => {
+      if (e.target.closest("button[data-back-scoring]")) {
+        switchTab("recommend");
+        return;
+      }
+      const subBtn = e.target.closest("button[data-mmr-subtab]");
+      if (subBtn) {
+        state.mmrSubTab = subBtn.dataset.mmrSubtab;
+        renderMmrResults();
+        return;
+      }
+      const joinBtn = e.target.closest("button[data-rec-join]");
+      if (joinBtn) {
+        const eid = joinBtn.dataset.recJoin;
+        if (!state.recParticipatedIds.includes(eid)) state.recParticipatedIds.push(eid);
+        renderRecUserActionState();
+        await runMmrQuery();
+        showToast(`Đã đánh dấu tham gia ${eid} → đã loại khỏi ứng viên MMR`);
+        return;
+      }
+      const hideBtn = e.target.closest("button[data-rec-hide]");
+      if (hideBtn) {
+        const eid = hideBtn.dataset.recHide;
+        if (!state.recHiddenIds.includes(eid)) state.recHiddenIds.push(eid);
+        renderRecUserActionState();
+        await runMmrQuery();
+        showToast(`Đã ẩn ${eid} → đã cập nhật danh sách MMR`);
+      }
+    });
+  }
 }
 
 async function init() {

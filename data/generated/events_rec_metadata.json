@@ -1,6 +1,6 @@
 {
   "schema_version": "events-rec-embeddings-v1",
-  "source_fingerprint": "c23a806d1e11dc184ab4ac52dca90ffa2f81fcdf8808ef07d45ec431bed55e1b",
+  "source_fingerprint": "6ca58e06daa04322766a96b05a72bd27c937a13f91252e9cd4a8004c16d8fcca",
   "fields": [
     "title",
     "description",
@@ -11,1173 +11,1840 @@
   "embedding_dimension": 384,
   "dtype": "float32",
   "normalization": "l2",
-  "embedded_events_count": 108,
-  "generation_timestamp_utc": "2026-11-27T18:31:49+00:00",
+  "embedded_events_count": 116,
+  "generation_timestamp_utc": "2026-11-27T21:25:53+00:00",
   "records": [
     {
       "embedding_row": 0,
-      "event_id": "sample_001",
-      "event_title": "[THI THỬ TOEIC – VƯƠN TẦM HỘI NHẬP]",
+      "event_id": "db_1",
+      "event_title": "THI THỬ TOEIC - 2 KỸ NĂNG NGHE VÀ ĐỌC",
       "topic": [
-        "Academic"
+        "học thuật",
+        "hội nhập",
+        "khoa học",
+        "kỹ năng",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [THI THỬ TOEIC – VƯƠN TẦM HỘI NHẬP]. Chủ đề: Academic. Đây là một kỳ thi thử TOEIC với hai kỹ năng nghe và đọc do CLB Sinh viên 5 Tốt, CLB Kỹ Năng và CLB Anh Văn BEE phối hợp tổ chức. Tham gia kỳ thi này giúp sinh viên đánh giá năng lực ngoại ngữ, nhận chứng nhận để xét tiêu chí Hội nhập tốt, cùng cơ hội nhận các phần quà và học bổng học phí hấp dẫn."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: THI THỬ TOEIC - 2 KỸ NĂNG NGHE VÀ ĐỌC. Chủ đề: học thuật, hội nhập, khoa học, kỹ năng, cộng đồng. Hình thức: cuộc thi, cá nhân. Tham gia kỳ thi thử TOEIC 2 kỹ năng nghe và đọc do các câu lạc bộ phối hợp tổ chức để đánh giá chính xác năng lực ngoại ngữ của bản thân. Thí sinh sẽ làm bài thi sát đề thật, nhận giấy chứng nhận xét tiêu chí hội nhập tốt, ưu đãi học phí và có cơ hội tranh các giải thưởng tiền mặt hấp dẫn."
     },
     {
       "embedding_row": 1,
-      "event_id": "sample_002",
-      "event_title": "[TRAO YÊU THƯƠNG - ĐỔI HẠNH PHÚC]",
+      "event_id": "db_2",
+      "event_title": "TRAO YÊU THƯƠNG - ĐỔI HẠNH PHÚC",
       "topic": [
-        "Volunteering"
+        "cộng đồng",
+        "thiện nguyện",
+        "kỹ năng"
       ],
-      "format": [],
-      "embedding_text": "passage: [TRAO YÊU THƯƠNG - ĐỔI HẠNH PHÚC]. Chủ đề: Volunteering. Một hoạt động tình nguyện do Chi hội 25KDL1 phối hợp cùng Chi hội 25TTH3 tổ chức nhằm giúp đỡ cộng đồng. Sinh viên sẽ tham gia nấu ăn tại Chùa Tân Hưng và trực tiếp phân phát các phần ăn thiện nguyện đến các bệnh nhân tại Bệnh viện Ung Bướu TP.HCM."
+      "format": [
+        "tình nguyện",
+        "đồng đội",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: TRAO YÊU THƯƠNG - ĐỔI HẠNH PHÚC. Chủ đề: cộng đồng, thiện nguyện, kỹ năng. Hình thức: tình nguyện, đồng đội, tọa đàm. Tham gia hoạt động tình nguyện tại Chùa Tân Hưng và Bệnh viện Ung Bướu TP.HCM để cùng đóng góp sức trẻ cho cộng đồng. Sinh viên sẽ trực tiếp tham gia khâu hậu cần, nấu ăn, chuẩn bị bánh mì chay và phân phát suất ăn thiện nguyện đến các bệnh nhân, qua đó lan tỏa lòng nhân ái và kết nối bạn bè."
     },
     {
       "embedding_row": 2,
-      "event_id": "sample_003",
+      "event_id": "db_3",
       "event_title": "BƯỚC CHÂN YÊU THƯƠNG",
       "topic": [
-        "Volunteering"
+        "cộng đồng",
+        "thiện nguyện",
+        "lập trình",
+        "AI",
+        "khoa học",
+        "thể thao"
       ],
-      "format": [],
-      "embedding_text": "passage: BƯỚC CHÂN YÊU THƯƠNG. Chủ đề: Volunteering. Chương trình tình nguyện hè kéo dài 2 ngày 1 đêm tổ chức tại Vĩnh Long. Các tình nguyện viên sẽ tham gia nhiều hoạt động ý nghĩa như tổ chức các buổi workshop kỹ năng, thiết lập gian hàng STEM, xây dựng sân chơi tái chế và tham gia hoạt động cộng đồng, đền ơn đáp nghĩa."
+      "format": [
+        "tình nguyện",
+        "tuyển cộng tác viên",
+        "workshop"
+      ],
+      "embedding_text": "passage: BƯỚC CHÂN YÊU THƯƠNG. Chủ đề: cộng đồng, thiện nguyện, lập trình, AI, khoa học, thể thao. Hình thức: tình nguyện, tuyển cộng tác viên, workshop. Đăng ký tham gia làm cộng tác viên cho chiến dịch tình nguyện hè tại tỉnh Vĩnh Long để trải nghiệm các hoạt động giáo dục, workshop an toàn thông tin, ứng dụng AI trong giảng dạy và xây dựng sân chơi tái chế cho học sinh. Đây là cơ hội để cống hiến sức trẻ, hỗ trợ chuyển đổi số cộng đồng và mang lại mùa hè ý nghĩa."
     },
     {
       "embedding_row": 3,
-      "event_id": "sample_004",
-      "event_title": "[NGÀY HỘI TRI ÂN VÀ KẾT NỐI NĂM 2026]",
+      "event_id": "db_4",
+      "event_title": "NGÀY HỘI TRI ÂN VÀ KẾT NỐI NĂM 2026",
       "topic": [
-        "Festival"
+        "chính trị - xã hội",
+        "cộng đồng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: [NGÀY HỘI TRI ÂN VÀ KẾT NỐI NĂM 2026]. Chủ đề: Festival. Ngày hội là dịp ý nghĩa để các thế hệ giảng viên và sinh viên Khoa Vật lý - Vật lý kỹ thuật giao lưu, hội ngộ. Sinh viên tham gia sẽ trải nghiệm không gian triển lãm, viết lời chúc tri ân, chơi các gian hàng trò chơi, chụp hình lưu niệm và nhận cơ hội cộng điểm rèn luyện."
+      "format": [
+        "ngày hội",
+        "triển lãm"
+      ],
+      "embedding_text": "passage: NGÀY HỘI TRI ÂN VÀ KẾT NỐI NĂM 2026. Chủ đề: chính trị - xã hội, cộng đồng, khoa học. Hình thức: ngày hội, triển lãm. Tham gia Ngày hội Tri ân và Kết nối chào mừng 85 năm truyền thống Khoa Vật lý - Vật lý kỹ thuật để hòa mình vào không gian triển lãm, viết lời chúc tri ân thầy cô, tham gia gian hàng trò chơi và check-in nhận quà kỷ niệm độc quyền. Sinh viên tham gia đầy đủ sẽ được ghi nhận hoạt động và cộng Điểm rèn luyện trong học kỳ."
     },
     {
       "embedding_row": 4,
-      "event_id": "sample_005",
-      "event_title": "Workshop “NÉT SON”",
+      "event_id": "db_5",
+      "event_title": "Workshop NÉT SON",
       "topic": [
-        "Workshop"
+        "hội nhập",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Workshop “NÉT SON”. Chủ đề: Workshop. NÉT SON là một không gian trải nghiệm và sáng tạo nghệ thuật dân gian nhằm lan tỏa các giá trị văn hóa truyền thống Việt Nam đến giới trẻ. Sự kiện bao gồm các workshop vẽ quạt, nặn tò he và một buổi talkshow chia sẻ về việc gìn giữ bản sắc dân tộc."
+      "format": [
+        "workshop",
+        "talkshow",
+        "tọa đàm",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Workshop NÉT SON. Chủ đề: hội nhập, kỹ năng, khoa học, cộng đồng. Hình thức: workshop, talkshow, tọa đàm, cá nhân. Tham gia workshop 'NÉT SON' để trải nghiệm vẽ quạt thủ công, nặn tò he dân gian dưới sự hướng dẫn của nghệ nhân và tham gia talkshow giao lưu tìm hiểu bản sắc văn hóa Việt Nam. Sự kiện mang đến không gian sáng tạo nghệ thuật, giúp học sinh sinh viên thêm yêu và lan tỏa các giá trị truyền thống dân tộc."
     },
     {
       "embedding_row": 5,
-      "event_id": "sample_006",
+      "event_id": "db_6",
       "event_title": "[GREEN DAY LẦN THỨ IX NĂM 2026] – VÌ MỘT TƯƠNG LAI LUÔN XANH",
       "topic": [
-        "Workshop",
-        "Festival"
+        "cộng đồng",
+        "hội nhập",
+        "khoa học",
+        "kỹ năng"
       ],
-      "format": [],
-      "embedding_text": "passage: [GREEN DAY LẦN THỨ IX NĂM 2026] – VÌ MỘT TƯƠNG LAI LUÔN XANH. Chủ đề: Workshop, Festival. Một sự kiện môi trường bao gồm workshop về chủ đề 'Chi phí cơ hội' và tiêu dùng bền vững, cùng các gian hàng trải nghiệm sống xanh. Sinh viên tham gia sẽ được trang bị tư duy tiêu dùng bền vững và nhận giấy chứng nhận mảng kỹ năng."
+      "format": [
+        "workshop",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: [GREEN DAY LẦN THỨ IX NĂM 2026] – VÌ MỘT TƯƠNG LAI LUÔN XANH. Chủ đề: cộng đồng, hội nhập, khoa học, kỹ năng. Hình thức: workshop, tọa đàm. Workshop GreenDay lần thứ IX mang đến cơ hội tìm hiểu về chi phí cơ hội trong lĩnh vực môi trường và trang bị tư duy tiêu dùng bền vững. Tham gia chương trình, bạn sẽ được thảo luận trực tiếp cùng diễn giả, khám phá các gian hàng sống xanh và nhận Giấy chứng nhận mảng Kỹ năng hỗ trợ xét duyệt danh hiệu Sinh viên 5 tốt."
     },
     {
       "embedding_row": 6,
-      "event_id": "sample_007",
-      "event_title": "FIT@HCMUS Summer School on Intelligent Agents and Agentic AI",
+      "event_id": "db_7",
+      "event_title": "Trường hè FIT@HCMUS Summer School on Intelligent Agents and Agentic AI",
       "topic": [
-        "Seminar",
-        "Academic"
+        "AI",
+        "lập trình",
+        "khoa học",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: FIT@HCMUS Summer School on Intelligent Agents and Agentic AI. Chủ đề: Seminar, Academic. Chương trình Trường hè quy tụ nhiều chuyên gia trong nước và quốc tế để chia sẻ các tiến bộ mới nhất về Agentic AI và Intelligent Agents. Sự kiện bao gồm 10 chuyên đề khác nhau từ lý thuyết đến thực hành, hỗ trợ tích lũy điểm rèn luyện và sinh hoạt công dân."
+      "format": [
+        "workshop",
+        "seminar",
+        "đồng đội"
+      ],
+      "embedding_text": "passage: Trường hè FIT@HCMUS Summer School on Intelligent Agents and Agentic AI. Chủ đề: AI, lập trình, khoa học, học thuật, cộng đồng. Hình thức: workshop, seminar, đồng đội. Chương trình Trường hè quy tụ các chuyên gia hàng đầu nhằm cập nhật những tiến bộ mới nhất về Agentic AI và Intelligent Agents. Người tham gia sẽ được tiếp thu các chuyên đề từ nền tảng lý thuyết đến ứng dụng thực tiễn, kết nối với các doanh nghiệp công nghệ lớn và được tính tích lũy chuyên đề Sinh hoạt công dân."
     },
     {
       "embedding_row": 7,
-      "event_id": "sample_008",
+      "event_id": "db_8",
       "event_title": "Seminar on Legal AI Beyond the Demo: Building systems that work in practice",
       "topic": [
-        "Seminar",
-        "Academic"
+        "AI",
+        "học thuật",
+        "pháp luật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Seminar on Legal AI Beyond the Demo: Building systems that work in practice. Chủ đề: Seminar, Academic. Buổi seminar do Tiến sĩ Chia Chong Cher trình bày, xoay quanh việc ứng dụng thực tiễn các mô hình ngôn ngữ lớn trong lĩnh vực pháp lý. Người tham gia sẽ được lắng nghe các cơ hội và thách thức của AI trong ngành luật hiện nay."
+      "format": [
+        "seminar"
+      ],
+      "embedding_text": "passage: Seminar on Legal AI Beyond the Demo: Building systems that work in practice. Chủ đề: AI, học thuật, pháp luật, cộng đồng. Hình thức: seminar. Buổi seminar khám phá những cơ hội và thực tế áp dụng các mô hình ngôn ngữ lớn (LLMs) trong lĩnh vực pháp lý. Người tham gia sẽ tìm hiểu cách AI tạo giá trị cho luật sư cũng như thảo luận về các thách thức kỹ thuật và vận hành."
     },
     {
       "embedding_row": 8,
-      "event_id": "sample_009",
+      "event_id": "db_9",
       "event_title": "[BẢN LĨNH IT 2026] - MỞ FORM ĐĂNG KÝ",
       "topic": [
-        "Competition"
+        "lập trình",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng",
+        "học thuật"
       ],
-      "format": [],
-      "embedding_text": "passage: [BẢN LĨNH IT 2026] - MỞ FORM ĐĂNG KÝ. Chủ đề: Competition. Bản lĩnh IT là một cuộc thi kỹ năng thường niên dành riêng cho các bạn Tân sinh viên khoa Công nghệ thông tin tại Trường Đại học Khoa học tự nhiên, ĐHQG-HCM nhằm mang lại một sân chơi hấp dẫn, thú vị để rèn luyện tư duy và làm quen môi trường đại học."
+      "format": [
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: [BẢN LĨNH IT 2026] - MỞ FORM ĐĂNG KÝ. Chủ đề: lập trình, kỹ năng, khoa học, cộng đồng, học thuật. Hình thức: cuộc thi. Cuộc thi Bản lĩnh IT 2026 là sân chơi kỹ năng thường niên nhằm chào đón các bạn tân sinh viên khoa Công nghệ thông tin. Tham gia cuộc thi, các bạn có cơ hội giao lưu, thử sức với các thử thách hấp dẫn và hòa nhập vào môi trường học tập mới."
     },
     {
       "embedding_row": 9,
-      "event_id": "sample_010",
+      "event_id": "db_10",
       "event_title": "[ITogether] - MỞ LINK ĐĂNG KÝ",
       "topic": [
-        "Entertainment"
+        "cộng đồng",
+        "hội nhập",
+        "khoa học",
+        "thiện nguyện",
+        "văn nghệ"
       ],
-      "format": [],
-      "embedding_text": "passage: [ITogether] - MỞ LINK ĐĂNG KÝ. Chủ đề: Entertainment. ITogether là một hoạt động teambuilding ngoài trời sôi nổi nhằm giúp tân sinh viên làm quen bạn mới, kết nối với các anh chị khóa trước và giao lưu trực tiếp với các CLB, Đội, Nhóm của khoa Công nghệ thông tin."
+      "format": [
+        "ngày hội",
+        "tọa đàm",
+        "tình nguyện",
+        "đồng đội"
+      ],
+      "embedding_text": "passage: [ITogether] - MỞ LINK ĐĂNG KÝ. Chủ đề: cộng đồng, hội nhập, khoa học, thiện nguyện, văn nghệ. Hình thức: ngày hội, tọa đàm, tình nguyện, đồng đội. Hoạt động teambuilding ngoài trời 'ITogether' mang đến chuỗi thử thách gắn kết đồng đội và cơ hội làm quen với bạn mới cho tân sinh viên khoa Công nghệ thông tin. Sinh viên tham gia sẽ được giao lưu trực tiếp với các câu lạc bộ, đội nhóm và khám phá khuôn viên trường."
     },
     {
       "embedding_row": 10,
-      "event_id": "sample_011",
-      "event_title": "[BUILD ON STELLAR] — FROM ZERO TO YOUR FIRST WEB3 APP",
+      "event_id": "db_11",
+      "event_title": "Build On Stellar — From Zero To Your First Web3 App",
       "topic": [
-        "Workshop",
-        "Academic"
+        "lập trình",
+        "AI",
+        "hướng nghiệp",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [BUILD ON STELLAR] — FROM ZERO TO YOUR FIRST WEB3 APP. Chủ đề: Workshop, Academic. Workshop thực tế giúp sinh viên khám phá Blockchain/Web3 và trực tiếp thực hành xây dựng dApp trên hệ sinh thái Stellar. Sinh viên tham gia sẽ nhận sự hướng dẫn từ mentor chuyên nghiệp và cơ hội nhận quà, điểm rèn luyện."
+      "format": [
+        "workshop",
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: Build On Stellar — From Zero To Your First Web3 App. Chủ đề: lập trình, AI, hướng nghiệp, kỹ năng, khoa học, cộng đồng. Hình thức: workshop, cuộc thi. Workshop 'Build On Stellar' hướng dẫn sinh viên tìm hiểu về Blockchain, Web3, hệ sinh thái Stellar và Soroban smart contract qua phần thực hành hands-on trực tiếp deploy dApp. Người tham gia có cơ hội nhận quà cho các dự án nổi bật và được ghi nhận điểm rèn luyện."
     },
     {
       "embedding_row": 11,
-      "event_id": "sample_012",
-      "event_title": "[GALA CHUNG KẾT SCHALLENGE 2026 - SẴN SÀNG BÙNG NỔ CHẶNG ĐUA CUỐI CÙNG]",
+      "event_id": "db_12",
+      "event_title": "Gala Chung Kết Schallenge 2026",
       "topic": [
-        "Competition",
-        "Entertainment"
+        "học thuật",
+        "hướng nghiệp",
+        "hội nhập",
+        "pháp luật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [GALA CHUNG KẾT SCHALLENGE 2026 - SẴN SÀNG BÙNG NỔ CHẶNG ĐUA CUỐI CÙNG]. Chủ đề: Competition, Entertainment. Vòng Chung kết kịch tính của cuộc thi SCHALLENGE 2026 với chủ đề quản trị rủi ro chuỗi cung ứng toàn cầu, hứa hẹn đem lại các màn tranh biện gay cấn, góc nhìn chuyên sâu và cơ hội nhận nhiều quà tặng hấp dẫn cho người tham dự."
+      "format": [
+        "cuộc thi",
+        "tọa đàm",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Gala Chung Kết Schallenge 2026. Chủ đề: học thuật, hướng nghiệp, hội nhập, pháp luật, cộng đồng. Hình thức: cuộc thi, tọa đàm, cá nhân. Gala Chung kết cuộc thi 'Chiến lược xuyên biên giới XIV – SCHALLENGE 2026' là nơi tranh tài của Top 4 đội thi xuất sắc nhất về chủ đề quản trị rủi ro trong chuỗi cung ứng toàn cầu. Khán giả tham gia sẽ được theo dõi các phần tranh biện, lắng nghe chia sẻ chuyên sâu và nhận những phần quà hấp dẫn từ Ban Tổ chức."
     },
     {
       "embedding_row": 12,
-      "event_id": "sample_013",
-      "event_title": "[HNNN 2026] - NHẮC NHỞ DIỄN RA THI THỬ TOEIC CƠ SỞ PHƯỜNG CHỢ QUÁN",
+      "event_id": "db_13",
+      "event_title": "Thi Thử TOEIC Cơ Sở Phường Chợ Quán",
       "topic": [
-        "Exam"
+        "học thuật",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [HNNN 2026] - NHẮC NHỞ DIỄN RA THI THỬ TOEIC CƠ SỞ PHƯỜNG CHỢ QUÁN. Chủ đề: Exam. Buổi nhắc nhở và cung cấp thông tin chuẩn bị cho kỳ thi thử TOEIC thực tế trên giấy nhằm kiểm tra và đánh giá trình độ Anh ngữ của sinh viên tại Trạm Chợ Quán."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Thi Thử TOEIC Cơ Sở Phường Chợ Quán. Chủ đề: học thuật, hội nhập, khoa học, cộng đồng. Hình thức: cuộc thi, cá nhân. Chương trình thi thử TOEIC trực tiếp trên giấy giúp sinh viên đánh giá chính xác trình độ tiếng Anh hiện tại của bản thân. Thí sinh đạt từ 450/990 điểm sẽ được công nhận tham gia hoạt động và nhận giấy chứng nhận đạt mục Ngoại ngữ trong tiêu chí 'Hội nhập tốt'."
     },
     {
       "embedding_row": 13,
-      "event_id": "sample_014",
-      "event_title": "[MỘT GIỌT MÁU CHO ĐI, MỘT CUỘC ĐỜI Ở LẠI]",
-      "topic": [],
-      "format": [],
-      "embedding_text": "passage: [MỘT GIỌT MÁU CHO ĐI, MỘT CUỘC ĐỜI Ở LẠI]. Chương trình hiến máu nhân đạo tình nguyện tại trường Đại học Khoa học tự nhiên nhằm khuyến khích cộng đồng sinh viên tham gia sẻ chia và hỗ trợ sức khỏe cộng đồng."
+      "event_id": "db_14",
+      "event_title": "Hiến Máu Tình Nguyện - Một Giọt Máu Cho Đi, Một Cuộc Đời Ở Lại",
+      "topic": [
+        "cộng đồng",
+        "thiện nguyện",
+        "quyên góp",
+        "khoa học"
+      ],
+      "format": [
+        "tình nguyện",
+        "tọa đàm",
+        "hiến máu"
+      ],
+      "embedding_text": "passage: Hiến Máu Tình Nguyện - Một Giọt Máu Cho Đi, Một Cuộc Đời Ở Lại. Chủ đề: cộng đồng, thiện nguyện, quyên góp, khoa học. Hình thức: tình nguyện, tọa đàm, hiến máu. Chương trình hiến máu tình nguyện tạo cơ hội cho sinh viên chia sẻ những giọt máu hồng yêu thương vì cộng đồng. Người tham gia cần mang theo giấy tờ tùy thân, ngủ đủ giấc và ăn nhẹ trước khi hiến máu."
     },
     {
       "embedding_row": 14,
-      "event_id": "sample_015",
-      "event_title": "MỞ LINK ĐĂNG KÝ VÒNG ONLINE 1 - HÀNH TRÌNH HỒI SINH TÀN TÍCH",
+      "event_id": "db_15",
+      "event_title": "Vòng Online 1 - Hành Trình Hồi Sinh Tàn Tích (Coding Challenge 2026)",
       "topic": [
-        "Competition"
+        "lập trình",
+        "khoa học",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: MỞ LINK ĐĂNG KÝ VÒNG ONLINE 1 - HÀNH TRÌNH HỒI SINH TÀN TÍCH. Chủ đề: Competition. Vòng thi trực tuyến đầu tiên mang tên Phoenix thuộc cuộc thi Coding Challenge 2026, tạo sân chơi giải quyết thử thách lập trình trực tiếp trực tuyến giúp sinh viên rèn luyện tư duy logic."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Vòng Online 1 - Hành Trình Hồi Sinh Tàn Tích (Coding Challenge 2026). Chủ đề: lập trình, khoa học, học thuật, cộng đồng. Hình thức: cuộc thi, cá nhân. Vòng Online 1 của Coding Challenge 2026 là thử thách lập trình trực tuyến giúp sinh viên rèn luyện tư duy thuật toán và chinh phục cuộc thi. Thí sinh tham gia từ một vòng trở lên và đạt đủ điểm quy định sẽ được ghi nhận hoạt động."
     },
     {
       "embedding_row": 15,
-      "event_id": "sample_016",
-      "event_title": "KỲ THI THỬ TOEIC - 24 GIỜ CUỐI ĐĂNG KÝ",
+      "event_id": "db_16",
+      "event_title": "Kỳ thi thử TOEIC",
       "topic": [
-        "Exam"
+        "hội nhập",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: KỲ THI THỬ TOEIC - 24 GIỜ CUỐI ĐĂNG KÝ. Chủ đề: Exam. Kỳ thi thử TOEIC trực tiếp giúp sinh viên chuẩn bị tinh thần và đánh giá chính xác năng lực Anh ngữ, đồng thời hỗ trợ cải thiện kỹ năng thi cử trước khi bước vào bài thi chính thức."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Kỳ thi thử TOEIC. Chủ đề: hội nhập, học thuật, cộng đồng. Hình thức: cuộc thi, cá nhân. Tham gia kỳ thi thử TOEIC trực tiếp để trải nghiệm áp lực phòng thi thực tế, rèn luyện kỹ năng làm bài và kiểm tra năng lực tiếng Anh của bản thân. Thí sinh sẽ được làm quen với cấu trúc đề thi chuẩn và nhận kết quả chi tiết để định hướng ôn tập."
     },
     {
       "embedding_row": 16,
-      "event_id": "sample_017",
-      "event_title": "TEACHER APPRECIATION TOURNAMENT 2026",
+      "event_id": "db_17",
+      "event_title": "USCC | Teacher Appreciation Tournament 2026",
       "topic": [
-        "Sporting Events"
+        "thể thao",
+        "cộng đồng"
       ],
       "format": [
-        "Competition"
+        "cuộc thi",
+        "cá nhân"
       ],
-      "embedding_text": "passage: TEACHER APPRECIATION TOURNAMENT 2026. Chủ đề: Sporting Events. Hình thức: Competition. A chess tournament organized by USCC to celebrate Vietnam Teacher's Day, allowing chess enthusiasts to compete and express gratitude to their teachers."
+      "embedding_text": "passage: USCC | Teacher Appreciation Tournament 2026. Chủ đề: thể thao, cộng đồng. Hình thức: cuộc thi, cá nhân. Giải đấu cờ vua được tổ chức nhân dịp Ngày Nhà giáo Việt Nam 20/11, tạo sân chơi cho những người yêu thích môn cờ hội tụ, giao lưu, thử sức và gửi gắm lời tri ân chân thành đến thầy cô. Người tham gia có cơ hội rèn luyện tư duy chiến thuật, bản lĩnh thi đấu và kết nối với cộng đồng."
     },
     {
       "embedding_row": 17,
-      "event_id": "sample_018",
-      "event_title": "🚨 TỌA ĐÀM “TUỔI TRẺ ĐHQG-HCM NHẬN DIỆN ‘DẤU HIỆU ĐỎ’ TRƯỚC BẮT CÓC VÀ BUÔN BÁN NGƯỜI TRỰC TUYẾN” 🚨",
+      "event_id": "db_18",
+      "event_title": "Chiến dịch “10 ngày Sống xanh cùng HCMUS” và Ngày hội Sống xanh",
       "topic": [
-        "tọa đàm"
+        "cộng đồng",
+        "thiện nguyện",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: 🚨 TỌA ĐÀM “TUỔI TRẺ ĐHQG-HCM NHẬN DIỆN ‘DẤU HIỆU ĐỎ’ TRƯỚC BẮT CÓC VÀ BUÔN BÁN NGƯỜI TRỰC TUYẾN” 🚨. Chủ đề: tọa đàm. Tại tọa đàm, các bạn trẻ sẽ cùng nhận diện những dấu hiệu cảnh báo, tìm hiểu thủ đoạn dụ dỗ và nâng cao kỹ năng tự bảo vệ trước nguy cơ bắt cóc, mua bán người trên không gian mạng qua những câu chuyện thực tế và góc nhìn từ khách mời. Diễn viên, nhà sáng tạo nội dung Thiết Yến."
+      "format": [
+        "ngày hội",
+        "tình nguyện",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Chiến dịch “10 ngày Sống xanh cùng HCMUS” và Ngày hội Sống xanh. Chủ đề: cộng đồng, thiện nguyện, khoa học. Hình thức: ngày hội, tình nguyện, cá nhân. Chiến dịch \"10 ngày Sống xanh cùng HCMUS\" mang đến cơ hội cho sinh viên thực hiện các hành động bảo vệ môi trường trong đời sống hằng ngày và tham gia trải nghiệm trực tiếp tại Ngày hội Sống xanh. Hoạt động giúp nâng cao nhận thức sinh viên về lối sống xanh, kết hợp giữa thực hành trực tuyến và sự kiện trải nghiệm trực tiếp tại trường."
     },
     {
       "embedding_row": 18,
-      "event_id": "sample_019",
-      "event_title": "🔎 GIỚI THIỆU BÁO CÁO VIÊN | CHUYÊN ĐỀ CUỐI",
-      "topic": [],
-      "format": [],
-      "embedding_text": "passage: 🔎 GIỚI THIỆU BÁO CÁO VIÊN | CHUYÊN ĐỀ CUỐI. Trong khuôn khổ chương trình “Hành trình đồng hành với sinh viên trong học tập”, chuyên đề cuối với chủ đề “Hướng dẫn tìm tài liệu và sử dụng phần mềm quản lý tài liệu tham khảo trong nghiên cứu khoa học” sẽ mang đến cho sinh viên những kiến thức và phương pháp thiết thực trong quá trình tìm kiếm, khai thác tài liệu học thuật và quản lý nguồn tham khảo phục vụ nghiên cứu. Thông qua chuyên đề, sinh viên có cơ hội tiếp cận các phương pháp tìm kiếm ..."
+      "event_id": "db_19",
+      "event_title": "Chương trình trang bị kỹ năng thời đại số \"Ứng dụng công nghệ - Làm chủ tương lai\" năm 2026 | MSI TECH DAY 2026",
+      "topic": [
+        "lập trình",
+        "AI",
+        "hướng nghiệp",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
+      ],
+      "format": [
+        "workshop"
+      ],
+      "embedding_text": "passage: Chương trình trang bị kỹ năng thời đại số \"Ứng dụng công nghệ - Làm chủ tương lai\" năm 2026 | MSI TECH DAY 2026. Chủ đề: lập trình, AI, hướng nghiệp, kỹ năng, khoa học, cộng đồng. Hình thức: workshop. Sự kiện phối hợp tổ chức bởi Trung tâm Công tác Xã hội Thanh niên TP. Hồ Chí Minh và MSI giúp sinh viên trực tiếp trải nghiệm các sản phẩm công nghệ mới, tham gia workshop tìm hiểu về AI và tham gia minigame nhận quà hấp dẫn. Sinh viên tham gia đầy đủ sẽ được cấp Giấy chứng nhận từ ban tổ chức."
     },
     {
       "embedding_row": 19,
-      "event_id": "sample_020",
-      "event_title": "🔥 CHÍNH THỨC MỞ HỆ THỐNG THI BẢNG CÁ NHÂN | HỘI THI “TẦM NHÌN XUYÊN THẾ KỶ” LẦN THỨ 13 - NĂM 2026",
-      "topic": [],
-      "format": [],
-      "embedding_text": "passage: 🔥 CHÍNH THỨC MỞ HỆ THỐNG THI BẢNG CÁ NHÂN | HỘI THI “TẦM NHÌN XUYÊN THẾ KỶ” LẦN THỨ 13 - NĂM 2026. Đây không chỉ là cơ hội để thử sức với những kiến thức lý luận chính trị mà còn là hành trình rèn luyện tư duy, nâng cao nhận thức, phát huy tinh thần chủ động học tập, nghiên cứu và vận dụng sáng tạo chủ nghĩa Mác - Lênin, tư tưởng Hồ Chí Minh trong thực tiễn. Các thí sinh lưu ý chuẩn bị thiết bị, đường truyền Internet ổn định và đọc kỹ thể lệ, hướng dẫn trước khi tham gia để có trải nghiệm dự thi thuận lợi nhất."
+      "event_id": "db_20",
+      "event_title": "Hội thảo: Xây dựng CV nổi bật và chinh phục phỏng vấn kỹ thuật",
+      "topic": [
+        "học thuật",
+        "hướng nghiệp",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
+      ],
+      "format": [
+        "seminar",
+        "cá nhân",
+        "workshop"
+      ],
+      "embedding_text": "passage: Hội thảo: Xây dựng CV nổi bật và chinh phục phỏng vấn kỹ thuật. Chủ đề: học thuật, hướng nghiệp, kỹ năng, khoa học, cộng đồng. Hình thức: seminar, cá nhân, workshop. Hội thảo do Khoa Công nghệ thông tin phối hợp với ELCA Việt Nam tổ chức nhằm trang bị cho sinh viên kỹ năng lựa chọn thông tin, xây dựng CV ấn tượng và chuẩn bị cho các buổi phỏng vấn kỹ thuật thực tế. Đây là cơ hội để sinh viên học hỏi kinh nghiệm từ diễn giả chuyên môn và nâng cao năng lực ứng tuyển vào doanh nghiệp."
     },
     {
       "embedding_row": 20,
-      "event_id": "sample_021",
-      "event_title": "🌳 NGÀY HỘI SỐNG XANH TẠI HCMUS🌳",
+      "event_id": "db_21",
+      "event_title": "Cuộc thi ảnh tri ân thầy cô nhân ngày 20/11 [Chạm khung ký ức]",
       "topic": [
-        "ngày hội"
+        "cộng đồng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: 🌳 NGÀY HỘI SỐNG XANH TẠI HCMUS🌳. Chủ đề: ngày hội. Hình thức: trải nghiệm trực tiếp tại Ngày hội. CHÍNH THỨC PHÁT ĐỘNG CHIẾN DỊCH “10 NGÀY SỐNG XANH CÙNG HCMUS” 🌎 10 ngày – Một hành động – Một thay đổi xanh."
+      "format": [
+        "cuộc thi",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Cuộc thi ảnh tri ân thầy cô nhân ngày 20/11 [Chạm khung ký ức]. Chủ đề: cộng đồng, khoa học. Hình thức: cuộc thi, tọa đàm. Cuộc thi ảnh \"Chạm khung ký ức\" do Liên chi hội Khoa Sinh học - Công nghệ Sinh học tổ chức nhằm tạo không gian để sinh viên gửi gắm những lời tri ân và khoảnh khắc đẹp bên giảng viên quý mến. Thí sinh tham gia gửi ảnh kèm bài viết tâm sự qua đường link đăng ký để có cơ hội nhận các giải thưởng tiền mặt giá trị từ ban tổ chức."
     },
     {
       "embedding_row": 21,
-      "event_id": "sample_022",
-      "event_title": "🚀 [CHƯƠNG TRÌNH TRANG BỊ KỸ NĂNG THỜI ĐẠI SỐ \"ỨNG DỤNG CÔNG NGHỆ - LÀM CHỦ TƯƠNG LAI\" NĂM 2026 | MSI TECH DAY 2026]",
+      "event_id": "db_22",
+      "event_title": "Workshop trải nghiệm nghệ thuật làm hoa lá dừa – Lan tỏa nét đẹp văn hóa Việt Nam",
       "topic": [
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
+      ],
+      "format": [
         "workshop"
       ],
-      "format": [],
-      "embedding_text": "passage: 🚀 [CHƯƠNG TRÌNH TRANG BỊ KỸ NĂNG THỜI ĐẠI SỐ \"ỨNG DỤNG CÔNG NGHỆ - LÀM CHỦ TƯƠNG LAI\" NĂM 2026 | MSI TECH DAY 2026]. Chủ đề: workshop. Trong thời đại số, việc tiếp cận và ứng dụng công nghệ, đặc biệt là trí tuệ nhân tạo (AI), mang đến nhiều cơ hội để sinh viên nâng cao kỹ năng, phát huy năng lực và định hướng nghề nghiệp trong tương lai. Với mong muốn tạo môi trường để sinh viên trực tiếp trải nghiệm công nghệ mới và trang bị kỹ năng số, Trung tâm Công tác Xã hội Thanh niên TP. Hồ Chí Minh (YSSC) phối hợp cùng MSI tổ chức Chương trình trang bị kỹ năng thời đại số \"Ứng dụng công ..."
+      "embedding_text": "passage: Workshop trải nghiệm nghệ thuật làm hoa lá dừa – Lan tỏa nét đẹp văn hóa Việt Nam. Chủ đề: hội nhập, khoa học, cộng đồng. Hình thức: workshop. Workshop mang đến cho sinh viên cơ hội khám phá nghệ thuật thủ công truyền thống qua sự hướng dẫn của nghệ nhân Huỳnh Lệ Lệ, trực tiếp tự tay sáng tạo nên những tác phẩm hoa lá dừa độc đáo. Hoạt động giúp sinh viên trải nghiệm văn hóa dân gian, bồi dưỡng tình yêu và ý thức giữ gìn bản sắc văn hóa truyền thống dân tộc."
     },
     {
       "embedding_row": 22,
-      "event_id": "sample_023",
-      "event_title": "Hội thảo: Xây dựng CV nổi bật và chinh phục phỏng vấn kỹ thuật",
+      "event_id": "db_23",
+      "event_title": "Seminar Facility Location Games, from Origin to Recent Development",
       "topic": [
-        "Career/Job Fair"
+        "học thuật",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Workshop"
+        "seminar"
       ],
-      "embedding_text": "passage: Hội thảo: Xây dựng CV nổi bật và chinh phục phỏng vấn kỹ thuật. Chủ đề: Career/Job Fair. Hình thức: Workshop. A career development workshop organized by the Faculty of Information Technology in collaboration with ELCA Vietnam to help IT students optimize their CVs and excel in technical interviews."
+      "embedding_text": "passage: Seminar Facility Location Games, from Origin to Recent Development. Chủ đề: học thuật, khoa học, cộng đồng. Hình thức: seminar. Buổi seminar do GS. Minming Li từ City University of Hong Kong trình bày cung cấp những kiến thức chuyên sâu về chủ đề Facility Location Games từ nguồn gốc đến các phát triển gần đây. Sinh viên và học viên cao học tham dự sẽ có cơ hội lắng nghe chia sẻ chuyên môn, giao lưu và mở rộng góc nhìn học thuật trong lĩnh vực khoa học máy tính."
     },
     {
       "embedding_row": 23,
-      "event_id": "sample_024",
-      "event_title": "[CHẠM KHUNG KÝ ỨC] — CUỘC THI ẢNH TRI ÂN THẦY CÔ NHÂN NGÀY 20/11",
+      "event_id": "db_24",
+      "event_title": "Buổi giới thiệu về các chương trình học bổng trường Đại học Quốc gia Seoul (Hàn Quốc) dành cho Sinh viên Việt Nam",
       "topic": [
-        "Arts & Culture/Music Events"
+        "hướng nghiệp",
+        "học thuật",
+        "cộng đồng"
       ],
       "format": [
-        "Competition"
+        "seminar"
       ],
-      "embedding_text": "passage: [CHẠM KHUNG KÝ ỨC] — CUỘC THI ẢNH TRI ÂN THẦY CÔ NHÂN NGÀY 20/11. Chủ đề: Arts & Culture/Music Events. Hình thức: Competition. A gratitude photo competition for students of the Faculty of Biology and Biotechnology to share memorable photos and heartfelt messages for their teachers."
+      "embedding_text": "passage: Buổi giới thiệu về các chương trình học bổng trường Đại học Quốc gia Seoul (Hàn Quốc) dành cho Sinh viên Việt Nam. Chủ đề: hướng nghiệp, học thuật, cộng đồng. Hình thức: seminar. Chương trình giới thiệu các cơ hội học bổng và dự án phát triển từ Đại học Quốc gia Seoul (Hàn Quốc) do Prof. Van-Thinh Nguyen trình bày. Sinh viên tham dự sẽ được tìm hiểu về các dự án kỹ thuật, sáng kiến đổi mới khu vực cũng như thông tin chi tiết về các chương trình học bổng hấp dẫn dành cho sinh viên Việt Nam."
     },
     {
       "embedding_row": 24,
-      "event_id": "sample_028",
-      "event_title": "[WORKSHOP] TRẢI NGHIỆM NGHỆ THUẬT LÀM HOA LÁ DỪA – LAN TỎA NÉT ĐẸP VĂN HÓA VIỆT NAM",
+      "event_id": "db_25",
+      "event_title": "Đăng ký tham quan công ty Saritasa Việt Nam",
       "topic": [
-        "Arts & Culture"
+        "hướng nghiệp",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Workshop"
+        "tham quan",
+        "seminar",
+        "tọa đàm"
       ],
-      "embedding_text": "passage: [WORKSHOP] TRẢI NGHIỆM NGHỆ THUẬT LÀM HOA LÁ DỪA – LAN TỎA NÉT ĐẸP VĂN HÓA VIỆT NAM. Chủ đề: Arts & Culture. Hình thức: Workshop. Workshop mang đến cơ hội cho sinh viên trải nghiệm nghệ thuật làm hoa lá dừa dưới sự hướng dẫn trực tiếp của nghệ nhân Huỳnh Lệ Lệ. Người tham gia sẽ tự tay tạo ra các sản phẩm thủ công truyền thống và cảm nhận nét đẹp tinh tế trong văn hóa dân gian Việt Nam."
+      "embedding_text": "passage: Đăng ký tham quan công ty Saritasa Việt Nam. Chủ đề: hướng nghiệp, kỹ năng, khoa học, cộng đồng. Hình thức: tham quan, seminar, tọa đàm. Chuyến tham quan công ty Saritasa Việt Nam mang đến cho sinh viên cơ hội trải nghiệm môi trường làm việc thực tế, tham gia mini-seminar về kỹ năng phỏng vấn và công sở. Bên cạnh đó, các bạn còn được trải nghiệm ứng dụng thực tế ảo VR, tham gia minigame và giao lưu trực tiếp với đội ngũ nhân sự của công ty."
     },
     {
       "embedding_row": 25,
-      "event_id": "sample_031",
-      "event_title": "Seminar Facility Location Games, from Origin to Recent Development",
+      "event_id": "db_26",
+      "event_title": "WORKSHOP “GẤP HOA SẮC THẮM, GỬI GẮM TRI ÂN”",
       "topic": [
-        "Academic"
+        "cộng đồng",
+        "kỹ năng",
+        "khoa học"
       ],
       "format": [
-        "Seminar"
+        "workshop",
+        "tọa đàm"
       ],
-      "embedding_text": "passage: Seminar Facility Location Games, from Origin to Recent Development. Chủ đề: Academic. Hình thức: Seminar. Buổi seminar do GS. Minming Li trình bày sẽ giới thiệu về lý thuyết trò chơi trong định vị cơ sở hạ tầng từ nguồn gốc đến các phát triển mới nhất. Đây là cơ hội học thuật tuyệt vời cho học viên cao học và sinh viên ngành khoa học máy tính giao lưu và cập nhật kiến thức chuyên sâu."
+      "embedding_text": "passage: WORKSHOP “GẤP HOA SẮC THẮM, GỬI GẮM TRI ÂN”. Chủ đề: cộng đồng, kỹ năng, khoa học. Hình thức: workshop, tọa đàm. Workshop thủ công giúp sinh viên tự tay thiết kế những tấm thiệp handmade độc đáo và ý nghĩa để gửi lời tri ân đến thầy cô nhân ngày 20/11. Hoạt động tạo không gian giao lưu, rèn luyện sự tỉ mỉ, khéo léo và lan tỏa tinh thần tôn sư trọng đạo. Tham gia chương trình để thỏa sức sáng tạo và lưu giữ những khoảnh khắc đáng nhớ."
     },
     {
       "embedding_row": 26,
-      "event_id": "sample_034",
-      "event_title": "Buổi giới thiệu về các chương trình học bổng trường Đại học Quốc gia Seoul (Hàn Quốc) dành cho Sinh viên Việt Nam",
+      "event_id": "db_27",
+      "event_title": "UIT ENGLISH CONTEST 2026 – FUTURE-READY HUMANS",
       "topic": [
-        "Scholarship"
+        "học thuật",
+        "kỹ năng",
+        "hội nhập",
+        "AI",
+        "cộng đồng"
       ],
       "format": [
-        "Seminar",
-        "Talkshow"
+        "cuộc thi",
+        "đồng đội"
       ],
-      "embedding_text": "passage: Buổi giới thiệu về các chương trình học bổng trường Đại học Quốc gia Seoul (Hàn Quốc) dành cho Sinh viên Việt Nam. Chủ đề: Scholarship. Hình thức: Seminar, Talkshow. FIT.HCMUS thân mời các học viên cao học và sinh viên tham gia buổi giới thiệu về các học bổng của Đại học Quốc gia Seoul. Buổi chia sẻ sẽ giới thiệu về dự án Education for X-Caliber Engineering Leaders và sáng kiến Seoul RISE, giúp người tham dự hiểu thêm về cơ hội học bổng giá trị."
+      "embedding_text": "passage: UIT ENGLISH CONTEST 2026 – FUTURE-READY HUMANS. Chủ đề: học thuật, kỹ năng, hội nhập, AI, cộng đồng. Hình thức: cuộc thi, đồng đội. Cuộc thi tiếng Anh học thuật với chủ đề về trí tuệ nhân tạo nhằm thử thách năng lực ngoại ngữ, tư duy phản biện và kỹ năng làm việc nhóm của sinh viên. Thí sinh sẽ trải qua nhiều vòng thi từ trực tuyến đến sân khấu tranh biện hấp dẫn. Tổng giá trị giải thưởng lên đến 19,5 triệu đồng cùng nhiều cơ hội phát triển bản thân."
     },
     {
       "embedding_row": 27,
-      "event_id": "sample_035",
-      "event_title": "Hội thảo: Xây dựng CV nổi bật và chinh phục phỏng vấn kỹ thuật",
+      "event_id": "db_28",
+      "event_title": "SẮC MÀU QUÂN NGŨ - NƠI NHỊP ĐẬP THANH XUÂN HÒA QUYỆN",
       "topic": [
-        "Workshop"
+        "văn nghệ",
+        "cộng đồng"
       ],
       "format": [
-        "Seminar",
-        "Workshop"
+        "ngày hội",
+        "tọa đàm",
+        "đồng đội"
       ],
-      "embedding_text": "passage: Hội thảo: Xây dựng CV nổi bật và chinh phục phỏng vấn kỹ thuật. Chủ đề: Workshop. Hình thức: Seminar, Workshop. Đồng hành cùng sinh viên trong quá trình chuẩn bị hành trang nghề nghiệp, Khoa Công nghệ thông tin phối hợp ELCA Việt Nam tổ chức hội thảo giúp sinh viên biết cách lựa chọn thông tin, xây dựng CV nổi bật và tự tin vượt qua phỏng vấn kỹ thuật."
+      "embedding_text": "passage: SẮC MÀU QUÂN NGŨ - NƠI NHỊP ĐẬP THANH XUÂN HÒA QUYỆN. Chủ đề: văn nghệ, cộng đồng. Hình thức: ngày hội, tọa đàm, đồng đội. Chương trình âm nhạc sôi động thuộc chuỗi hoạt động giao lưu quân sự nhằm kết nối tình đồng đội và thăng hoa cảm xúc tuổi trẻ. Sự kiện có sự góp mặt của các tiết mục đặc biệt từ đội văn nghệ các đơn vị cùng sân khấu hoành tráng để sinh viên tỏa sáng. Đây là cơ hội tuyệt vời để lưu giữ những kỷ niệm đẹp trong thời gian học tập quân sự."
     },
     {
       "embedding_row": 28,
-      "event_id": "sample_036",
-      "event_title": "Danh sách sinh viên tham quan VNG ngày 26/11",
-      "topic": [],
+      "event_id": "db_29",
+      "event_title": "Chương trình Hành trang tân sinh viên khóa tuyển 2026",
+      "topic": [
+        "hướng nghiệp",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
+      ],
       "format": [],
-      "embedding_text": "passage: Danh sách sinh viên tham quan VNG ngày 26/11. Giảng đường mang đến kiến thức nền tảng, nhưng môi trường doanh nghiệp sẽ giúp bạn có thêm góc nhìn về cách những kiến thức ấy được vận dụng trong thực tế. Thông qua chuyến tham quan VNG, sinh viên sẽ có cơ hội khám phá VNG Campus, tìm hiểu về các lĩnh vực hoạt động, lắng nghe chia sẻ về công việc và những kỹ năng cần thiết khi làm việc trong ngành công nghệ. Đây cũng là dịp để các bạn tìm hiểu thêm về cơ hội nghề nghiệp và cách AI đang được ứng ..."
+      "embedding_text": "passage: Chương trình Hành trang tân sinh viên khóa tuyển 2026. Chủ đề: hướng nghiệp, hội nhập, khoa học, cộng đồng. Chương trình chào đón tân sinh viên Khoa Công nghệ thông tin khóa 2026 giúp các bạn làm quen với môi trường học tập đại học, cập nhật thông tin quan trọng và chuẩn bị hành trang tốt nhất cho chặng đường sắp tới."
     },
     {
       "embedding_row": 29,
-      "event_id": "sample_037",
-      "event_title": "Đăng ký tham quan công ty Saritasa Việt Nam ngày 2/12",
+      "event_id": "db_30",
+      "event_title": "Seminar The Composer’s Dilemma: Between Familiarity and Novelty",
       "topic": [
-        "Career"
+        "học thuật",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Tour"
+        "seminar"
       ],
-      "embedding_text": "passage: Đăng ký tham quan công ty Saritasa Việt Nam ngày 2/12. Chủ đề: Career. Hình thức: Tour. Chuyến tham quan công ty Saritasa hứa hẹn mang đến nhiều hoạt động thú vị như tìm hiểu về kỹ năng làm việc, bí quyết phỏng vấn và trực tiếp trải nghiệm các ứng dụng công nghệ thực tế ảo VR."
+      "embedding_text": "passage: Seminar The Composer’s Dilemma: Between Familiarity and Novelty. Chủ đề: học thuật, khoa học, cộng đồng. Hình thức: seminar. Buổi seminar học thuật do GS. Satoshi Tojo trình bày mang đến góc nhìn chuyên sâu về đề tài âm nhạc và công nghệ, tạo cơ hội cho học viên cao học và sinh viên giao lưu, học hỏi. Người tham gia cần đăng ký qua hệ thống EMS trước thời hạn quy định."
     },
     {
       "embedding_row": 30,
-      "event_id": "sample_041",
-      "event_title": "WORKSHOP “GẤP HOA SẮC THẮM, GỬI GẮM TRI ÂN”",
+      "event_id": "db_31",
+      "event_title": "Talkshow Innovate Your Future",
       "topic": [
-        "Workshop",
-        "Cultural"
+        "hướng nghiệp",
+        "AI",
+        "kỹ năng",
+        "khởi nghiệp",
+        "học thuật",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: WORKSHOP “GẤP HOA SẮC THẮM, GỬI GẮM TRI ÂN”. Chủ đề: Workshop, Cultural. A workshop organized for students to design handmade cards, express gratitude to teachers for Vietnamese Teacher's Day, and improve their craft skills. Participants will enjoy a creative, connecting space and receive certificates or extra activity points."
+      "format": [
+        "talkshow",
+        "seminar",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Talkshow Innovate Your Future. Chủ đề: hướng nghiệp, AI, kỹ năng, khởi nghiệp, học thuật, khoa học. Hình thức: talkshow, seminar, tọa đàm. Chương trình talkshow cung cấp kiến thức về tư duy đổi mới, tư duy sản phẩm trong thời đại AI và định hướng phát triển sự nghiệp qua phần chia sẻ từ các chuyên gia giàu kinh nghiệm. Sinh viên tham gia sẽ được tính hoàn thành hoạt động sinh hoạt công dân theo quy định."
     },
     {
       "embedding_row": 31,
-      "event_id": "sample_043",
-      "event_title": "CHƯƠNG TRÌNH SỐNG XANH CÙNG HCMUS",
+      "event_id": "db_32",
+      "event_title": "Workshop Kỹ năng “Định vị Thương hiệu cá nhân trên không gian mạng”",
       "topic": [
-        "Festival",
-        "Community"
+        "kỹ năng",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: CHƯƠNG TRÌNH SỐNG XANH CÙNG HCMUS. Chủ đề: Festival, Community. An environmental awareness festival held at the campus, inviting students to participate directly in green activities and claim attractive rewards."
+      "format": [
+        "workshop",
+        "tọa đàm",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Workshop Kỹ năng “Định vị Thương hiệu cá nhân trên không gian mạng”. Chủ đề: kỹ năng, hội nhập, khoa học, cộng đồng. Hình thức: workshop, tọa đàm, cá nhân. Chương trình workshop giúp sinh viên tìm hiểu và được giải đáp thắc mắc về cách xây dựng thương hiệu cá nhân trên không gian mạng dưới sự hướng dẫn của ThS. Tiêu Minh Sơn. Sinh viên tham gia sẽ có cơ hội giao lưu, tiếp thu kiến thức kỹ năng mềm và trực tiếp thực hành qua các tình huống cụ thể nhằm tự tin hội nhập."
     },
     {
       "embedding_row": 32,
-      "event_id": "sample_048",
-      "event_title": "[BẢN LĨNH IT 2026]",
+      "event_id": "db_33",
+      "event_title": "Nghiên cứu Khoa học trong Kỷ nguyên AI: Đạo đức, Bản quyền, Dữ liệu và Sở hữu trí tuệ",
       "topic": [
-        "Competition"
+        "khoa học",
+        "AI",
+        "hội nhập",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [BẢN LĨNH IT 2026]. Chủ đề: Competition. An annual skill-based competition named BLIT, organized by the IT Faculty Union, serving as an exciting arena for first-year IT students to test their skills and connect with peers."
+      "format": [
+        "seminar"
+      ],
+      "embedding_text": "passage: Nghiên cứu Khoa học trong Kỷ nguyên AI: Đạo đức, Bản quyền, Dữ liệu và Sở hữu trí tuệ. Chủ đề: khoa học, AI, hội nhập, học thuật, cộng đồng. Hình thức: seminar. Chuyên đề do ThS. Hà Minh Ninh báo cáo tập trung vào các vấn đề pháp lý, nguyên tắc đạo đức học thuật và quản lý dữ liệu khi ứng dụng trí tuệ nhân tạo (AI) trong nghiên cứu khoa học. Sự kiện giúp sinh viên nâng cao nhận thức về trách nhiệm sử dụng dữ liệu, tôn trọng quyền tác giả và bảo vệ quyền sở hữu trí tuệ cho các sản phẩm nghiên cứu."
     },
     {
       "embedding_row": 33,
-      "event_id": "sample_052",
-      "event_title": "SẮC MÀU QUÂN NGŨ",
+      "event_id": "db_34",
+      "event_title": "Lễ khai mạc & Vòng loại bảng đội tuyển Hội thi Olympic các môn khoa học Mác - Lênin, Tư tưởng Hồ Chí Minh \"Tầm nhìn Xuyên thế kỷ\" lần thứ 13 - năm 2026",
       "topic": [
-        "Entertainment",
-        "Music"
+        "chính trị - xã hội",
+        "học thuật",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: SẮC MÀU QUÂN NGŨ. Chủ đề: Entertainment, Music. Sắc Màu Quân Ngũ is an in-person music exchange and student performance event held as part of the military semester activities to connect students and offer opportunities to showcase their musical talents on stage."
+      "format": [
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: Lễ khai mạc & Vòng loại bảng đội tuyển Hội thi Olympic các môn khoa học Mác - Lênin, Tư tưởng Hồ Chí Minh \"Tầm nhìn Xuyên thế kỷ\" lần thứ 13 - năm 2026. Chủ đề: chính trị - xã hội, học thuật, khoa học, cộng đồng. Hình thức: cuộc thi. Chương trình khai mạc và tổ chức vòng loại bảng đội tuyển cho Hội thi Olympic các môn khoa học Mác - Lênin và Tư tưởng Hồ Chí Minh mang tên \"Tầm nhìn Xuyên thế kỷ\". Sinh viên tham gia để cổ vũ các đội thi tranh tài, hòa mình vào không khí học thuật sôi nổi và trau dồi kiến thức chính trị - xã hội."
     },
     {
       "embedding_row": 34,
-      "event_id": "sample_053",
-      "event_title": "Hành trang tân sinh viên Khoa Công nghệ thông tin khóa tuyển 2026",
+      "event_id": "db_35",
+      "event_title": "Lớp Lý luận chính trị năm 2026",
       "topic": [
-        "Orientation"
+        "chính trị - xã hội",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Hành trang tân sinh viên Khoa Công nghệ thông tin khóa tuyển 2026. Chủ đề: Orientation. An essential orientation and gathering session organized by the Faculty of Information Technology for incoming freshman students of the 2026 cohort to adapt to their university environment, connect with peers, and obtain academic information."
+      "format": [
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Lớp Lý luận chính trị năm 2026. Chủ đề: chính trị - xã hội, khoa học, cộng đồng. Hình thức: cá nhân. Các lớp lý luận chính trị được tổ chức nhằm trang bị, củng cố kiến thức lý luận, nâng cao nhận thức, bản lĩnh chính trị và bồi dưỡng lý tưởng cách mạng cho đoàn viên, thanh niên. Sinh viên tham gia điểm danh đầy đủ và hoàn thành bài thu hoạch trên ứng dụng Thanh niên Việt Nam sẽ được công nhận hoàn thành lớp học và ghi nhận rèn luyện."
     },
     {
       "embedding_row": 35,
-      "event_id": "sample_056",
-      "event_title": "CHIẾN DỊCH “10 NGÀY SỐNG XANH CÙNG HCMUS”",
+      "event_id": "db_36",
+      "event_title": "Lớp Phương pháp Nghiên cứu Khoa học 2026",
       "topic": [
-        "Volunteer",
-        "Community"
+        "khoa học",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: CHIẾN DỊCH “10 NGÀY SỐNG XANH CÙNG HCMUS”. Chủ đề: Volunteer, Community. An online student campaign encouraging HCMUS students to build green habits by accomplishing various daily environmental challenges and posting check-ins to receive certificates and gifts."
+      "format": [
+        "workshop",
+        "seminar"
+      ],
+      "embedding_text": "passage: Lớp Phương pháp Nghiên cứu Khoa học 2026. Chủ đề: khoa học, học thuật, cộng đồng. Hình thức: workshop, seminar. Lớp học cung cấp các chuyên đề trọng điểm giúp sinh viên Hóa học rèn luyện tư duy logic, nắm phương pháp tìm kiếm, đọc tài liệu khoa học cũng như ứng dụng phần mềm, công cụ số trong nghiên cứu. Sinh viên hoàn thành đầy đủ các chuyên đề sẽ được cấp giấy chứng nhận tham gia."
     },
     {
       "embedding_row": 36,
-      "event_id": "sample_057",
-      "event_title": "Seminar The Composer’s Dilemma: Between Familiarity and Novelty",
+      "event_id": "db_37",
+      "event_title": "Seminar Bộ môn Công nghệ Tri thức lần 1 năm 2026",
       "topic": [
-        "Academic"
+        "học thuật",
+        "khoa học",
+        "AI",
+        "kỹ năng",
+        "cộng đồng"
       ],
       "format": [
-        "Seminar"
+        "seminar"
       ],
-      "embedding_text": "passage: Seminar The Composer’s Dilemma: Between Familiarity and Novelty. Chủ đề: Academic. Hình thức: Seminar. Seminar do GS. Satoshi Tojo từ Đại học Asia, Nhật Bản trình bày, thảo luận về chủ đề sự cân bằng giữa tính quen thuộc và sự mới mẻ trong sáng tác. Sinh viên và học viên cao học tham gia sẽ được trau dồi kiến thức chuyên môn và giao lưu cùng chuyên gia."
+      "embedding_text": "passage: Seminar Bộ môn Công nghệ Tri thức lần 1 năm 2026. Chủ đề: học thuật, khoa học, AI, kỹ năng, cộng đồng. Hình thức: seminar. Seminar do Bộ môn Công nghệ Tri thức FIT.HCMUS tổ chức với chủ đề 'Các Phương pháp Nhận dạng Đồ tượng chí Phật giáo và Ứng dụng', trình bày bởi TS. Bùi Văn Thạch. Người tham dự sẽ được tìm hiểu hệ thống định hướng nghiên cứu về thị giác máy tính và trí tuệ nhân tạo trong việc nhận dạng, phân tích đồ tượng chí Phật giáo. Sự kiện là cơ hội giao lưu học thuật quý giá cho sinh viên, học viên cao học và nghiên cứu sinh quan tâm."
     },
     {
       "embedding_row": 37,
-      "event_id": "sample_061",
-      "event_title": "TALKSHOW “INNOVATE YOUR FUTURE”",
+      "event_id": "db_38",
+      "event_title": "SEE THE BIGGER PICTURE – SYSTEMS THINKING & STAKEHOLDER MANAGEMENT",
       "topic": [
-        "Career"
+        "hướng nghiệp",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Talkshow"
+        "workshop",
+        "tọa đàm"
       ],
-      "embedding_text": "passage: TALKSHOW “INNOVATE YOUR FUTURE”. Chủ đề: Career. Hình thức: Talkshow. Talkshow trang bị cho sinh viên công nghệ thông tin tư duy đổi mới sáng tạo, tư duy sản phẩm và kỹ năng phát triển sự nghiệp trong thời đại AI. Sinh viên tham gia sẽ được giao lưu trực tiếp cùng các chuyên gia hàng đầu từ ShopeeFood và VNUHCM Innovation Hub, đồng thời được tính điểm rèn luyện."
+      "embedding_text": "passage: SEE THE BIGGER PICTURE – SYSTEMS THINKING & STAKEHOLDER MANAGEMENT. Chủ đề: hướng nghiệp, kỹ năng, khoa học, cộng đồng. Hình thức: workshop, tọa đàm. Buổi training đặc biệt thuộc chuỗi MT Mentoring 2026 phối hợp cùng Liên Chi hội Khoa Công nghệ Sinh học mang đến góc nhìn thực tiễn về tư duy hệ thống (Systems Thinking) và quản trị các bên liên quan (Stakeholder Management) trong môi trường doanh nghiệp. Người tham gia sẽ được lắng nghe chia sẻ từ diễn giả giàu kinh nghiệm, trang bị tư duy tuyển dụng Management Trainee và có cơ hội nhận các ưu đãi, tài khoản Cake Premium giá trị cùng điểm rèn luyện."
     },
     {
       "embedding_row": 38,
-      "event_id": "sample_062",
-      "event_title": "CHIẾN DỊCH “10 NGÀY SỐNG XANH CÙNG HCMUS”",
+      "event_id": "db_39",
+      "event_title": "BIO-AMBASSADORS CLUB | HÒA VỊ - KHÁM PHÁ NGHỆ THUẬT NƯỚC CHẤM VIỆT NAM",
       "topic": [
-        "Volunteer"
+        "cộng đồng",
+        "kỹ năng",
+        "khoa học"
       ],
       "format": [
-        "Festival"
+        "workshop",
+        "đồng đội",
+        "tọa đàm"
       ],
-      "embedding_text": "passage: CHIẾN DỊCH “10 NGÀY SỐNG XANH CÙNG HCMUS”. Chủ đề: Volunteer. Hình thức: Festival. Chiến dịch kêu gọi sinh viên HCMUS cam kết và thực hiện các thói quen thân thiện với môi trường, tiếp nối bởi Ngày hội Sống xanh tổ chức tại Sân trường Cơ sở 2 để trải nghiệm và lan tỏa lối sống xanh."
+      "embedding_text": "passage: BIO-AMBASSADORS CLUB | HÒA VỊ - KHÁM PHÁ NGHỆ THUẬT NƯỚC CHẤM VIỆT NAM. Chủ đề: cộng đồng, kỹ năng, khoa học. Hình thức: workshop, đồng đội, tọa đàm. Sự kiện workshop ẩm thực do Câu lạc bộ Bio-Ambassadors tổ chức giúp sinh viên khám phá nghệ thuật pha chế và văn hóa nước chấm truyền thống của Việt Nam. Người tham gia sẽ được trải nghiệm các thử thách vui nhộn theo đội, rèn luyện sự tinh tế của vị giác, khả năng ghi nhớ hương vị và giao lưu kết nối. Các đội chơi sẽ tranh tài qua 3 vòng để giành chiến thắng và nhận những phần quà hấp dẫn."
     },
     {
       "embedding_row": 39,
-      "event_id": "sample_066",
-      "event_title": "WORKSHOP KỸ NĂNG “ĐỊNH VỊ THƯƠNG HIỆU CÁ NHÂN TRÊN KHÔNG GIAN MẠNG”",
+      "event_id": "db_40",
+      "event_title": "Cuộc thi trực tuyến: CÔNG DÂN SỐ THÔNG THÁI – Nhận diện và đẩy lùi lừa đảo mạng",
       "topic": [
-        "Academic & Skill Sessions"
+        "kỹ năng",
+        "pháp luật",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: WORKSHOP KỸ NĂNG “ĐỊNH VỊ THƯƠNG HIỆU CÁ NHÂN TRÊN KHÔNG GIAN MẠNG”. Chủ đề: Academic & Skill Sessions. Workshop giúp sinh viên tìm hiểu và được giải đáp thắc mắc về cách xây dựng thương hiệu cá nhân trên không gian mạng dưới sự chia sẻ của ThS. Tiêu Minh Sơn. Tham gia hoạt động giúp sinh viên trang bị các kỹ năng mềm cần thiết để tự tin hội nhập thời đại số."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Cuộc thi trực tuyến: CÔNG DÂN SỐ THÔNG THÁI – Nhận diện và đẩy lùi lừa đảo mạng. Chủ đề: kỹ năng, pháp luật, hội nhập, khoa học, cộng đồng. Hình thức: cuộc thi, cá nhân. Cuộc thi trực tuyến do Liên chi Hội Khoa Sinh học - Công nghệ sinh học tổ chức nhằm trang bị kỹ năng phòng tránh lừa đảo mạng và nâng cao ý thức an toàn trực tuyến cho sinh viên. Thí sinh sẽ tham gia làm bài trắc nghiệm gồm 40 câu hỏi, đạt kết quả từ 35/40 câu đúng trở lên sẽ được ghi nhận hoàn thành hoạt động rèn luyện trong Học kỳ 1. Trước khi thi, sinh viên có thể tham khảo cẩm nang phòng chống lừa đảo trực tuyến để ôn tập kiến thức."
     },
     {
       "embedding_row": 40,
-      "event_id": "sample_067",
-      "event_title": "BÁO CÁO VIÊN CHUYÊN ĐỀ 6: NGHIÊN CỨU KHOA HỌC TRONG KỶ NGUYÊN AI: ĐẠO ĐỨC, BẢN QUYỀN, DỮ LIỆU VÀ SỞ HỮU TRÍ TUỆ",
+      "event_id": "db_41",
+      "event_title": "HOẠT ĐỘNG TÌNH NGUYỆN “GẮN KẾT YÊU THƯƠNG” MÙA 6",
       "topic": [
-        "Academic & Skill Sessions"
+        "thiện nguyện",
+        "cộng đồng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: BÁO CÁO VIÊN CHUYÊN ĐỀ 6: NGHIÊN CỨU KHOA HỌC TRONG KỶ NGUYÊN AI: ĐẠO ĐỨC, BẢN QUYỀN, DỮ LIỆU VÀ SỞ HỮU TRÍ TUỆ. Chủ đề: Academic & Skill Sessions. Chuyên đề tập trung vào các vấn đề pháp lý và nguyên tắc cần lưu ý khi ứng dụng AI trong nghiên cứu khoa học, qua đó giúp sinh viên nâng cao nhận thức về đạo đức học thuật, trách nhiệm sử dụng dữ liệu và bảo vệ quyền sở hữu trí tuệ."
+      "format": [
+        "tình nguyện"
+      ],
+      "embedding_text": "passage: HOẠT ĐỘNG TÌNH NGUYỆN “GẮN KẾT YÊU THƯƠNG” MÙA 6. Chủ đề: thiện nguyện, cộng đồng, khoa học. Hình thức: tình nguyện. Hoạt động tình nguyện thường niên do BCH chi Hội 23CKH3 tổ chức nhằm mang đến niềm vui, tiếng cười và ký ức ấm áp cho các em nhỏ tại Trung tâm Nuôi dưỡng bảo trợ trẻ em Linh Xuân. Tình nguyện viên tham gia sẽ trải qua ngày chuẩn bị quà tặng, trang trí gian hàng tại cơ sở Phường Đông Hòa và trực tiếp tổ chức nấu ăn, gian hàng khoa học cùng các em tại trung tâm. Đây là cơ hội tuyệt vời để sinh viên sẻ chia yêu thương và gắn kết cộng đồng."
     },
     {
       "embedding_row": 41,
-      "event_id": "sample_068",
-      "event_title": "HỘI THI OLYMPIC CÁC MÔN KHOA HỌC MÁC - LÊNIN, TƯ TƯỞNG HỒ CHÍ MINH \"TẦM NHÌN XUYÊN THẾ KỶ\" LẦN THỨ 13 - NĂM 2026",
+      "event_id": "db_42",
+      "event_title": "Hành trình đồng hành với sinh viên trong học tập - Chuyên đề 05 & 06",
       "topic": [
-        "Competitions & Tournaments"
+        "học thuật",
+        "khoa học",
+        "AI",
+        "kỹ năng",
+        "chính trị - xã hội",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: HỘI THI OLYMPIC CÁC MÔN KHOA HỌC MÁC - LÊNIN, TƯ TƯỞNG HỒ CHÍ MINH \"TẦM NHÌN XUYÊN THẾ KỶ\" LẦN THỨ 13 - NĂM 2026. Chủ đề: Competitions & Tournaments. Lễ khai mạc và Vòng loại bảng đội tuyển của Hội thi Olympic \"Tầm nhìn Xuyên thế kỷ\" lần thứ 13 năm 2026 sẽ diễn ra với không khí bùng nổ của các đội thi tranh tài và sự cổ vũ của sinh viên tham dự."
+      "format": [
+        "seminar"
+      ],
+      "embedding_text": "passage: Hành trình đồng hành với sinh viên trong học tập - Chuyên đề 05 & 06. Chủ đề: học thuật, khoa học, AI, kỹ năng, chính trị - xã hội, cộng đồng. Hình thức: seminar. Chương trình gồm các chuyên đề thiết thực giúp sinh viên ứng dụng công nghệ số trong học tập thông minh và tìm hiểu về nghiên cứu khoa học trong kỷ nguyên AI. Tham gia sự kiện, sinh viên có cơ hội tiếp cận kiến thức mới, nâng cao kỹ năng nghiên cứu và xây dựng phương pháp học tập chủ động thời đại số."
     },
     {
       "embedding_row": 42,
-      "event_id": "sample_070",
-      "event_title": "CÁC LỚP LÝ LUẬN CHÍNH TRỊ NĂM 2026",
+      "event_id": "db_43",
+      "event_title": "Đăng ký lịch khám sức khỏe định kỳ cho sinh viên đợt 1 năm 2026",
       "topic": [
-        "Academic & Skill Sessions"
+        "chính trị - xã hội",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [],
-      "embedding_text": "passage: CÁC LỚP LÝ LUẬN CHÍNH TRỊ NĂM 2026. Chủ đề: Academic & Skill Sessions. Các lớp bồi dưỡng Lý luận chính trị năm 2026 giúp trang bị kiến thức và nâng cao nhận thức chính trị cho đoàn viên, thanh niên đang học tập và sinh hoạt tại Trường. Người học sẽ thực hiện bài thu hoạch trên ứng dụng Thanh niên Việt Nam để được công nhận hoàn thành."
+      "embedding_text": "passage: Đăng ký lịch khám sức khỏe định kỳ cho sinh viên đợt 1 năm 2026. Chủ đề: chính trị - xã hội, khoa học, cộng đồng. Nhà trường tổ chức chương trình khám sức khỏe định kỳ cho sinh viên nhằm đảm bảo mục tiêu chăm sóc sức khỏe theo kế hoạch của Ủy ban nhân dân Thành phố. Sinh viên tham gia sẽ thực hiện đăng ký lịch trực tuyến và tiến hành khám theo các khung giờ đã chọn tại cơ sở Khu đô thị ĐHQG-HCM."
     },
     {
       "embedding_row": 43,
-      "event_id": "sample_071",
-      "event_title": "LỚP PHƯƠNG PHÁP NGHIÊN CỨU KHOA HỌC 2026",
+      "event_id": "db_44",
+      "event_title": "Workshop Quản lý cuộc sống hiệu quả cùng OPPO AI",
       "topic": [
-        "Academic & Skill Sessions"
+        "kỹ năng",
+        "AI",
+        "hướng nghiệp",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: LỚP PHƯƠNG PHÁP NGHIÊN CỨU KHOA HỌC 2026. Chủ đề: Academic & Skill Sessions. Lớp học mang đến 2 chuyên đề trọng điểm giúp sinh viên Hóa học tháo gỡ khó khăn về phương pháp nghiên cứu khoa học, bao gồm kỹ năng tìm kiếm tài liệu khoa học và ứng dụng các phần mềm số chuyên dụng. Hoàn thành đầy đủ các chuyên đề sinh viên sẽ được cấp giấy chứng nhận."
+      "format": [
+        "workshop",
+        "talkshow",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Workshop Quản lý cuộc sống hiệu quả cùng OPPO AI. Chủ đề: kỹ năng, AI, hướng nghiệp, khoa học, cộng đồng. Hình thức: workshop, talkshow, tọa đàm. Workshop mang đến không gian trải nghiệm hệ sinh thái OPPO và các tính năng OPPO AI hỗ trợ quản lý cuộc sống, tài chính, lập kế hoạch cũng như chỉnh sửa hình ảnh. Sinh viên tham gia sẽ được giao lưu cùng diễn giả Duy Luân, học hỏi kỹ năng cân đối cuộc sống và nhận nhiều phần quà công nghệ hấp dẫn."
     },
     {
       "embedding_row": 44,
-      "event_id": "sample_073",
-      "event_title": "Seminar Bộ môn Công nghệ Tri thức lần 1 năm 2026",
+      "event_id": "db_45",
+      "event_title": "[WORKSHOP: VIẾT VÀ CHẤM ĐIỂM CV - BỨC PHÁ HỒ SƠ, CHINH PHỤC NHÀ TUYỂN DỤNG]",
       "topic": [
-        "Academic",
-        "Technology"
+        "hướng nghiệp",
+        "kỹ năng",
+        "khoa học",
+        "hội nhập",
+        "cộng đồng"
       ],
       "format": [
-        "Seminar"
+        "workshop",
+        "cá nhân"
       ],
-      "embedding_text": "passage: Seminar Bộ môn Công nghệ Tri thức lần 1 năm 2026. Chủ đề: Academic, Technology. Hình thức: Seminar. Seminar với chủ đề 'Các Phương pháp Nhận dạng Đồ tượng chí Phật giáo và Ứng dụng' do TS. Bùi Văn Thạch trình bày, giới thiệu ứng dụng của Thị giác Máy tính và Trí tuệ Nhân tạo trong nhận dạng đồ tượng chí Phật giáo."
+      "embedding_text": "passage: [WORKSHOP: VIẾT VÀ CHẤM ĐIỂM CV - BỨC PHÁ HỒ SƠ, CHINH PHỤC NHÀ TUYỂN DỤNG]. Chủ đề: hướng nghiệp, kỹ năng, khoa học, hội nhập, cộng đồng. Hình thức: workshop, cá nhân. Buổi workshop giúp sinh viên nắm vững tư duy trình bày CV chuẩn chỉnh, bố cục hợp lý và các lưu ý quan trọng để vượt qua vòng hồ sơ tuyển dụng. Tham gia chương trình, sinh viên có cơ hội được chuyên gia trực tiếp nhận xét CV chuẩn ATS và tích lũy tiêu chí xét danh hiệu Sinh viên 5 Tốt."
     },
     {
       "embedding_row": 45,
-      "event_id": "sample_074",
-      "event_title": "[MTM26 | EXCLUSIVE TRAINING] SEE THE BIGGER PICTURE – SYSTEMS THINKING & STAKEHOLDER MANAGEMENT",
+      "event_id": "db_46",
+      "event_title": "Hội nghị Khoa học lần thứ XV - Tiểu ban Công nghệ Thông tin và Truyền thông (ICT)",
       "topic": [
-        "Skill-building",
-        "Career"
+        "khoa học",
+        "lập trình",
+        "AI",
+        "học thuật",
+        "cộng đồng"
       ],
       "format": [
-        "Workshop",
-        "Seminar"
+        "hội nghị"
       ],
-      "embedding_text": "passage: [MTM26 | EXCLUSIVE TRAINING] SEE THE BIGGER PICTURE – SYSTEMS THINKING & STAKEHOLDER MANAGEMENT. Chủ đề: Skill-building, Career. Hình thức: Workshop, Seminar. Một buổi training đặc biệt nhằm trang bị cho sinh viên tư duy hệ thống và kỹ năng quản trị các bên liên quan phục vụ cho công việc thực tế và thi tuyển Management Trainee. Chương trình có sự tham gia của diễn giả giàu kinh nghiệm và tặng kèm các ưu đãi đặc quyền từ Cake."
+      "embedding_text": "passage: Hội nghị Khoa học lần thứ XV - Tiểu ban Công nghệ Thông tin và Truyền thông (ICT). Chủ đề: khoa học, lập trình, AI, học thuật, cộng đồng. Hình thức: hội nghị. Sự kiện định kỳ là dịp để các nhà khoa học, giảng viên và sinh viên gặp gỡ, trình bày và trao đổi những kết quả nghiên cứu mới nhất. Sinh viên tham gia tiểu ban ICT sẽ có cơ hội tiếp cận các báo cáo khoa học chuyên ngành và trao đổi học thuật trực tiếp."
     },
     {
       "embedding_row": 46,
-      "event_id": "sample_075",
-      "event_title": "BỊO-AMBASSADORS CLUB | HÒA VỊ - KHÁM PHÁ NGHỆ THUẬT NƯỚC CHẤM VIỆT NAM",
+      "event_id": "db_47",
+      "event_title": "Seminar “Human-AI Hybrid System in Algorithmic Trading: Introduction and Bachelor Thesis Topics”",
       "topic": [
-        "Cultural",
-        "Entertainment"
+        "học thuật",
+        "AI",
+        "hướng nghiệp",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Workshop"
+        "seminar"
       ],
-      "embedding_text": "passage: BỊO-AMBASSADORS CLUB | HÒA VỊ - KHÁM PHÁ NGHỆ THUẬT NƯỚC CHẤM VIỆT NAM. Chủ đề: Cultural, Entertainment. Hình thức: Workshop. Workshop mang đến cơ hội trải nghiệm văn hóa và nghệ thuật pha chế nước chấm Việt Nam thông qua các thử thách đồng đội thú vị. Sinh viên sẽ cùng nhau đấu trí, tích lũy điểm số và kết nối bạn mới."
+      "embedding_text": "passage: Seminar “Human-AI Hybrid System in Algorithmic Trading: Introduction and Bachelor Thesis Topics”. Chủ đề: học thuật, AI, hướng nghiệp, khoa học, cộng đồng. Hình thức: seminar. Sinh viên tham dự seminar về hệ thống lai giữa con người và trí tuệ nhân tạo trong giao dịch thuật toán do các chuyên gia từ Algotrade trình bày. Sự kiện là cơ hội để tìm hiểu về định hướng khóa luận tốt nghiệp và nghiên cứu khoa học. Người tham gia cần đăng ký trực tuyến trước thời hạn."
     },
     {
       "embedding_row": 47,
-      "event_id": "sample_077",
-      "event_title": "CÔNG DÂN SỐ THÔNG THÁI – Nhận diện và đẩy lùi lừa đảo mạng",
+      "event_id": "db_48",
+      "event_title": "Buổi giới thiệu về các chương trình PhD và hoạt động nghiên cứu của Nanyang Technological University (NTU), Singapore",
       "topic": [
-        "Competition"
+        "học thuật",
+        "hướng nghiệp",
+        "hội nhập",
+        "AI",
+        "cộng đồng"
       ],
       "format": [
-        "Competition"
+        "seminar",
+        "tọa đàm"
       ],
-      "embedding_text": "passage: CÔNG DÂN SỐ THÔNG THÁI – Nhận diện và đẩy lùi lừa đảo mạng. Chủ đề: Competition. Hình thức: Competition. Cuộc thi trắc nghiệm trực tuyến gồm 40 câu hỏi nhằm trang bị kiến thức nhận diện và phòng chống lừa đảo trực tuyến. Sinh viên hoàn thành tốt bài thi sẽ được ghi nhận điểm rèn luyện."
+      "embedding_text": "passage: Buổi giới thiệu về các chương trình PhD và hoạt động nghiên cứu của Nanyang Technological University (NTU), Singapore. Chủ đề: học thuật, hướng nghiệp, hội nhập, AI, cộng đồng. Hình thức: seminar, tọa đàm. Sinh viên và học viên tham gia buổi giới thiệu về các chương trình đào tạo sau đại học và hoạt động nghiên cứu của Nanyang Technological University (NTU), Singapore. Sự kiện cung cấp cơ hội trao đổi học thuật, tìm hiểu học bổng, hợp tác quốc tế và phỏng vấn trực tiếp chương trình tiến sĩ với đoàn Giáo sư NTU. Người tham gia cần đăng ký qua đường dẫn trực tuyến."
     },
     {
       "embedding_row": 48,
-      "event_id": "sample_079",
-      "event_title": "HOẠT ĐỘNG TÌNH NGUYỆN “GẮN KẾT YÊU THƯƠNG” MÙA 6",
+      "event_id": "db_49",
+      "event_title": "Mini-course “Introduction to Multiagent Learning”",
       "topic": [
-        "Volunteer"
+        "học thuật",
+        "lập trình",
+        "AI",
+        "cộng đồng"
       ],
       "format": [
-        "Volunteer"
+        "workshop"
       ],
-      "embedding_text": "passage: HOẠT ĐỘNG TÌNH NGUYỆN “GẮN KẾT YÊU THƯƠNG” MÙA 6. Chủ đề: Volunteer. Hình thức: Volunteer. Hoạt động tình nguyện thường niên nhằm mang lại niềm vui cho các trẻ em khó khăn thông qua việc tổ chức các gian hàng trò chơi và nấu ăn. Chương trình kêu gọi sinh viên đăng ký tham gia chuẩn bị và tổ chức hoạt động."
+      "embedding_text": "passage: Mini-course “Introduction to Multiagent Learning”. Chủ đề: học thuật, lập trình, AI, cộng đồng. Hình thức: workshop. Sinh viên tham gia khóa học ngắn hạn về lý thuyết và phương pháp trong học máy đa tác nhân do GS. Trần Thanh Long giảng dạy. Khóa học bao gồm lý thuyết trò chơi, cơ chế học tập cốt lõi, reinforcement learning và các cơ hội trong kỷ nguyên LLM agents. Người tham gia có thể chọn hình thức học trực tiếp hoặc trực tuyến."
     },
     {
       "embedding_row": 49,
-      "event_id": "sample_080",
-      "event_title": "HÀNH TRÌNH ĐỒNG HÀNH VỚI SINH VIÊN TRONG HỌC TẬP",
+      "event_id": "db_50",
+      "event_title": "Cuộc thi Ý tưởng Khởi nghiệp Sinh viên - InnoStar 2026",
       "topic": [
-        "Academic",
-        "Technology",
-        "Skill-building"
+        "khởi nghiệp",
+        "khoa học",
+        "hội nhập",
+        "kỹ năng",
+        "cộng đồng"
       ],
       "format": [
-        "Seminar",
-        "Talkshow"
+        "cuộc thi",
+        "đồng đội",
+        "workshop",
+        "tọa đàm",
+        "triển lãm"
       ],
-      "embedding_text": "passage: HÀNH TRÌNH ĐỒNG HÀNH VỚI SINH VIÊN TRONG HỌC TẬP. Chủ đề: Academic, Technology, Skill-building. Hình thức: Seminar, Talkshow. Chuỗi chuyên đề học thuật gồm chuyên đề 'Ứng dụng Công nghệ số trong học tập thông minh' và 'Nghiên cứu Khoa học trong Kỷ nguyên AI' giúp sinh viên phát triển kỹ năng tự học và nghiên cứu khoa học an toàn, hiệu quả."
+      "embedding_text": "passage: Cuộc thi Ý tưởng Khởi nghiệp Sinh viên - InnoStar 2026. Chủ đề: khởi nghiệp, khoa học, hội nhập, kỹ năng, cộng đồng. Hình thức: cuộc thi, đồng đội, workshop, tọa đàm, triển lãm. Sinh viên tham gia cuộc thi khởi nghiệp đổi mới sáng tạo với chủ đề ứng dụng khoa học công nghệ vào kinh doanh thời đại số. Các đội thi có cơ hội tiếp cận chuyên gia, tham gia các buổi huấn luyện, bootcamp kết nối Việt - Hàn và tranh tài tại vòng chung kết. Sự kiện mang lại cơ hội hiện thực hóa ý tưởng kinh doanh và tiếp cận các nhà đầu tư."
     },
     {
       "embedding_row": 50,
-      "event_id": "sample_081",
-      "event_title": "ĐĂNG KÝ LỊCH KHÁM SỨC KHỎE ĐỊNH KỲ CHO SINH VIÊN ĐỢT 1 NĂM 2026",
+      "event_id": "db_51",
+      "event_title": "Ngày hội Văn hóa 2026 | Khám phá Trà Việt – Thưởng trà, cảm nhận nét đẹp văn hóa Việt",
       "topic": [
-        "Health"
+        "cộng đồng",
+        "hội nhập",
+        "kỹ năng"
       ],
-      "format": [],
-      "embedding_text": "passage: ĐĂNG KÝ LỊCH KHÁM SỨC KHỎE ĐỊNH KỲ CHO SINH VIÊN ĐỢT 1 NĂM 2026. Chủ đề: Health. Chương trình khám sức khỏe định kỳ cho sinh viên đợt 1 năm 2026 được tổ chức nhằm bảo đảm 100% người học được kiểm tra sức khỏe hàng năm. Sinh viên thực hiện đăng ký lịch khám cụ thể trực tuyến để tham gia khám trực tiếp tại cơ sở Thủ Đức."
+      "format": [
+        "ngày hội",
+        "tọa đàm",
+        "triển lãm"
+      ],
+      "embedding_text": "passage: Ngày hội Văn hóa 2026 | Khám phá Trà Việt – Thưởng trà, cảm nhận nét đẹp văn hóa Việt. Chủ đề: cộng đồng, hội nhập, kỹ năng. Hình thức: ngày hội, tọa đàm, triển lãm. Sinh viên tham gia ngày hội văn hóa để trải nghiệm không gian trưng bày và giới thiệu trà Việt truyền thống. Người tham gia có cơ hội tìm hiểu về nghệ thuật pha và thưởng trà, đồng thời khám phá những nét đẹp trong văn hóa ứng xử của người Việt. Sự kiện mang đến những phút giây giao lưu gần gũi và thư thái."
     },
     {
       "embedding_row": 51,
-      "event_id": "sample_083",
-      "event_title": "WORKSHOP QUẢN LÝ CUỘC SỐNG HIỆU QUẢ",
+      "event_id": "db_52",
+      "event_title": "Ngày hội Truyền thống Khoa Môi trường 2026",
       "topic": [
-        "Workshop"
+        "cộng đồng",
+        "hội nhập",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: WORKSHOP QUẢN LÝ CUỘC SỐNG HIỆU QUẢ. Chủ đề: Workshop. Sự kiện được tổ chức nhằm giúp sinh viên củng cố kỹ năng quản lý thời gian, chi tiêu thông qua công nghệ và trí tuệ nhân tạo OPPO AI. Người tham gia có cơ hội trải nghiệm trực tiếp hệ sinh thái OPPO, giao lưu cùng diễn giả Duy Luân và nhận nhiều phần quà từ CellphoneS."
+      "format": [
+        "ngày hội",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Ngày hội Truyền thống Khoa Môi trường 2026. Chủ đề: cộng đồng, hội nhập, khoa học. Hình thức: ngày hội, cá nhân. Chương trình là dịp để các thế hệ thầy cô, cựu sinh viên và sinh viên Khoa Môi trường hội ngộ, ôn lại kỷ niệm nhân ngày 20/11 và vinh danh học bổng thường niên. Người tham gia sẽ có cơ hội giao lưu, tri ân thầy cô và nhận học bổng khích lệ tinh thần học tập."
     },
     {
       "embedding_row": 52,
-      "event_id": "sample_086",
-      "event_title": "[WORKSHOP: VIẾT VÀ CHẤM ĐIỂM CV - BỨC PHÁ HỒ SƠ, CHINH PHỤC NHÀ TUYỂN DỤNG]",
+      "event_id": "db_53",
+      "event_title": "Chương trình Họp mặt kỷ niệm Ngày Nhà giáo Việt Nam 20/11",
       "topic": [
-        "Workshop"
+        "cộng đồng",
+        "AI"
       ],
-      "format": [],
-      "embedding_text": "passage: [WORKSHOP: VIẾT VÀ CHẤM ĐIỂM CV - BỨC PHÁ HỒ SƠ, CHINH PHỤC NHÀ TUYỂN DỤNG]. Chủ đề: Workshop. Workshop hỗ trợ sinh viên trong việc tối ưu hóa hồ sơ cá nhân và học cách viết CV chuyên nghiệp. Tham gia sự kiện, sinh viên sẽ tích lũy kỹ năng và có cơ hội nhận nhận xét trực tiếp từ chuyên gia để hoàn thiện CV chuẩn ATS."
+      "format": [
+        "ngày hội",
+        "tọa đàm",
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: Chương trình Họp mặt kỷ niệm Ngày Nhà giáo Việt Nam 20/11. Chủ đề: cộng đồng, AI. Hình thức: ngày hội, tọa đàm, cuộc thi. Chương trình họp mặt kỷ niệm ngày 20/11 tại Trường Đại học Bách khoa là dịp để các thế hệ người dạy và người học gặp gỡ, bày tỏ lòng tri ân sâu sắc và tôn vinh truyền thống tôn sư trọng đạo. Người tham gia có thể tham gia không gian chụp hình, các hoạt động tri ân trực tuyến và chuỗi sự kiện tại các khoa."
     },
     {
       "embedding_row": 53,
-      "event_id": "sample_088",
-      "event_title": "Hội nghị Khoa học lần thứ XV - Tiểu ban Công nghệ Thông tin và Truyền thông (ICT)",
+      "event_id": "db_54",
+      "event_title": "[CHUỖI HOẠT ĐỘNG HƯỞNG ỨNG NGÀY HỘI VĂN HÓA VIỆT NAM] SERIES “BẢN ĐỒ VĂN HÓA” - SỐ 4: CAO BẰNG",
       "topic": [
-        "Conference"
+        "cộng đồng",
+        "hội nhập"
       ],
-      "format": [],
-      "embedding_text": "passage: Hội nghị Khoa học lần thứ XV - Tiểu ban Công nghệ Thông tin và Truyền thông (ICT). Chủ đề: Conference. Tiểu ban Công nghệ Thông tin và Truyền thông thuộc Hội nghị Khoa học lần thứ XV là nơi hội ngộ của các nhà khoa học, giảng viên và sinh viên để trình bày, trao đổi các kết quả nghiên cứu mới nhất. Sinh viên quan tâm có thể đăng ký tham gia để tìm hiểu các hướng nghiên cứu học thuật."
+      "format": [
+        "tọa đàm",
+        "ngày hội"
+      ],
+      "embedding_text": "passage: [CHUỖI HOẠT ĐỘNG HƯỞNG ỨNG NGÀY HỘI VĂN HÓA VIỆT NAM] SERIES “BẢN ĐỒ VĂN HÓA” - SỐ 4: CAO BẰNG. Chủ đề: cộng đồng, hội nhập. Hình thức: tọa đàm, ngày hội. Thử thách trực tuyến khám phá văn hóa, di sản và ẩm thực tỉnh Cao Bằng thuộc chuỗi hoạt động hưởng ứng Ngày hội Văn hóa Việt Nam. Người tham gia bình luận chia sẻ hiểu biết để tích lũy dấu mốc nhận Giấy chứng nhận từ Nhà Văn hóa Sinh viên TP. Hồ Chí Minh."
     },
     {
       "embedding_row": 54,
-      "event_id": "sample_089",
-      "event_title": "Seminar “Human-AI Hybrid System in Algorithmic Trading: Introduction and Bachelor Thesis Topics”",
+      "event_id": "db_55",
+      "event_title": "Không gian Trò chơi dân gian - Ngày hội Văn hóa 2026",
       "topic": [
-        "Academic",
-        "Education"
+        "cộng đồng"
       ],
       "format": [
-        "Seminar"
+        "ngày hội",
+        "tọa đàm"
       ],
-      "embedding_text": "passage: Seminar “Human-AI Hybrid System in Algorithmic Trading: Introduction and Bachelor Thesis Topics”. Chủ đề: Academic, Education. Hình thức: Seminar. Seminar giới thiệu về hệ thống lai giữa con người và AI trong giao dịch thuật toán, đồng thời giới thiệu các đề tài khóa luận tốt nghiệp cho sinh viên. Chương trình giúp sinh viên, đặc biệt là sinh viên năm 3 và năm 4, tìm hiểu và định hướng nghiên cứu khoa học."
+      "embedding_text": "passage: Không gian Trò chơi dân gian - Ngày hội Văn hóa 2026. Chủ đề: cộng đồng. Hình thức: ngày hội, tọa đàm. Không gian trò chơi dân gian tại Ngày hội Văn hóa 2026 mang đến các hoạt động trải nghiệm như ô ăn quan, nhảy sạp, ném banh và ném vòng. Sinh viên tham gia sẽ được giao lưu, rèn luyện sự khéo léo và tận hưởng không khí vui tươi, gắn kết cùng bạn bè."
     },
     {
       "embedding_row": 55,
-      "event_id": "sample_090",
-      "event_title": "Buổi giới thiệu về các chương trình PhD và hoạt động nghiên cứu của Nanyang Technological University (NTU), Singapore",
+      "event_id": "db_56",
+      "event_title": "Không gian trưng bày và trải nghiệm làm Gốm Lái Thiêu – Sông Bé - Ngày hội Văn hóa 2026",
       "topic": [
-        "Academic",
-        "Education"
+        "cộng đồng"
       ],
       "format": [
-        "Seminar",
-        "Talkshow"
+        "ngày hội",
+        "triển lãm",
+        "tham quan"
       ],
-      "embedding_text": "passage: Buổi giới thiệu về các chương trình PhD và hoạt động nghiên cứu của Nanyang Technological University (NTU), Singapore. Chủ đề: Academic, Education. Hình thức: Seminar, Talkshow. Buổi giới thiệu do đoàn Giáo sư của NTU Singapore trình bày nhằm giới thiệu về các chương trình đào tạo PhD, các hướng nghiên cứu trọng điểm và mở rộng cơ hội học bổng, phỏng vấn trực tiếp cho học viên và sinh viên."
+      "embedding_text": "passage: Không gian trưng bày và trải nghiệm làm Gốm Lái Thiêu – Sông Bé - Ngày hội Văn hóa 2026. Chủ đề: cộng đồng. Hình thức: ngày hội, triển lãm, tham quan. Không gian trưng bày và trải nghiệm gốm Lái Thiêu – Sông Bé giúp sinh viên tìm hiểu về dòng gốm truyền thống Nam Bộ và trực tiếp thử sức với các công đoạn làm gốm thủ công. Hoạt động mang đến cơ hội khám phá nét đẹp văn hóa truyền thống và trải nghiệm sáng tạo nghệ thuật."
     },
     {
       "embedding_row": 56,
-      "event_id": "sample_091",
-      "event_title": "Mini-course “Introduction to Multiagent Learning”",
+      "event_id": "db_57",
+      "event_title": "Ứng Tuyển Thành Viên Thường Trực Câu Lạc Bộ Sách Năm Học 2026 - 2027",
       "topic": [
-        "Academic",
-        "Education"
+        "kỹ năng",
+        "cộng đồng",
+        "AI",
+        "khoa học"
       ],
       "format": [
-        "Course"
+        "tuyển cộng tác viên",
+        "workshop"
       ],
-      "embedding_text": "passage: Mini-course “Introduction to Multiagent Learning”. Chủ đề: Academic, Education. Hình thức: Course. Khóa học ngắn hạn do GS. Trần Thanh Long từ Trường Đại học Warwick giảng dạy, cung cấp kiến thức toàn diện từ cơ bản đến nâng cao về lý thuyết trò chơi và học máy củng cố đa tác tử."
+      "embedding_text": "passage: Ứng Tuyển Thành Viên Thường Trực Câu Lạc Bộ Sách Năm Học 2026 - 2027. Chủ đề: kỹ năng, cộng đồng, AI, khoa học. Hình thức: tuyển cộng tác viên, workshop. Câu lạc bộ Sách Trường Đại học Khoa học Tự nhiên chính thức mở đơn tuyển dụng thành viên thường trực cho năm học 2026 - 2027. Thành viên tham gia sẽ có cơ hội bứt phá giới hạn bản thân, tham gia tổ chức các sự kiện book talk, workshop, và lan tỏa văn hóa đọc đến cộng đồng."
     },
     {
       "embedding_row": 57,
-      "event_id": "sample_100",
-      "event_title": "Cuộc thi Ý tưởng Khởi nghiệp Sinh viên - InnoStar 2026",
+      "event_id": "db_58",
+      "event_title": "[🕹️ HOẠT ĐỘNG THỂ THAO ĐIỆN TỬ “LUNIX 2026” 🕹️]",
       "topic": [
-        "Competition"
+        "thể thao",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Cuộc thi Ý tưởng Khởi nghiệp Sinh viên - InnoStar 2026. Chủ đề: Competition. Cuộc thi tìm kiếm các ý tưởng khởi nghiệp đổi mới sáng tạo, ứng dụng khoa học công nghệ vào kinh doanh thời đại số. Sinh viên tham gia sẽ được đào tạo chuyên sâu bởi các chuyên gia Việt Nam - Hàn Quốc và có cơ hội thuyết trình trước các nhà đầu tư."
+      "format": [
+        "cuộc thi",
+        "đồng đội",
+        "tọa đàm",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: [🕹️ HOẠT ĐỘNG THỂ THAO ĐIỆN TỬ “LUNIX 2026” 🕹️]. Chủ đề: thể thao, khoa học, cộng đồng. Hình thức: cuộc thi, đồng đội, tọa đàm, cá nhân. Giải đấu Thể thao điện tử LUNIX 2026 mở ra sân chơi giải trí và kết nối cho sinh viên thông qua các bộ môn thi đấu như Liên quân Mobile, Cờ Caro, Tetris, Đấu Trường Chân Lý (TFT) và PUBG Mobile. Người tham gia có cơ hội trải nghiệm không khí thi đấu sôi động, rinh về những phần thưởng hấp dẫn và được ghi nhận hoạt động phong trào."
     },
     {
       "embedding_row": 58,
-      "event_id": "sample_050",
-      "event_title": "UIT ENGLISH CONTEST 2026 – FUTURE-READY HUMANS: AI GETS SMARTER. WE GET BETTER.",
+      "event_id": "db_59",
+      "event_title": "Hành Trình Tự Nhiên 2026 - Chặng 2: Colors Of ASEAN",
       "topic": [
-        "Academic",
-        "Competition"
+        "hội nhập",
+        "cộng đồng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: UIT ENGLISH CONTEST 2026 – FUTURE-READY HUMANS: AI GETS SMARTER. WE GET BETTER.. Chủ đề: Academic, Competition. UIT English Contest 2026 is an academic competition designed for university and college students in Ho Chi Minh City to test their English abilities, critical thinking, and teamwork skills in the AI era. Participants can advance through multiple challenges for a chance to win from a total prize pool of 19.5 million VND."
+      "format": [
+        "đồng đội"
+      ],
+      "embedding_text": "passage: Hành Trình Tự Nhiên 2026 - Chặng 2: Colors Of ASEAN. Chủ đề: hội nhập, cộng đồng, khoa học. Hình thức: đồng đội. Chặng 2 của Hành trình Tự nhiên 2026 mang tên 'Colors of ASEAN' đưa sinh viên khám phá văn hóa, lịch sử và địa lý của các quốc gia ASEAN thông qua hình thức chạy trạm lớn theo đội. Người tham gia sẽ có những trải nghiệm thực tế thú vị và mở rộng hiểu biết về các nước láng giềng."
     },
     {
       "embedding_row": 59,
-      "event_id": "sample_101",
-      "event_title": "Không gian trưng bày và giới thiệu Trà Việt tại Ngày hội Văn hóa 2026",
+      "event_id": "db_60",
+      "event_title": "Cuộc Thi Trắc Nghiệm Trực Tuyến “Theo Dấu Chân Người”",
       "topic": [
-        "Festival"
+        "chính trị - xã hội",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Không gian trưng bày và giới thiệu Trà Việt tại Ngày hội Văn hóa 2026. Chủ đề: Festival. Một hoạt động nằm trong khuôn khổ Ngày hội Văn hóa 2026, giúp sinh viên tìm hiểu về văn hóa trà truyền thống và khám phá những nét đặc sắc trong nghệ thuật pha và thưởng trà của Việt Nam."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Cuộc Thi Trắc Nghiệm Trực Tuyến “Theo Dấu Chân Người”. Chủ đề: chính trị - xã hội, khoa học, cộng đồng. Hình thức: cuộc thi, cá nhân. Cuộc thi trực tuyến 'Theo Dấu Chân Người' được tổ chức nhằm hưởng ứng các sự kiện lịch sử kỷ niệm ngày sinh Chủ tịch Hồ Chí Minh và ngày thành phố mang tên Người. Sinh viên tham gia trả lời các câu hỏi trắc nghiệm trên nền tảng MyAloha để thể hiện tình yêu lịch sử, niềm tự hào dân tộc và nhận minh chứng tham gia hoạt động học kỳ."
     },
     {
       "embedding_row": 60,
-      "event_id": "sample_102",
-      "event_title": "Ngày hội Truyền thống Khoa Môi trường 2026",
+      "event_id": "db_61",
+      "event_title": "Đêm Nhạc Chào Đón Tân Sinh Viên: 'Đón Gió'",
       "topic": [
-        "Festival"
+        "văn nghệ",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [],
-      "embedding_text": "passage: Ngày hội Truyền thống Khoa Môi trường 2026. Chủ đề: Festival. Ngày hội truyền thống là dịp để các thế hệ giảng viên, cựu sinh viên và sinh viên Khoa Môi trường hội ngộ, tri ân thầy cô nhân ngày 20/11 và trao tặng các suất học bổng thường niên."
+      "embedding_text": "passage: Đêm Nhạc Chào Đón Tân Sinh Viên: 'Đón Gió'. Chủ đề: văn nghệ, khoa học, cộng đồng. Đêm nhạc chào đón Tân Sinh viên với chủ đề 'Đón Gió' là sự kiện kết hợp giữa Đoàn khối cán bộ trẻ và Câu lạc bộ Âm nhạc Acousphys mang đến không gian âm nhạc bùng nổ và nhiều cảm xúc. Sự kiện giúp tân sinh viên chào đón hành trình đại học mới với tinh thần bản lĩnh, tự tin bứt phá và tỏa sáng cùng dàn khách mời đặc biệt."
     },
     {
       "embedding_row": 61,
-      "event_id": "sample_103",
-      "event_title": "Chương trình Họp mặt kỷ niệm Ngày Nhà giáo Việt Nam 20/11",
+      "event_id": "db_62",
+      "event_title": "CUỘC THI SÁNG TẠO TRẺ QUỐC GIA TRONG LĨNH VỰC TRÍ TUỆ NHÂN TẠO NĂM 2026",
       "topic": [
-        "Ceremony"
+        "khoa học",
+        "lập trình",
+        "AI",
+        "khởi nghiệp",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Chương trình Họp mặt kỷ niệm Ngày Nhà giáo Việt Nam 20/11. Chủ đề: Ceremony. Sự kiện thường niên nhằm tri ân các thế hệ nhà giáo tại Trường Đại học Bách khoa với chủ đề 'Tôn sư trọng đạo, Sự học trường tồn', đi kèm với hoạt động chụp ảnh lưu niệm và các chương trình gặp gỡ của từng khoa."
+      "format": [
+        "cuộc thi",
+        "đồng đội",
+        "seminar",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: CUỘC THI SÁNG TẠO TRẺ QUỐC GIA TRONG LĨNH VỰC TRÍ TUỆ NHÂN TẠO NĂM 2026. Chủ đề: khoa học, lập trình, AI, khởi nghiệp, học thuật, cộng đồng. Hình thức: cuộc thi, đồng đội, seminar, tọa đàm. Cuộc thi Sáng tạo trẻ Quốc gia trong lĩnh vực Trí tuệ nhân tạo năm 2026 là sân chơi trí tuệ và công nghệ dành cho học sinh, sinh viên trên toàn quốc nhằm phát triển tài năng AI và giải quyết bài toán thực tiễn. Thí sinh tham gia có cơ hội nhận bằng khen từ Trung ương Đoàn, tham gia tập huấn chuyên sâu cùng chuyên gia hàng đầu và tranh tài tại các vòng thi khu vực và toàn quốc. Giải thưởng bao gồm giấy chứng nhận và nhiều phần thưởng giá trị."
     },
     {
       "embedding_row": 62,
-      "event_id": "sample_104",
-      "event_title": "Series “Bản đồ Văn hóa” — Số 4: Cao Bằng",
+      "event_id": "db_63",
+      "event_title": "GIẢI CỜ VUA HỌC SINH, SINH VIÊN THÀNH PHỐ HỒ CHÍ MINH MỞ RỘNG NĂM 2026",
       "topic": [
-        "Competition"
+        "thể thao",
+        "kỹ năng",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Series “Bản đồ Văn hóa” — Số 4: Cao Bằng. Chủ đề: Competition. Một hoạt động trực tuyến thuộc chuỗi hoạt động hướng tới Ngày hội Văn hóa Việt Nam, thử thách người tham gia tìm hiểu, chia sẻ kiến thức về văn hóa, địa danh, ẩm thực của Cao Bằng và nhận giấy chứng nhận từ Ban Tổ chức."
+      "format": [
+        "cuộc thi",
+        "cá nhân",
+        "tọa đàm",
+        "ngày hội"
+      ],
+      "embedding_text": "passage: GIẢI CỜ VUA HỌC SINH, SINH VIÊN THÀNH PHỐ HỒ CHÍ MINH MỞ RỘNG NĂM 2026. Chủ đề: thể thao, kỹ năng, cộng đồng. Hình thức: cuộc thi, cá nhân, tọa đàm, ngày hội. Giải Cờ vua Học sinh, Sinh viên Thành phố Hồ Chí Minh mở rộng năm 2026 là sân chơi trí tuệ nằm trong khuôn khổ Ngày hội Tân Sinh viên TP.HCM lần thứ 21, tạo cơ hội cho các kỳ thủ trẻ giao lưu, rèn luyện tư duy chiến thuật và bản lĩnh thi đấu. Sự kiện diễn ra trực tiếp tại Nhà Văn hóa Sinh viên với hạn chót đăng ký ngày 19/9/2026."
     },
     {
       "embedding_row": 63,
-      "event_id": "sample_105",
-      "event_title": "NGÀY HỘI VĂN HÓA 2026 | CÙNG HỘI BẠN TRỞ VỀ TUỔI THƠ VỚI TRÒ CHƠI DÂN GIAN",
+      "event_id": "db_64",
+      "event_title": "KỸ NĂNG ĐỊNH VỊ BẢN THÂN VÀ XÂY DỰNG THƯƠNG HIỆU CÁ NHÂN TRONG KỶ NGUYÊN SỐ",
       "topic": [
-        "Cultural",
-        "Entertainment"
+        "hướng nghiệp",
+        "kỹ năng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: NGÀY HỘI VĂN HÓA 2026 | CÙNG HỘI BẠN TRỞ VỀ TUỔI THƠ VỚI TRÒ CHƠI DÂN GIAN. Chủ đề: Cultural, Entertainment. Không gian Trò chơi dân gian tại Ngày hội Văn hóa 2026 mang đến cho các bạn sinh viên cơ hội tham gia những trò chơi truyền thống như Ô ăn quan, Nhảy sạp, Ném banh và Ném vòng. Đây là dịp lý tưởng để giao lưu, khám phá nét đẹp văn hóa dân gian và kết nối cùng bạn bè."
+      "format": [
+        "workshop",
+        "tọa đàm",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: KỸ NĂNG ĐỊNH VỊ BẢN THÂN VÀ XÂY DỰNG THƯƠNG HIỆU CÁ NHÂN TRONG KỶ NGUYÊN SỐ. Chủ đề: hướng nghiệp, kỹ năng, khoa học. Hình thức: workshop, tọa đàm, cá nhân. Chương trình tập huấn 'Kỹ năng định vị bản thân và xây dựng thương hiệu cá nhân trong kỷ nguyên số' có sự đồng hành của TS. Đỗ Thị Xuân Hương nhằm giúp sinh viên nhận diện điểm mạnh, xây dựng thương hiệu cá nhân bài bản và ứng dụng vào học tập, việc làm. Tham gia chương trình, sinh viên được lắng nghe những chia sẻ thực tế và truyền cảm hứng từ báo cáo viên."
     },
     {
       "embedding_row": 64,
-      "event_id": "sample_106",
-      "event_title": "NGÀY HỘI VĂN HÓA 2026 | KHÔNG GIAN TRƯNG BÀY VÀ TRẢI NGHIỆM GỐM LÁI THIÊU – SÔNG BÉ",
+      "event_id": "db_65",
+      "event_title": "WORKSHOP GEN Z CÙNG VĂN HÓA – TỪ THANH ÂM ĐẾN SÂN KHẤU",
       "topic": [
-        "Cultural",
-        "Arts"
+        "văn nghệ",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: NGÀY HỘI VĂN HÓA 2026 | KHÔNG GIAN TRƯNG BÀY VÀ TRẢI NGHIỆM GỐM LÁI THIÊU – SÔNG BÉ. Chủ đề: Cultural, Arts. Một hoạt động thú vị tại Ngày hội Văn hóa 2026 giúp sinh viên tìm hiểu về dòng Gốm Lái Thiêu - Sông Bé truyền thống của Nam Bộ. Sinh viên không chỉ được tham quan, trưng bày các tác phẩm gốm mà còn được trực tiếp trải nghiệm các công đoạn làm gốm thủ công."
+      "format": [
+        "workshop",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: WORKSHOP GEN Z CÙNG VĂN HÓA – TỪ THANH ÂM ĐẾN SÂN KHẤU. Chủ đề: văn nghệ, hội nhập, khoa học, cộng đồng. Hình thức: workshop, tọa đàm. Workshop 'Gen Z cùng Văn hóa – Từ thanh âm đến sân khấu' mang đến không gian giao lưu nghệ thuật đặc sắc, giúp sinh viên tìm hiểu về âm nhạc cải lương, giai điệu ngũ cung và các loại nhạc cụ dân tộc Việt Nam. Người tham gia sẽ có cơ hội trực tiếp trải nghiệm nhạc cụ, giao lưu với nghệ sĩ và lan tỏa tình yêu văn hóa dân tộc truyền thống."
     },
     {
       "embedding_row": 65,
-      "event_id": "sample_107",
-      "event_title": "CÂU LẠC BỘ SÁCH CHÍNH THỨC MỞ ĐƠN ĐĂNG KÝ ỨNG TUYỂN THÀNH VIÊN THƯỜNG TRỰC",
+      "event_id": "db_66",
+      "event_title": "TINH VÂN DIỄN CA",
       "topic": [
-        "Recruitment"
+        "văn nghệ",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: CÂU LẠC BỘ SÁCH CHÍNH THỨC MỞ ĐƠN ĐĂNG KÝ ỨNG TUYỂN THÀNH VIÊN THƯỜNG TRỰC. Chủ đề: Recruitment. Câu lạc bộ Sách mở đơn ứng tuyển nhằm tìm kiếm thế hệ thành viên thường trực mới nhiệt huyết để đồng hành tổ chức các sự kiện, lan tỏa văn hóa đọc đến cộng đồng sinh viên. Thành viên tham gia sẽ có cơ hội bứt phá giới hạn bản thân, phát triển kỹ năng tổ chức và kết nối bạn bè."
+      "format": [
+        "ngày hội"
+      ],
+      "embedding_text": "passage: TINH VÂN DIỄN CA. Chủ đề: văn nghệ, hội nhập, khoa học, cộng đồng. Hình thức: ngày hội. Chương trình sân khấu học đường 'Tinh Vân Diễn Ca' nằm trong khuôn khổ Ngày hội Văn hóa năm 2026 với chủ đề 'Tinh hoa và Hội nhập' do trường Đại học Công nghệ Thông tin phối hợp cùng Nhà Văn hóa Sinh viên TP.HCM tổ chức. Sự kiện tạo cơ hội cho sinh viên thưởng thức nghệ thuật truyền thống, khám phá văn hóa dân tộc và được xem xét ghi nhận điểm rèn luyện khi hoàn thành điểm danh."
     },
     {
       "embedding_row": 66,
-      "event_id": "sample_108",
-      "event_title": "HOẠT ĐỘNG THỂ THAO ĐIỆN TỬ “LUNIX 2026”",
+      "event_id": "db_67",
+      "event_title": "[UITSPORTS2026] TẬP HỢP ĐỒNG ĐỘI - SẴN SÀNG KÉO CO!",
       "topic": [
-        "Sports",
-        "Competition"
+        "thể thao",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: HOẠT ĐỘNG THỂ THAO ĐIỆN TỬ “LUNIX 2026”. Chủ đề: Sports, Competition. Giải đấu Thể thao điện tử LUNIX 2026 được tổ chức nhằm mang lại sân chơi giải trí bùng nổ cho sinh viên với 5 bộ môn thi đấu kịch tính gồm Liên quân Mobile, Cờ Caro, Tetris, Đấu Trường Chân Lý và PUBG Mobile. Sinh viên tham gia sẽ được trải nghiệm thi đấu, có cơ hội nhận các huy chương cùng hiện kim giá trị và được cộng điểm rèn luyện."
+      "format": [
+        "cuộc thi",
+        "đồng đội",
+        "cá nhân",
+        "tuyển cộng tác viên"
+      ],
+      "embedding_text": "passage: [UITSPORTS2026] TẬP HỢP ĐỒNG ĐỘI - SẴN SÀNG KÉO CO!. Chủ đề: thể thao, khoa học, cộng đồng. Hình thức: cuộc thi, đồng đội, cá nhân, tuyển cộng tác viên. Khoa Khoa học Máy tính chính thức mở đăng ký tuyển quân bộ môn kéo co tham gia UIT Sport 2026 với ba nội dung: đồng đội nam, đồng đội nữ và đồng đội nam nữ. Sinh viên có thể đăng ký theo đội hoặc cá nhân để cùng nhau tranh tài, rèn luyện sức khỏe và thắt chặt tinh thần đồng đội."
     },
     {
       "embedding_row": 67,
-      "event_id": "sample_109",
-      "event_title": "[HTTN26] - COLORS OF ASEAN",
+      "event_id": "db_68",
+      "event_title": "[Hội trại Truyền thống khoa Khoa học Máy tính - CS2 - Connecting Our Hearts] - VÙNG LỘNG GIÓ",
       "topic": [
-        "Cultural",
-        "Entertainment"
+        "cộng đồng",
+        "kỹ năng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: [HTTN26] - COLORS OF ASEAN. Chủ đề: Cultural, Entertainment. Chặng 2 của Hành trình Tự nhiên 2026 với chủ đề Colors of ASEAN mang đến chuỗi thử thách chạy trạm lớn giúp sinh viên khám phá văn hóa, lịch sử, địa lý của các quốc gia Đông Nam Á. Hoạt động giới hạn 80 sinh viên tham gia trải nghiệm thực tế tại cơ sở Phường Chợ Quán."
+      "format": [
+        "ngày hội",
+        "ngoại khóa",
+        "tọa đàm",
+        "đồng đội"
+      ],
+      "embedding_text": "passage: [Hội trại Truyền thống khoa Khoa học Máy tính - CS2 - Connecting Our Hearts] - VÙNG LỘNG GIÓ. Chủ đề: cộng đồng, kỹ năng, khoa học. Hình thức: ngày hội, ngoại khóa, tọa đàm, đồng đội. Hội trại truyền thống khoa Khoa học Máy tính (CS2) với chủ đề 'Vùng Lộng Gió' là sân chơi thiết thực giúp tân sinh viên giao lưu, rèn luyện kỹ năng và gắn kết tình cảm tập thể qua các thử thách sôi nổi. Trại sinh sẽ được trải nghiệm 2 ngày 1 đêm đáng nhớ, giao lưu với giảng viên và anh chị khóa trên cùng nhiều hoạt động tập thể đặc sắc."
     },
     {
       "embedding_row": 68,
-      "event_id": "sample_110",
-      "event_title": "CUỘC THI TRẮC NGHIỆM TRỰC TUYẾN “THEO DẤU CHÂN NGƯỜI”",
+      "event_id": "db_69",
+      "event_title": "[GIỌT HỒNG UIT LẦN V NĂM 2026] CHÍNH THỨC MỞ ĐƠN ĐĂNG KÝ",
       "topic": [
-        "Competition",
-        "Academic"
+        "thiện nguyện",
+        "cộng đồng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: CUỘC THI TRẮC NGHIỆM TRỰC TUYẾN “THEO DẤU CHÂN NGƯỜI”. Chủ đề: Competition, Academic. Cuộc thi trắc nghiệm trực tuyến chào mừng kỷ niệm ngày sinh Chủ tịch Hồ Chí Minh, gồm 30 câu hỏi về lịch sử và truyền thống dân tộc được tổ chức trên nền tảng MyAloha. Sinh viên trả lời đúng từ 23 câu trở lên sẽ được ghi nhận tham gia hoạt động phong trào và điểm rèn luyện."
+      "format": [
+        "tình nguyện",
+        "ngày hội",
+        "hiến máu"
+      ],
+      "embedding_text": "passage: [GIỌT HỒNG UIT LẦN V NĂM 2026] CHÍNH THỨC MỞ ĐƠN ĐĂNG KÝ. Chủ đề: thiện nguyện, cộng đồng, khoa học. Hình thức: tình nguyện, ngày hội, hiến máu. Ngày hội Hiến máu Tình nguyện 'Giọt Hồng UIT lần V năm 2026' mở đơn đăng ký nhằm chung tay bổ sung nguồn máu dự trữ phục vụ công tác cấp cứu và điều trị bệnh nhân. Người tham gia sẽ được cấp giấy chứng nhận hiến máu, nhận phần quà ý nghĩa, cộng điểm rèn luyện và trực tiếp góp phần cứu giúp người bệnh."
     },
     {
       "embedding_row": 69,
-      "event_id": "sample_111",
-      "event_title": "ĐÊM NHẠC CHÀO ĐÓN TÂN SINH VIÊN: \"ĐÓN GIÓ\"",
+      "event_id": "db_70",
+      "event_title": "VNU Tour 2026 | Chính thức mở cổng đăng ký tham gia chương trình",
       "topic": [
-        "Music",
-        "Entertainment"
+        "hội nhập",
+        "kỹ năng",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: ĐÊM NHẠC CHÀO ĐÓN TÂN SINH VIÊN: \"ĐÓN GIÓ\". Chủ đề: Music, Entertainment. Đêm nhạc đặc sắc chào đón tân sinh viên phối hợp tổ chức bởi Đoàn khối cán bộ trẻ và Câu lạc bộ Âm nhạc Acousphys, hứa hẹn đem lại một không gian bùng nổ, truyền tải thông điệp về sự chủ động, bản lĩnh và kiên cường vượt qua thử thách của thế hệ sinh viên mới."
+      "format": [
+        "cuộc thi",
+        "ngày hội",
+        "đồng đội",
+        "workshop",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: VNU Tour 2026 | Chính thức mở cổng đăng ký tham gia chương trình. Chủ đề: hội nhập, kỹ năng, cộng đồng. Hình thức: cuộc thi, ngày hội, đồng đội, workshop, cá nhân. Chương trình VNU Tour 2026 là hành trình thực tế khám phá khu Đô thị ĐHQG-HCM dành riêng cho tân sinh viên thông qua các hoạt động chạy trạm, giải mật mã và thử thách vận động. Tham gia chương trình giúp sinh viên làm quen với môi trường đại học, nâng cao kỹ năng làm việc nhóm và mở rộng các mối quan hệ mới."
     },
     {
       "embedding_row": 70,
-      "event_id": "sample_112",
-      "event_title": "CUỘC THI SÁNG TẠO TRẺ QUỐC GIA TRONG LĨNH VỰC TRÍ TUỆ NHÂN TẠO NĂM 2026",
+      "event_id": "db_71",
+      "event_title": "Đăng ký tham quan Công ty TNHH Netcompany Việt Nam",
       "topic": [
-        "Competition",
-        "Technology",
-        "Academic"
+        "hướng nghiệp",
+        "lập trình",
+        "khoa học",
+        "hội nhập",
+        "kỹ năng",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: CUỘC THI SÁNG TẠO TRẺ QUỐC GIA TRONG LĨNH VỰC TRÍ TUỆ NHÂN TẠO NĂM 2026. Chủ đề: Competition, Technology, Academic. Sân chơi trí tuệ, khoa học dành cho thanh thiếu niên từ 12 đến 22 tuổi trên toàn quốc nhằm ứng dụng trí tuệ nhân tạo (AI) giải quyết các bài toán thực tiễn. Thí sinh tham gia thi theo đội ở 3 bảng đấu tương ứng với cấp học, có cơ hội nhận giải thưởng danh giá cùng bằng khen của Trung ương Đoàn."
+      "format": [
+        "tham quan",
+        "workshop",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Đăng ký tham quan Công ty TNHH Netcompany Việt Nam. Chủ đề: hướng nghiệp, lập trình, khoa học, hội nhập, kỹ năng, cộng đồng. Hình thức: tham quan, workshop, tọa đàm. Chuyến tham quan Công ty TNHH Netcompany Việt Nam tạo cơ hội cho sinh viên công nghệ thông tin tìm hiểu về môi trường làm việc quốc tế, các giải pháp công nghệ và quy trình phát triển dự án thực tế. Sinh viên tham gia sẽ được giao lưu, lắng nghe chia sẻ kinh nghiệm nghề nghiệp và mở rộng cơ hội việc làm sau khi ra trường."
     },
     {
       "embedding_row": 71,
-      "event_id": "sample_113",
-      "event_title": "GIẢI CỜ VUA HỌC SINH, SINH VIÊN THÀNH PHỐ HỒ CHÍ MINH MỞ RỘNG NĂM 2026",
+      "event_id": "db_72",
+      "event_title": "Cuộc thi “Nét chữ Tri ân” 2026",
       "topic": [
-        "Sports"
+        "cộng đồng",
+        "kỹ năng"
       ],
-      "format": [],
-      "embedding_text": "passage: GIẢI CỜ VUA HỌC SINH, SINH VIÊN THÀNH PHỐ HỒ CHÍ MINH MỞ RỘNG NĂM 2026. Chủ đề: Sports. Một sân chơi trí tuệ kịch tính dành cho các kỳ thủ trẻ yêu thích cờ vua, giúp học sinh và sinh viên giao lưu, đấu trí, rèn luyện tư duy chiến thuật. Giải đấu diễn ra trong khuôn khổ Ngày hội Tân Sinh viên TP. Hồ Chí Minh."
+      "format": [
+        "cuộc thi",
+        "cá nhân",
+        "đồng đội"
+      ],
+      "embedding_text": "passage: Cuộc thi “Nét chữ Tri ân” 2026. Chủ đề: cộng đồng, kỹ năng. Hình thức: cuộc thi, cá nhân, đồng đội. Cuộc thi 'Nét chữ Tri ân' năm 2026 do Đoàn - Hội Trường Đại học Bách khoa – ĐHQG-HCM tổ chức là sân chơi để sinh viên gửi gắm tình cảm và sự biết ơn đến thầy cô thông qua các bài viết, video ngắn hoặc sản phẩm truyền thông sáng tạo. Tham gia chương trình, sinh viên có cơ hội rèn luyện sự sáng tạo và nhận các giải thưởng tiền mặt giá trị từ Ban Tổ chức."
     },
     {
       "embedding_row": 72,
-      "event_id": "sample_114",
-      "event_title": "KỸ NĂNG ĐỊNH VỊ BẢN THÂN VÀ XÂY DỰNG THƯƠNG HIỆU CÁ NHÂN TRONG KỶ NGUYÊN SỐ",
+      "event_id": "db_73",
+      "event_title": "Chương trình Talk show - “Trò chuyện cùng sinh viên” Học kì 1 năm học 2026 - 2027: Kỹ năng hội nhập và phương pháp học tập đại học hiệu quả",
       "topic": [
-        "Workshop"
+        "hướng nghiệp",
+        "kỹ năng",
+        "hội nhập",
+        "AI",
+        "học thuật",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: KỸ NĂNG ĐỊNH VỊ BẢN THÂN VÀ XÂY DỰNG THƯƠNG HIỆU CÁ NHÂN TRONG KỶ NGUYÊN SỐ. Chủ đề: Workshop. Buổi tập huấn giúp sinh viên nhận diện đúng giá trị bản thân, xây dựng thương hiệu cá nhân bài bản trong kỷ nguyên số và ứng dụng vào học tập, sự nghiệp tương lai."
+      "format": [
+        "talkshow",
+        "seminar",
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: Chương trình Talk show - “Trò chuyện cùng sinh viên” Học kì 1 năm học 2026 - 2027: Kỹ năng hội nhập và phương pháp học tập đại học hiệu quả. Chủ đề: hướng nghiệp, kỹ năng, hội nhập, AI, học thuật, khoa học. Hình thức: talkshow, seminar, cuộc thi. Chương trình talk show thuộc Tuần lễ 'Vươn cánh bồ câu trắng - Đồng hành cùng sinh viên' nhằm giúp các bạn tân sinh viên nhanh chóng làm quen với môi trường đại học, trang bị kỹ năng hội nhập và phương pháp học tập hiệu quả. Tham gia chương trình, sinh viên có cơ hội lắng nghe chia sẻ từ các diễn giả khách mời và nhận giấy chứng nhận hoàn thành khi đáp ứng đủ điều kiện."
     },
     {
       "embedding_row": 73,
-      "event_id": "sample_115",
-      "event_title": "[WORKSHOP] GEN Z CÙNG VĂN HÓA – TỪ THANH ÂM ĐẾN SÂN KHẤU",
+      "event_id": "db_74",
+      "event_title": "Cuộc thi tìm hiểu pháp luật trực tuyến “Hiểu luật - Sống xanh”",
       "topic": [
-        "Arts"
+        "pháp luật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [WORKSHOP] GEN Z CÙNG VĂN HÓA – TỪ THANH ÂM ĐẾN SÂN KHẤU. Chủ đề: Arts. Workshop mang đến không gian trải nghiệm và khám phá nghệ thuật Cải lương và nhạc cụ dân tộc Việt Nam, kết nối âm nhạc truyền thống với thế hệ Gen Z."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: Cuộc thi tìm hiểu pháp luật trực tuyến “Hiểu luật - Sống xanh”. Chủ đề: pháp luật, cộng đồng. Hình thức: cuộc thi, cá nhân. Cuộc thi trực tuyến 'Hiểu luật - Sống xanh' do Đoàn khoa – Liên chi Hội khoa Môi trường tổ chức nhằm hưởng ứng Ngày Pháp luật nước Cộng hòa Xã hội Chủ Nghĩa Việt Nam. Sinh viên tham gia trả lời trắc nghiệm các quy định cốt lõi của Luật Bảo vệ môi trường 2020 để củng cố kiến thức, nhận các phần thưởng tiền mặt hấp dẫn và được công nhận tham gia hoạt động."
     },
     {
       "embedding_row": 74,
-      "event_id": "sample_116",
-      "event_title": "TINH VÂN DIỄN CA",
+      "event_id": "db_75",
+      "event_title": "Hành trình Bản lĩnh – Hạt giống Xanh lần thứ II, năm 2026",
       "topic": [
-        "Arts"
+        "kỹ năng",
+        "cộng đồng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: TINH VÂN DIỄN CA. Chủ đề: Arts. Sân khấu học đường biểu diễn nghệ thuật truyền thống đặc sắc, nơi sinh viên khám phá vẻ đẹp văn hóa dân tộc và được xem xét ghi nhận điểm rèn luyện."
+      "format": [
+        "ngày hội",
+        "cá nhân",
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: Hành trình Bản lĩnh – Hạt giống Xanh lần thứ II, năm 2026. Chủ đề: kỹ năng, cộng đồng, khoa học. Hình thức: ngày hội, cá nhân, cuộc thi. Hành trình Bản lĩnh – Hạt giống Xanh lần thứ II năm 2026 là sân chơi rèn luyện kỹ năng và khám phá bản thân dành riêng cho tân sinh viên Trường Đại học Khoa học tự nhiên, ĐHQG-HCM. Tham gia chương trình, sinh viên được trải nghiệm qua các chặng hành trình hấp dẫn, giao lưu học hỏi và nhận tổng giá trị giải thưởng lên đến 30.000.000 VNĐ."
     },
     {
       "embedding_row": 75,
-      "event_id": "sample_117",
-      "event_title": "[UIT_SPORTS_2026] TUYỂN QUÂN KÉO CO",
+      "event_id": "db_76",
+      "event_title": "Hoạt động kỹ năng số “Công dân số thông thái – Lướt mạng an toàn”",
       "topic": [
-        "Sports"
+        "lập trình",
+        "AI",
+        "kỹ năng",
+        "khoa học",
+        "hội nhập",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [UIT_SPORTS_2026] TUYỂN QUÂN KÉO CO. Chủ đề: Sports. Khoa Khoa học Máy tính mở cổng tuyển quân đăng ký thi đấu bộ môn kéo co đồng đội nam, đồng đội nữ, và đồng đội nam nữ để tham gia UIT Sport 2026."
+      "format": [
+        "cá nhân",
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: Hoạt động kỹ năng số “Công dân số thông thái – Lướt mạng an toàn”. Chủ đề: lập trình, AI, kỹ năng, khoa học, hội nhập, cộng đồng. Hình thức: cá nhân, cuộc thi. Hoạt động kỹ năng số 'Công dân số thông thái – Lướt mạng an toàn' trang bị cho sinh viên kiến thức nhận diện rủi ro và bảo mật trên không gian mạng. Tham gia hoạt động trực tuyến này, sinh viên có cơ hội nhận giấy chứng nhận kỹ năng số để hoàn thiện hồ sơ xét danh hiệu 'Sinh viên 5 Tốt'."
     },
     {
       "embedding_row": 76,
-      "event_id": "sample_118",
-      "event_title": "Hội trại Truyền thống khoa Khoa học Máy tính - CS2 - Connecting Our Hearts",
+      "event_id": "db_77",
+      "event_title": "Triển lãm Khoa học Đa giác quan: THE SENSUS",
       "topic": [
-        "Entertainment"
+        "khoa học",
+        "hội nhập",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Hội trại Truyền thống khoa Khoa học Máy tính - CS2 - Connecting Our Hearts. Chủ đề: Entertainment. Hội trại truyền thống thường niên dành cho tân sinh viên khoa Khoa học Máy tính, mang đến các thử thách vận động, gắn kết tình đồng đội và trao đổi kinh nghiệm học tập."
+      "format": [
+        "triển lãm",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Triển lãm Khoa học Đa giác quan: THE SENSUS. Chủ đề: khoa học, hội nhập, học thuật, cộng đồng. Hình thức: triển lãm, tọa đàm. Triển lãm Khoa học Đa giác quan THE SENSUS là không gian triển lãm học thuật liên ngành kết hợp giữa khoa học thực nghiệm và nghệ thuật sáng tạo. Tham gia chương trình, học sinh sinh viên sẽ được đánh thức mọi giác quan qua các mô hình mô phỏng độc đáo, tương tác với các thí nghiệm vật lý thực tế và lắng nghe chia sẻ từ các diễn giả. Sự kiện mang đến cơ hội trải nghiệm trực quan, khơi dậy tư duy logic và lan tỏa đam mê khoa học."
     },
     {
       "embedding_row": 77,
-      "event_id": "sample_119",
-      "event_title": "GIỌT HỒNG UIT LẦN V NĂM 2026",
+      "event_id": "db_78",
+      "event_title": "Chiến dịch Mùa hè xanh Trường Đại học Khoa học tự nhiên, ĐHQG-HCM lần thứ 33",
       "topic": [
-        "Volunteer"
+        "cộng đồng",
+        "thiện nguyện",
+        "khoa học",
+        "hướng nghiệp",
+        "kỹ năng"
       ],
-      "format": [],
-      "embedding_text": "passage: GIỌT HỒNG UIT LẦN V NĂM 2026. Chủ đề: Volunteer. Ngày hội Hiến máu Tình nguyện giúp bổ sung nguồn máu dự trữ cứu người, mang lại cho người tham gia giấy chứng nhận hiến máu, quà tặng và điểm rèn luyện."
+      "format": [
+        "tình nguyện"
+      ],
+      "embedding_text": "passage: Chiến dịch Mùa hè xanh Trường Đại học Khoa học tự nhiên, ĐHQG-HCM lần thứ 33. Chủ đề: cộng đồng, thiện nguyện, khoa học, hướng nghiệp, kỹ năng. Hình thức: tình nguyện. Chiến dịch tình nguyện Mùa hè xanh Trường Đại học Khoa học tự nhiên lần thứ 33 năm 2026 là môi trường để sinh viên ứng dụng chuyên môn vào thực tiễn và phụng sự xã hội. Các chiến sĩ tham gia sẽ có cơ hội rèn luyện kỹ năng toàn diện, góp sức xây dựng cộng đồng tại TP.HCM, Đồng Tháp và Vĩnh Long. Hoạt động tình nguyện mang lại trải nghiệm tuổi trẻ ý nghĩa và cơ hội kết nối với những người bạn cùng chung chí hướng."
     },
     {
       "embedding_row": 78,
-      "event_id": "sample_120",
-      "event_title": "VNU Tour 2026",
+      "event_id": "db_79",
+      "event_title": "Vòng Online 2 - Chinh phục bão cát (Coding Challenge 2026)",
       "topic": [
-        "Entertainment"
+        "lập trình",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: VNU Tour 2026. Chủ đề: Entertainment. Hành trình thực tế khám phá khu đô thị ĐHQG-HCM với các hoạt động chạy trạm, trả lời thử thách trắc nghiệm, rèn luyện kỹ năng làm việc nhóm dành cho Tân sinh viên."
+      "format": [
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: Vòng Online 2 - Chinh phục bão cát (Coding Challenge 2026). Chủ đề: lập trình, khoa học, cộng đồng. Hình thức: cuộc thi. Vòng Online 2 mang tên thử thách TYPHON trong khuôn khổ cuộc thi Coding Challenge 2026 là sân chơi trực tuyến dành cho sinh viên ITUS. Thí sinh tham gia sẽ giải quyết các thử thách lập trình để trau dồi kiến thức và bứt phá giới hạn bản thân. Hoạt động đạt yêu cầu sẽ được ghi nhận điểm rèn luyện theo quy định."
     },
     {
       "embedding_row": 79,
-      "event_id": "sample_121",
-      "event_title": "Tham quan Công ty TNHH Netcompany Việt Nam",
+      "event_id": "db_80",
+      "event_title": "Cuộc thi nghệ thuật Outr Space X: EPHEMERAL",
       "topic": [
-        "Academic"
+        "khoa học",
+        "khởi nghiệp",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Tham quan Công ty TNHH Netcompany Việt Nam. Chủ đề: Academic. Chương trình tạo cơ hội cho sinh viên ngành Công nghệ thông tin tham quan môi trường làm việc quốc tế, tìm hiểu lĩnh vực hoạt động của Netcompany, lắng nghe chia sẻ về công nghệ thực tế và mở rộng cơ hội nghề nghiệp."
+      "format": [
+        "cuộc thi",
+        "đồng đội"
+      ],
+      "embedding_text": "passage: Cuộc thi nghệ thuật Outr Space X: EPHEMERAL. Chủ đề: khoa học, khởi nghiệp, học thuật, cộng đồng. Hình thức: cuộc thi, đồng đội. Cuộc thi nghệ thuật Outr Space X: EPHEMERAL kỷ niệm 10 năm hành trình sáng tạo, chào đón học sinh sinh viên trên toàn quốc yêu thích thiết kế, vẽ tranh và dựng phim. Thí sinh tranh tài qua các hạng mục Dựng phim, Truyện tranh và Hoạt hình nhằm thể hiện tài năng nghệ thuật và chinh phục các giải thưởng giá trị. Sự kiện là sân chơi để các bạn trẻ thỏa sức sáng tạo và giao lưu học hỏi."
     },
     {
       "embedding_row": 80,
-      "event_id": "sample_122",
-      "event_title": "[NÉT CHỮ TRI ÂN 2026]",
+      "event_id": "db_81",
+      "event_title": "[The Stage 2026: “FRAME YOUR SOUL”]",
       "topic": [
-        "Competition"
+        "văn nghệ",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [NÉT CHỮ TRI ÂN 2026]. Chủ đề: Competition. Cuộc thi được tổ chức nhân dịp Ngày Nhà giáo Việt Nam 20/11, tạo điều kiện cho sinh viên gửi gắm những lời tri ân, tình cảm và kỷ niệm sâu sắc đến thầy cô qua bài viết, video ngắn hoặc tác phẩm truyền thông đa phương tiện."
+      "format": [
+        "cuộc thi",
+        "cá nhân",
+        "đồng đội"
+      ],
+      "embedding_text": "passage: [The Stage 2026: “FRAME YOUR SOUL”]. Chủ đề: văn nghệ, khoa học, cộng đồng. Hình thức: cuộc thi, cá nhân, đồng đội. Cuộc thi nghệ thuật The Stage 2026 tạo sân chơi cho sinh viên thể hiện tài năng qua việc quay video dự thi các bộ môn hát, nhảy hoặc solo nhạc cụ. Chương trình giúp thí sinh khẳng định bản ngã, tỏa sáng trên sân khấu và tranh tài nhận các giải thưởng hấp dẫn."
     },
     {
       "embedding_row": 81,
-      "event_id": "sample_123",
-      "event_title": "TALK SHOW - “TRÒ CHUYỆN CÙNG SINH VIÊN”: KỸ NĂNG HỘI NHẬP VÀ PHƯƠNG PHÁP HỌC TẬP ĐẠI HỌC HIỆU QUẢ",
+      "event_id": "db_82",
+      "event_title": "HOẠT ĐỘNG TÌNH NGUYỆN “VƯỢT NẮNG”",
       "topic": [
-        "Academic"
+        "thiện nguyện",
+        "cộng đồng",
+        "khoa học",
+        "kỹ năng"
       ],
-      "format": [],
-      "embedding_text": "passage: TALK SHOW - “TRÒ CHUYỆN CÙNG SINH VIÊN”: KỸ NĂNG HỘI NHẬP VÀ PHƯƠNG PHÁP HỌC TẬP ĐẠI HỌC HIỆU QUẢ. Chủ đề: Academic. Chương trình giúp sinh viên, đặc biệt là tân sinh viên, trang bị các kỹ năng hội nhập cần thiết và phương pháp học tập đại học hiệu quả để tự tin hòa nhập vào môi trường học tập mới."
+      "format": [
+        "tình nguyện",
+        "ngày hội"
+      ],
+      "embedding_text": "passage: HOẠT ĐỘNG TÌNH NGUYỆN “VƯỢT NẮNG”. Chủ đề: thiện nguyện, cộng đồng, khoa học, kỹ năng. Hình thức: tình nguyện, ngày hội. Hoạt động tình nguyện Vượt Nắng mang đến cơ hội để sinh viên phát huy tinh thần xung kích, cống hiến sức trẻ và áp dụng kiến thức chuyên môn vào cộng đồng qua các phần việc như sơn tường, chuẩn bị quà tặng và tổ chức Ngày hội Khoa học. Tham gia chương trình, sinh viên được rèn luyện kỹ năng mềm, trải nghiệm thực tế và lan tỏa những giá trị tốt đẹp."
     },
     {
       "embedding_row": 82,
-      "event_id": "sample_124",
-      "event_title": "HIỂU LUẬT - SỐNG XANH",
+      "event_id": "db_83",
+      "event_title": "[THI THỬ TOEIC] THI THỬ, TRẢI NGHIỆM THẬT",
       "topic": [
-        "Competition"
+        "học thuật",
+        "hội nhập",
+        "khoa học",
+        "kỹ năng",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: HIỂU LUẬT - SỐNG XANH. Chủ đề: Competition. Cuộc thi tìm hiểu pháp luật trực tuyến hưởng ứng Ngày Pháp luật Việt Nam, tập trung vào các kiến thức cốt lõi của Luật Bảo vệ môi trường 2020."
+      "format": [
+        "cuộc thi",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: [THI THỬ TOEIC] THI THỬ, TRẢI NGHIỆM THẬT. Chủ đề: học thuật, hội nhập, khoa học, kỹ năng, cộng đồng. Hình thức: cuộc thi, cá nhân. Chương trình Thi thử TOEIC giúp sinh viên đánh giá chính xác năng lực ngoại ngữ, làm quen với cấu trúc đề thi chuẩn format và rèn luyện tâm lý phòng thi. Thí sinh tham gia sẽ nhận được bảng điểm chi tiết từng phần, giấy chứng nhận khi đạt từ 450 điểm cùng cơ hội nhận học bổng tiếng Anh và các phần quà giá trị."
     },
     {
       "embedding_row": 83,
-      "event_id": "sample_125",
-      "event_title": "HÀNH TRÌNH BẢN LĨNH – HẠT GIỐNG XANH LẦN THỨ II, NĂM 2026",
+      "event_id": "db_84",
+      "event_title": "LẬP ĐỘI CHƠI TEAMBUILDING CÙNG NHÀ HỘI HÓA",
       "topic": [
-        "Competition"
+        "kỹ năng",
+        "cộng đồng",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: HÀNH TRÌNH BẢN LĨNH – HẠT GIỐNG XANH LẦN THỨ II, NĂM 2026. Chủ đề: Competition. Sân chơi trải nghiệm dành riêng cho Tân sinh viên của Trường ĐH KHTN ĐHQG-HCM để khám phá bản thân, rèn luyện kỹ năng mềm và rèn luyện bản lĩnh trong môi trường Đoàn - Hội."
+      "format": [
+        "ngày hội",
+        "đồng đội",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: LẬP ĐỘI CHƠI TEAMBUILDING CÙNG NHÀ HỘI HÓA. Chủ đề: kỹ năng, cộng đồng, khoa học. Hình thức: ngày hội, đồng đội, tọa đàm. Chương trình Teambuilding dành riêng cho Cán bộ Hội khoa Hóa học là dịp để tri ân những đóng góp tích cực, đồng thời tạo sân chơi giải trí và dã ngoại giúp thắt chặt tình đoàn kết. Tham gia sự kiện, các bạn cán bộ hội sẽ được trải nghiệm các hoạt động giao lưu sôi nổi, rèn luyện sức khỏe và thư giãn sau thời gian học tập, làm việc căng thẳng."
     },
     {
       "embedding_row": 84,
-      "event_id": "sample_126",
-      "event_title": "CÔNG DÂN SỐ THÔNG THÁI – LƯỚT MẠNG AN TOÀN",
+      "event_id": "db_85",
+      "event_title": "Seminar khoa học tháng 5: Optical Characterization of Materials using UV-Vis-NIR Spectroscopy",
       "topic": [
-        "Competition"
+        "khoa học",
+        "học thuật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: CÔNG DÂN SỐ THÔNG THÁI – LƯỚT MẠNG AN TOÀN. Chủ đề: Competition. Hoạt động kỹ năng trực tuyến trang bị cho sinh viên kiến thức để nhận diện rủi ro và các kỹ năng đảm bảo an toàn, bảo mật thông tin trên không gian mạng."
+      "format": [
+        "seminar"
+      ],
+      "embedding_text": "passage: Seminar khoa học tháng 5: Optical Characterization of Materials using UV-Vis-NIR Spectroscopy. Chủ đề: khoa học, học thuật, cộng đồng. Hình thức: seminar. Buổi seminar khoa học tháng 5 do Khoa Hóa học tổ chức với chủ đề 'Optical Characterization of Materials using UV-Vis-NIR Spectroscopy' dưới sự trình bày của chuyên gia từ Agilent Technologies. Sự kiện mang đến cho giảng viên và sinh viên cơ hội cập nhật kiến thức chuyên môn về phương pháp quang phổ và đặc trưng quang học của vật liệu."
     },
     {
       "embedding_row": 85,
-      "event_id": "sample_127",
-      "event_title": "Triển lãm Khoa học Đa giác quan: THE SENSUS",
+      "event_id": "db_86",
+      "event_title": "Talkshow “Văn hóa Việt trong kỷ nguyên AI”",
       "topic": [
-        "Exhibition"
+        "AI",
+        "hội nhập",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Triển lãm Khoa học Đa giác quan: THE SENSUS. Chủ đề: Exhibition. Không gian triển lãm liên ngành kết hợp khoa học thực nghiệm và nghệ thuật sáng tạo, giúp học sinh trải nghiệm các hiện tượng vật lý thông qua 5 giác quan."
+      "format": [
+        "talkshow",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Talkshow “Văn hóa Việt trong kỷ nguyên AI”. Chủ đề: AI, hội nhập, kỹ năng, khoa học, cộng đồng. Hình thức: talkshow, tọa đàm. Chương trình talkshow thảo luận về tác động của trí tuệ nhân tạo đến văn hóa Việt Nam và tiềm năng ứng dụng công nghệ trong việc bảo tồn, phát huy các giá trị truyền thống dưới sự chia sẻ của các diễn giả chuyên môn. Người tham gia có cơ hội mở rộng góc nhìn, nhận Giấy chứng nhận và những phần quà hấp dẫn."
     },
     {
       "embedding_row": 86,
-      "event_id": "sample_128",
-      "event_title": "Chiến dịch tình nguyện Mùa hè xanh Trường Đại học Khoa học tự nhiên, ĐHQG-HCM lần thứ 33, năm 2026",
+      "event_id": "db_87",
+      "event_title": "LỐC XANH LẦN THỨ XVIII CHÍNH THỨC KHỞI ĐỘNG – BỨT PHÁ CÙNG NHỮNG Ý TƯỞNG XANH!",
       "topic": [
-        "Volunteer"
+        "học thuật",
+        "cộng đồng",
+        "AI",
+        "khoa học"
       ],
-      "format": [],
-      "embedding_text": "passage: Chiến dịch tình nguyện Mùa hè xanh Trường Đại học Khoa học tự nhiên, ĐHQG-HCM lần thứ 33, năm 2026. Chủ đề: Volunteer. Chiến dịch tuyển quân tình nguyện viên tham gia các hoạt động cộng đồng, ứng dụng chuyên môn phục vụ xã hội tại TP.HCM, tỉnh Đồng Tháp và tỉnh Vĩnh Long."
+      "format": [
+        "cuộc thi",
+        "đồng đội",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: LỐC XANH LẦN THỨ XVIII CHÍNH THỨC KHỞI ĐỘNG – BỨT PHÁ CÙNG NHỮNG Ý TƯỞNG XANH!. Chủ đề: học thuật, cộng đồng, AI, khoa học. Hình thức: cuộc thi, đồng đội, tọa đàm. Cuộc thi học thuật Lốc Xanh lần thứ XVIII do Khoa Môi trường tổ chức là sân chơi để học sinh, sinh viên thử thách kiến thức và lan tỏa ý tưởng bảo vệ môi trường. Các đội thi sẽ trải qua vòng loại, bán kết và chung kết với cơ hội giao lưu, khẳng định bản lĩnh sống xanh và nhận giải thưởng hấp dẫn."
     },
     {
       "embedding_row": 87,
-      "event_id": "sample_129",
-      "event_title": "Coding Challenge 2026 - VÒNG ONLINE 2 - CHINH PHỤC BÃO CÁT",
+      "event_id": "db_88",
+      "event_title": "Workshop “3T: THẤU HIỂU – TÔN TRỌNG – TƯƠNG TRỢ”",
       "topic": [
-        "Competitions"
+        "kỹ năng",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Contest"
+        "workshop"
       ],
-      "embedding_text": "passage: Coding Challenge 2026 - VÒNG ONLINE 2 - CHINH PHỤC BÃO CÁT. Chủ đề: Competitions. Hình thức: Contest. Vòng Online 2 của cuộc thi Coding Challenge 2026 mang tên TYPHON được tổ chức trực tuyến để sinh viên trau dồi kiến thức và thử thách tư duy lập trình của mình, với cơ hội nhận điểm rèn luyện khi đạt từ 100 điểm trở lên."
+      "embedding_text": "passage: Workshop “3T: THẤU HIỂU – TÔN TRỌNG – TƯƠNG TRỢ”. Chủ đề: kỹ năng, hội nhập, khoa học, cộng đồng. Hình thức: workshop. Workshop “3T: Thấu hiểu – Tôn trọng – Tương trợ” mang đến một không gian tương tác thực tế giúp sinh viên kết nối tập thể, thay đổi góc nhìn về sự khác biệt và rèn luyện kỹ năng mềm. Tham gia chương trình, sinh viên có cơ hội nhận Giấy chứng nhận tiêu chí 'Hội nhập tốt' thuộc danh hiệu Sinh viên 5 Tốt."
     },
     {
       "embedding_row": 88,
-      "event_id": "sample_130",
-      "event_title": "CUỘC THI NGHỆ THUẬT OUTR SPACE X: EPHEMERAL",
+      "event_id": "db_89",
+      "event_title": "Challenge “Unveiling the Secrets of the Americas”",
       "topic": [
-        "Competitions"
+        "học thuật",
+        "hội nhập",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Contest"
+        "cuộc thi"
       ],
-      "embedding_text": "passage: CUỘC THI NGHỆ THUẬT OUTR SPACE X: EPHEMERAL. Chủ đề: Competitions. Hình thức: Contest. Outr Space X: EPHEMERAL là cuộc thi nghệ thuật thường niên lần thứ 10 do CLB Design ITUS tổ chức ở các lĩnh vực dựng phim, truyện tranh và hoạt hình, đem đến cho các bạn trẻ cơ hội sáng tạo nghệ thuật và cơ hội nhận giải thưởng lên tới 1.500.000 VNĐ."
+      "embedding_text": "passage: Challenge “Unveiling the Secrets of the Americas”. Chủ đề: học thuật, hội nhập, khoa học, cộng đồng. Hình thức: cuộc thi. Thử thách trực tuyến 'Unveiling the Secrets of the Americas' tạo cơ hội cho sinh viên khám phá văn hóa, lịch sử và địa lý của khu vực Châu Mỹ qua các câu hỏi trắc nghiệm tiếng Anh trên nền tảng Myaloha. Hoàn thành từ 70% số câu hỏi trở lên, sinh viên sẽ được công nhận hoàn thành, ghi nhận điểm rèn luyện và cấp giấy chứng nhận tiêu chí 'Hội nhập tốt'."
     },
     {
       "embedding_row": 89,
-      "event_id": "sample_131",
-      "event_title": "Coding Challenge 2026 - VÒNG ONLINE 1 - HÀNH TRÌNH HỒI SINH TÀN TÍCH",
+      "event_id": "db_90",
+      "event_title": "Cuộc thi trắc nghiệm trực tuyến kiến thức Phòng cháy, chữa cháy và Cứu nạn, cứu hộ - GIẶC LỬA MÙA III",
       "topic": [
-        "Competitions"
+        "kỹ năng",
+        "pháp luật",
+        "AI",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Contest"
+        "cuộc thi",
+        "tình nguyện"
       ],
-      "embedding_text": "passage: Coding Challenge 2026 - VÒNG ONLINE 1 - HÀNH TRÌNH HỒI SINH TÀN TÍCH. Chủ đề: Competitions. Hình thức: Contest. Vòng Online 1 với thử thách mang tên PHOENIX thuộc cuộc thi Coding Challenge 2026 là cuộc thi lập trình trực tuyến mở cho sinh viên trường Đại học Khoa học tự nhiên nhằm rèn luyện tư duy thuật toán và tích lũy điểm hoạt động rèn luyện."
+      "embedding_text": "passage: Cuộc thi trắc nghiệm trực tuyến kiến thức Phòng cháy, chữa cháy và Cứu nạn, cứu hộ - GIẶC LỬA MÙA III. Chủ đề: kỹ năng, pháp luật, AI, khoa học, cộng đồng. Hình thức: cuộc thi, tình nguyện. Cuộc thi trực tuyến 'Giặc Lửa' Mùa III năm 2026 do Chi Đoàn 24SHH2 tổ chức nhằm nâng cao kiến thức pháp luật và kỹ năng thực chiến về phòng cháy chữa cháy, cứu nạn cứu hộ cho sinh viên. Người tham gia vừa được cập nhật cẩm nang sinh tồn, được công nhận tiêu chí tham gia hoạt động vừa có cơ hội nhận phần quà tiền mặt hoặc hiện vật hấp dẫn."
     },
     {
       "embedding_row": 90,
-      "event_id": "sample_132",
-      "event_title": "The Stage 2026: “FRAME YOUR SOUL”",
+      "event_id": "db_91",
+      "event_title": "[36H KHÁC BIỆT MÙA 5 - NĂM 2026]",
       "topic": [
-        "Competitions"
+        "thiện nguyện",
+        "cộng đồng",
+        "khoa học",
+        "hướng nghiệp",
+        "kỹ năng"
       ],
       "format": [
-        "Contest"
+        "tình nguyện",
+        "tuyển cộng tác viên",
+        "tham quan",
+        "đồng đội"
       ],
-      "embedding_text": "passage: The Stage 2026: “FRAME YOUR SOUL”. Chủ đề: Competitions. Hình thức: Contest. The Stage 2026 là cuộc thi tìm kiếm tài năng nghệ thuật biểu diễn như hát, nhảy, solo nhạc cụ do Đội Văn Nghệ ITUS tổ chức nhằm tạo sân chơi rực rỡ để các bạn sinh viên tự tin tỏa sáng bản thân."
+      "embedding_text": "passage: [36H KHÁC BIỆT MÙA 5 - NĂM 2026]. Chủ đề: thiện nguyện, cộng đồng, khoa học, hướng nghiệp, kỹ năng. Hình thức: tình nguyện, tuyển cộng tác viên, tham quan, đồng đội. Hành trình tình nguyện 2 ngày 1 đêm '36H Khác Biệt' mùa 5 do Liên chi Hội Khoa Sinh học - Công nghệ Sinh học tổ chức tại Bà Rịa mang đến cho sinh viên những trải nghiệm ý nghĩa như tổ chức gian hàng cho thiếu nhi, dạy khoa học vui, dọn dẹp Đền thờ Liệt sĩ, chăm sóc vườn cây thuốc nam và tham gia teambuilding. Đây là cơ hội để sinh viên rèn luyện, cống hiến và gắn kết cộng đồng với sự hỗ trợ xe đưa đón tận nơi từ trường."
     },
     {
       "embedding_row": 91,
-      "event_id": "sample_133",
-      "event_title": "HOẠT ĐỘNG TÌNH NGUYỆN “VƯỢT NẮNG”",
+      "event_id": "db_92",
+      "event_title": "MICROBIOLOGY NOVA 2026",
       "topic": [
-        "Volunteer / Community"
+        "khoa học",
+        "học thuật",
+        "cộng đồng"
       ],
       "format": [
-        "Activity"
+        "cuộc thi",
+        "cá nhân",
+        "đồng đội"
       ],
-      "embedding_text": "passage: HOẠT ĐỘNG TÌNH NGUYỆN “VƯỢT NẮNG”. Chủ đề: Volunteer / Community. Hình thức: Activity. Hoạt động tình nguyện hè do Liên chi Hội Hóa học phối hợp với Đoàn phường An Hội Tây tổ chức, mang đến cơ hội trải nghiệm các hoạt động bổ ích như sơn tường, chuẩn bị quà tặng và tổ chức Ngày hội Khoa học cho trẻ em."
+      "embedding_text": "passage: MICROBIOLOGY NOVA 2026. Chủ đề: khoa học, học thuật, cộng đồng. Hình thức: cuộc thi, cá nhân, đồng đội. Microbiology Nova 2026 là sân chơi tri thức với chủ đề “Vi sinh vật trong phát triển bền vững”, mang đến cơ hội thách thức giới hạn tư duy khoa học và rèn luyện bản lĩnh tư duy phản biện cho học sinh, sinh viên và học viên cao học. Người tham gia sẽ trình bày ý tưởng trước các chuyên gia hàng đầu trong lĩnh vực Vi sinh vật và có cơ hội nhận các giải thưởng hấp dẫn."
     },
     {
       "embedding_row": 92,
-      "event_id": "sample_134",
-      "event_title": "THI THỬ TOEIC - THI THỬ, TRẢI NGHIỆM THẬT",
+      "event_id": "db_93",
+      "event_title": "TỌA ĐÀM & TRIỂN LÃM BIOCOMPANION",
       "topic": [
-        "Academic / Skills"
+        "học thuật",
+        "hướng nghiệp",
+        "khoa học",
+        "cộng đồng"
       ],
       "format": [
-        "Exam"
+        "tọa đàm",
+        "triển lãm",
+        "talkshow"
       ],
-      "embedding_text": "passage: THI THỬ TOEIC - THI THỬ, TRẢI NGHIỆM THẬT. Chủ đề: Academic / Skills. Hình thức: Exam. Chương trình thi thử TOEIC theo cấu trúc đề thi chuẩn format do Chi hội 25HOHTN và Chi hội 25HOH1 tổ chức nhằm giúp sinh viên đánh giá năng lực ngoại ngữ và rèn luyện tâm lý phòng thi với cơ hội nhận giấy chứng nhận và học bổng hấp dẫn."
+      "embedding_text": "passage: TỌA ĐÀM & TRIỂN LÃM BIOCOMPANION. Chủ đề: học thuật, hướng nghiệp, khoa học, cộng đồng. Hình thức: tọa đàm, triển lãm, talkshow. Chương trình 'BIOCOMPANION' bao gồm tọa đàm “Research to Abroad” chia sẻ kinh nghiệm nghiên cứu khoa học kết hợp du học từ các diễn giả, cùng không gian triển lãm “Bio-Gallery” trưng bày các sản phẩm nghiên cứu. Sự kiện mang đến cho sinh viên cơ hội giao lưu, định hướng con đường học tập và nghiên cứu quốc tế."
     },
     {
       "embedding_row": 93,
-      "event_id": "sample_135",
-      "event_title": "LẬP ĐỘI CHƠI TEAMBUILDING CÙNG NHÀ HỘI HÓA",
+      "event_id": "db_94",
+      "event_title": "WEBINAR: INSIDE THE IQC - INTERNATIONAL QUANT CHAMPIONSHIP 2026",
       "topic": [
-        "Cultural / Community"
+        "học thuật",
+        "hướng nghiệp",
+        "lập trình",
+        "AI",
+        "hội nhập",
+        "cộng đồng"
       ],
       "format": [
-        "Activity"
+        "workshop",
+        "seminar",
+        "cuộc thi"
       ],
-      "embedding_text": "passage: LẬP ĐỘI CHƠI TEAMBUILDING CÙNG NHÀ HỘI HÓA. Chủ đề: Cultural / Community. Hình thức: Activity. Liên chi Hội khoa Hóa học tổ chức một buổi Teambuilding dã ngoại gắn kết đầy bổ ích tại Công viên văn hóa Đầm Sen nhằm giúp giải trí, thư giãn đời sống tinh thần và thắt chặt tinh thần đồng đội cho các Cán bộ Hội."
+      "embedding_text": "passage: WEBINAR: INSIDE THE IQC - INTERNATIONAL QUANT CHAMPIONSHIP 2026. Chủ đề: học thuật, hướng nghiệp, lập trình, AI, hội nhập, cộng đồng. Hình thức: workshop, seminar, cuộc thi. Buổi webinar định hướng về cuộc thi International Quant Championship 2026 giúp người tham gia nắm bắt bức tranh toàn cảnh về tài chính định lượng, cách tiếp cận nền tảng math và data. Tham gia sự kiện, sinh viên sẽ được tìm hiểu kiến thức chuyên ngành, giao lưu với chuyên gia từ WorldQuant và được ghi nhận hoạt động rèn luyện."
     },
     {
       "embedding_row": 94,
-      "event_id": "sample_136",
-      "event_title": "Optical Characterization of Materials using UV-Vis-NIR Spectroscopy",
+      "event_id": "db_95",
+      "event_title": "ẤM ÁP MÙA ĐÔNG - GIỚI THIỆU ĐỊA ĐIỂM THIỆN NGUYỆN",
       "topic": [
-        "Academic / Skills"
+        "thiện nguyện",
+        "cộng đồng"
       ],
       "format": [
-        "Seminar"
+        "tình nguyện"
       ],
-      "embedding_text": "passage: Optical Characterization of Materials using UV-Vis-NIR Spectroscopy. Chủ đề: Academic / Skills. Hình thức: Seminar. Buổi seminar khoa học tháng 5 do Khoa Hóa học tổ chức với sự chia sẻ của chuyên gia TS. Nopparat Vorapalawut từ Agilent Technologies, tập trung cập nhật các kiến thức khoa học hữu ích về phân tích quang phổ vật liệu."
+      "embedding_text": "passage: ẤM ÁP MÙA ĐÔNG - GIỚI THIỆU ĐỊA ĐIỂM THIỆN NGUYỆN. Chủ đề: thiện nguyện, cộng đồng. Hình thức: tình nguyện. Chương trình thiện nguyện 'Ấm Áp Mùa Đông' năm nay sẽ dừng chân tại Chùa Kỳ Quang 2 nhằm thăm hỏi, chia sẻ và mang những phần quà ý nghĩa đến các em nhỏ có hoàn cảnh khó khăn và mắc bệnh hiểm nghèo. Hoạt động nhằm lan tỏa yêu thương, sưởi ấm những mảnh đời kém may mắn trong mùa đông."
     },
     {
       "embedding_row": 95,
-      "event_id": "sample_137",
-      "event_title": "VĂN HÓA VIỆT TRONG KỶ NGUYÊN AI",
+      "event_id": "db_96",
+      "event_title": "HỘI THẢO “ĐỊNH HƯỚNG PHÁT TRIỂN CÔNG NGHỆ LƯỢNG TỬ TẠI THÀNH PHỐ HỒ CHÍ MINH”",
       "topic": [
-        "Talkshow",
-        "Technology",
-        "Culture"
+        "khoa học",
+        "lập trình",
+        "AI",
+        "cộng đồng",
+        "hướng nghiệp",
+        "hội nhập",
+        "chính trị - xã hội"
       ],
-      "format": [],
-      "embedding_text": "passage: VĂN HÓA VIỆT TRONG KỶ NGUYÊN AI. Chủ đề: Talkshow, Technology, Culture. Chương trình talkshow mang đến cơ hội lắng nghe những chia sẻ chuyên môn từ hai diễn giả ThS. Mai Thanh Sơn và TS. Vũ Thị Phương về sự tác động của AI đến văn hóa, cách ứng dụng công nghệ để bảo tồn và phát triển văn hóa Việt Nam. Người tham gia có cơ hội được cấp Giấy chứng nhận và nhận nhiều phần quà từ chương trình."
+      "format": [
+        "seminar",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: HỘI THẢO “ĐỊNH HƯỚNG PHÁT TRIỂN CÔNG NGHỆ LƯỢNG TỬ TẠI THÀNH PHỐ HỒ CHÍ MINH”. Chủ đề: khoa học, lập trình, AI, cộng đồng, hướng nghiệp, hội nhập, chính trị - xã hội. Hình thức: seminar, tọa đàm. Hội thảo cung cấp cho sinh viên cái nhìn tổng quan về tiềm năng, xu hướng phát triển và ứng dụng của công nghệ lượng tử qua những chia sẻ từ các chuyên gia, nhà khoa học và nhà quản lý. Người tham gia có cơ hội tiếp cận công nghệ mới và được ghi nhận hoạt động theo quy định của Nhà trường."
     },
     {
       "embedding_row": 96,
-      "event_id": "sample_138",
-      "event_title": "UPRACE DAY x HCMUT 2026 OFFLINE RUN",
+      "event_id": "db_97",
+      "event_title": "[CiEMC - GIAO LƯU ÂM NHẠC] TRỐN KHỎI DEADLINE, VỀ \"DƯỚI HIÊN NHÀ\" CÙNG CiEMC!",
       "topic": [
-        "Sports",
-        "Volunteer"
+        "văn nghệ",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: UPRACE DAY x HCMUT 2026 OFFLINE RUN. Chủ đề: Sports, Volunteer. Một giải chạy offline rực lửa tại Trường Đại học Bách khoa ĐHQG-HCM giúp bứt phá giới hạn bản thân và tiếp sức cho các quỹ thiện nguyện vì cộng đồng. Người tham gia có thể chạy offline hoặc trực tuyến và tích lũy số km để nhận điểm rèn luyện và ngày Công tác xã hội."
+      "format": [
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: [CiEMC - GIAO LƯU ÂM NHẠC] TRỐN KHỎI DEADLINE, VỀ \"DƯỚI HIÊN NHÀ\" CÙNG CiEMC!. Chủ đề: văn nghệ, cộng đồng. Hình thức: tọa đàm. Chương trình giao lưu âm nhạc acoustic do CiEMC tổ chức mang đến không gian thư giãn với những giai điệu mộc mạc, nơi sinh viên có thể tự do chia sẻ câu chuyện, thưởng thức âm nhạc và kết nối với bạn bè."
     },
     {
       "embedding_row": 97,
-      "event_id": "sample_139",
-      "event_title": "ENGLISH REBOOT",
+      "event_id": "db_98",
+      "event_title": "DU KIỀU MỘNG NGUYỆT – KHÁM PHÁ TIẾNG LÒNG TRĂM NĂM",
       "topic": [
-        "Talkshow",
-        "Education"
+        "văn hóa",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: ENGLISH REBOOT. Chủ đề: Talkshow, Education. Buổi Talkshow mang đến cho các bạn sinh viên những góc nhìn mới và tìm lại cảm hứng trên hành trình chinh phục tiếng Anh thông qua chia sẻ thực tế, gần gũi của diễn giả Anh Huy Forum."
+      "format": [
+        "ngày hội"
+      ],
+      "embedding_text": "passage: DU KIỀU MỘNG NGUYỆT – KHÁM PHÁ TIẾNG LÒNG TRĂM NĂM. Chủ đề: văn hóa, cộng đồng. Hình thức: ngày hội. Sự kiện văn hóa mang đến trải nghiệm bói Kiều độc đáo dựa trên các vần thơ của Truyện Kiều, giúp người tham gia tìm hiểu nét đẹp văn hóa dân gian, thư giãn và khám phá những thông điệp ý nghĩa."
     },
     {
       "embedding_row": 98,
-      "event_id": "sample_141",
-      "event_title": "ỨNG DỤNG AI TRONG NGHIÊN CỨU KHOA HỌC THỜI ĐẠI SỐ",
+      "event_id": "db_99",
+      "event_title": "MATHSPACE #2 - WORKSHOP GIẢI MÃ MỘT NGHIÊN CỨU",
       "topic": [
-        "Workshop",
-        "Technology"
+        "học thuật",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: ỨNG DỤNG AI TRONG NGHIÊN CỨU KHOA HỌC THỜI ĐẠI SỐ. Chủ đề: Workshop, Technology. Buổi workshop nhằm trang bị cho sinh viên những kỹ năng thiết yếu trong việc ứng dụng AI để tối ưu hóa việc tra cứu tài liệu và lên ý tưởng cho các đề tài nghiên cứu khoa học dưới sự chia sẻ của ThS Trần Quốc Khánh."
+      "format": [
+        "workshop"
+      ],
+      "embedding_text": "passage: MATHSPACE #2 - WORKSHOP GIẢI MÃ MỘT NGHIÊN CỨU. Chủ đề: học thuật, khoa học, cộng đồng. Hình thức: workshop. Workshop học thuật giúp sinh viên rèn luyện kỹ năng tìm kiếm nguồn tài liệu đáng tin cậy, cách đọc và phân tích bài báo khoa học hiệu quả dưới sự hướng dẫn của TS. Nguyễn Hoàng Nam. Sinh viên tham dự đầy đủ sẽ được ghi nhận hoạt động và nhận giấy chứng nhận xét tiêu chí Sinh viên 5 tốt."
     },
     {
       "embedding_row": 99,
-      "event_id": "sample_142",
-      "event_title": "MẬT MÃ BIỂN ĐÔNG: GIẢI MÃ CHỦ QUYỀN",
+      "event_id": "db_100",
+      "event_title": "GIAN HÀNG VĂN HÓA – KHÁM PHÁ NÉT ĐẸP TRUYỀN THỐNG, THỬ THÁCH TÀI NĂNG!",
       "topic": [
-        "Competition"
+        "văn hóa",
+        "kỹ năng",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: MẬT MÃ BIỂN ĐÔNG: GIẢI MÃ CHỦ QUYỀN. Chủ đề: Competition. Một cuộc thi giải đố trắc nghiệm online giúp các bạn sinh viên thử sức trí óc thông qua những câu hỏi lý thú về địa lý, lịch sử và chủ quyền biển đảo Việt Nam."
+      "format": [
+        "ngày hội"
+      ],
+      "embedding_text": "passage: GIAN HÀNG VĂN HÓA – KHÁM PHÁ NÉT ĐẸP TRUYỀN THỐNG, THỬ THÁCH TÀI NĂNG!. Chủ đề: văn hóa, kỹ năng, khoa học, cộng đồng. Hình thức: ngày hội. Chương trình mang đến không gian trải nghiệm văn hóa truyền thống với các trò chơi thú vị như Mảnh ghép văn hóa, Tung banh – khéo đũa và Ma trận trí tuệ nhằm rèn luyện sự khéo léo, trí nhớ và tư duy logic. Người tham gia hoàn thành thử thách sẽ được ghi nhận tham gia hoạt động."
     },
     {
       "embedding_row": 100,
-      "event_id": "sample_143",
-      "event_title": "LỐC XANH LẦN THỨ XVIII",
+      "event_id": "db_101",
+      "event_title": "[THAM QUAN THƯ VIỆN] MỞ ĐĂNG KÝ THAM QUAN THƯ VIỆN CHUYẾN SỐ 2: THƯ VIỆN TRƯỜNG ĐẠI HỌC KINH TẾ - LUẬT",
       "topic": [
-        "Competition",
-        "Environment"
+        "học thuật",
+        "kỹ năng",
+        "khoa học",
+        "pháp luật",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: LỐC XANH LẦN THỨ XVIII. Chủ đề: Competition, Environment. Cuộc thi học thuật thường niên đầy thử thách của Khoa Môi trường dành cho học sinh, sinh viên quan tâm đến các vấn đề bảo vệ môi trường, mang đến sân chơi kết nối bổ ích."
+      "format": [
+        "tham quan",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: [THAM QUAN THƯ VIỆN] MỞ ĐĂNG KÝ THAM QUAN THƯ VIỆN CHUYẾN SỐ 2: THƯ VIỆN TRƯỜNG ĐẠI HỌC KINH TẾ - LUẬT. Chủ đề: học thuật, kỹ năng, khoa học, pháp luật, cộng đồng. Hình thức: tham quan, tọa đàm. Chuyến tham quan thư viện số 2 do Câu lạc bộ Sách tổ chức tạo cơ hội cho sinh viên khám phá không gian thư viện thông minh, hiện đại, kho tàng tài liệu phong phú và giao lưu học hỏi cách vận hành không gian đọc tại Đại học Kinh tế - Luật."
     },
     {
       "embedding_row": 101,
-      "event_id": "sample_144",
-      "event_title": "3T: THẤU HIỂU – TÔN TRỌNG – TƯƠNG TRỢ",
+      "event_id": "db_102",
+      "event_title": "Phiên họp giả định Hội đồng Thanh niên năm 2026",
       "topic": [
-        "Workshop"
+        "chính trị - xã hội",
+        "kỹ năng",
+        "học thuật",
+        "khoa học",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: 3T: THẤU HIỂU – TÔN TRỌNG – TƯƠNG TRỢ. Chủ đề: Workshop. Workshop mang đến những câu chuyện thực tế và các góc nhìn tương tác giúp người tham gia học cách thấu hiểu, tôn trọng và hỗ trợ lẫn nhau trong tập thể. Người tham gia còn nhận được Giấy chứng nhận tiêu chí 'Hội nhập tốt' của Sinh viên 5 Tốt."
+      "format": [
+        "cuộc thi",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Phiên họp giả định Hội đồng Thanh niên năm 2026. Chủ đề: chính trị - xã hội, kỹ năng, học thuật, khoa học, cộng đồng. Hình thức: cuộc thi, tọa đàm. Chương trình Phiên họp giả định Hội đồng Thanh niên năm 2026 tạo môi trường để sinh viên trao đổi, đóng góp ý kiến và hiến kế về học tập, nghiên cứu khoa học cũng như đời sống sinh viên. Tham gia chương trình, 150 đại biểu được tuyển chọn sẽ có cơ hội trực tiếp đối thoại cùng lãnh đạo Nhà trường và rèn luyện kỹ năng."
     },
     {
       "embedding_row": 102,
-      "event_id": "sample_145",
-      "event_title": "Unveiling the Secrets of the Americas",
+      "event_id": "db_103",
+      "event_title": "THI THỬ TOEIC 2 KỸ NĂNG – LISTENING & READING",
       "topic": [
-        "Competition"
+        "học thuật",
+        "hội nhập",
+        "khoa học",
+        "kỹ năng",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: Unveiling the Secrets of the Americas. Chủ đề: Competition. An online academic quiz challenge with 40 English multiple-choice questions focusing on the culture, history, geography, and economy of the Americas. Participating students who complete at least 30 questions will receive co-curricular points and a certificate of 'Hội nhập tốt'."
+      "format": [
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: THI THỬ TOEIC 2 KỸ NĂNG – LISTENING & READING. Chủ đề: học thuật, hội nhập, khoa học, kỹ năng, cộng đồng. Hình thức: cuộc thi. Chương trình thi thử TOEIC 2 kỹ năng Listening & Reading do CLB Kỹ năng phối hợp cùng WESET English Center tổ chức giúp sinh viên đánh giá năng lực tiếng Anh thực tế. Người tham gia có cơ hội nhận Giấy chứng nhận hỗ trợ tiêu chí 'Hội nhập tốt' trong danh hiệu Sinh viên 5 Tốt, nhận quà lưu niệm và tranh tài giành các giải thưởng tiền mặt hấp dẫn."
     },
     {
       "embedding_row": 103,
-      "event_id": "sample_146",
-      "event_title": "[CHI ĐOÀN 24SHH2 - \"GIẶC LỬA” MÙA III - NĂM 2026]",
+      "event_id": "db_104",
+      "event_title": "WORKSHOP “NGƯỜI TRẺ CÓ VĂN HÓA – TỪ CÁCH NGHĨ ĐẾN CÁCH SỐNG”",
       "topic": [
-        "Competition"
+        "kỹ năng",
+        "hội nhập",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: [CHI ĐOÀN 24SHH2 - \"GIẶC LỬA” MÙA III - NĂM 2026]. Chủ đề: Competition. An online multiple-choice quiz competition centered around fire safety laws, firefighting regulations, and practical escape skills. Students who score at least 20/30 correct answers will earn activity points, with a special reward for the top scorer."
+      "format": [
+        "workshop"
+      ],
+      "embedding_text": "passage: WORKSHOP “NGƯỜI TRẺ CÓ VĂN HÓA – TỪ CÁCH NGHĨ ĐẾN CÁCH SỐNG”. Chủ đề: kỹ năng, hội nhập, cộng đồng. Hình thức: workshop. Tham gia workshop để khám phá những góc nhìn thú vị về nhân cách, văn hóa ứng xử và giá trị sống, giúp người trẻ xây dựng lối sống văn minh trong bối cảnh số. Người tham gia sẽ được cấp Giấy chứng nhận từ Nhà Văn hóa Sinh viên TP.HCM và có cơ hội nhận nhiều phần quà hấp dẫn."
     },
     {
       "embedding_row": 104,
-      "event_id": "sample_147",
-      "event_title": "[36H KHÁC BIỆT MÙA 5 - NĂM 2026]",
+      "event_id": "db_105",
+      "event_title": "PHÁT THUỐC TẨY GIUN ĐỢT 2 NĂM 2026",
       "topic": [
-        "Volunteer"
+        "cộng đồng",
+        "khoa học"
       ],
       "format": [],
-      "embedding_text": "passage: [36H KHÁC BIỆT MÙA 5 - NĂM 2026]. Chủ đề: Volunteer. A 2-day 1-night volunteer and team-building trip to Ba Ria, featuring community-oriented activities such as science classes for children, historical temple cleaning, and medicinal garden maintenance. The organizers are currently recruiting student collaborators to support and run the program."
+      "embedding_text": "passage: PHÁT THUỐC TẨY GIUN ĐỢT 2 NĂM 2026. Chủ đề: cộng đồng, khoa học. Trường Đại học Khoa học tự nhiên, ĐHQG-HCM tổ chức chương trình phát thuốc tẩy giun miễn phí đợt 2 năm 2026 nhằm chăm sóc sức khỏe và nâng cao ý thức phòng bệnh cho viên chức, người lao động và người học. Người tham gia nhận thuốc Albendazol 400mg trực tiếp tại các trạm y tế cơ sở khi mang theo thẻ sinh viên."
     },
     {
       "embedding_row": 105,
-      "event_id": "sample_148",
-      "event_title": "MICROBIOLOGY NOVA 2026",
+      "event_id": "db_106",
+      "event_title": "CHÍNH THỨC CÔNG BỐ THỜI GIAN VÀ ĐỊA ĐIỂM VÒNG CHUNG KẾT LIÊN HOAN VỌNG CỔ VÀ CÁC CA KHÚC MANG ÂM HƯỞNG DÂN CA NĂM 2026",
       "topic": [
-        "Competition"
+        "văn nghệ",
+        "thể thao",
+        "cộng đồng"
       ],
-      "format": [],
-      "embedding_text": "passage: MICROBIOLOGY NOVA 2026. Chủ đề: Competition. A research idea competition focusing on the theme 'Microorganisms in sustainable development' where teams present their concepts to leading industry experts. It is open to high school students, undergraduates, and first-year postgraduates across the nation."
+      "format": [
+        "cuộc thi"
+      ],
+      "embedding_text": "passage: CHÍNH THỨC CÔNG BỐ THỜI GIAN VÀ ĐỊA ĐIỂM VÒNG CHUNG KẾT LIÊN HOAN VỌNG CỔ VÀ CÁC CA KHÚC MANG ÂM HƯỞNG DÂN CA NĂM 2026. Chủ đề: văn nghệ, thể thao, cộng đồng. Hình thức: cuộc thi. Vòng Chung kết Liên hoan Vọng cổ và các ca khúc mang âm hưởng dân ca năm 2026 là sân khấu tranh tài và lan tỏa tình yêu nghệ thuật truyền thống của dân tộc. Thí sinh và khán giả sẽ được thưởng thức những màn trình diễn đặc sắc, giàu cảm xúc từ các giọng ca xuất sắc. Sự kiện diễn ra trực tiếp tại Nhà Văn hóa Sinh viên TP. Hồ Chí Minh."
     },
     {
       "embedding_row": 106,
-      "event_id": "sample_149",
-      "event_title": "[TỌA ĐÀM & TRIỂN LÃM] BIOCOMPANION",
+      "event_id": "db_107",
+      "event_title": "ĐẠI NHẠC HỘI BCONS BESTIVAL 2026 - NHẠC ĐA TẦNG, SỐNG ĐA BEST!",
       "topic": [
-        "Workshop"
+        "văn nghệ"
       ],
-      "format": [],
-      "embedding_text": "passage: [TỌA ĐÀM & TRIỂN LÃM] BIOCOMPANION. Chủ đề: Workshop. An interactive program consisting of a talkshow titled 'RESEARCH TO ABROAD' discussing study-abroad and research pathways, and an exhibition space called 'BIO-GALLERY'. The event aims to provide biology and biotechnology students with insights into starting scientific research and seeking study-abroad opportunities."
+      "format": [
+        "ngày hội"
+      ],
+      "embedding_text": "passage: ĐẠI NHẠC HỘI BCONS BESTIVAL 2026 - NHẠC ĐA TẦNG, SỐNG ĐA BEST!. Chủ đề: văn nghệ. Hình thức: ngày hội. Đại nhạc hội Bcons Bestival 2026 là chuỗi đại tiệc âm nhạc không ngủ với 3 đêm diễn mang 3 màu sắc khác nhau gồm Chạm nhịp thanh xuân, Cơn địa chấn Underground và Đại tiệc Vpop. Người tham dự sẽ được thưởng thức các màn trình diễn đỉnh cao từ dàn nghệ sĩ nổi tiếng, tham gia ẩm thực và các hoạt động giải trí náo nhiệt. Sự kiện mở cửa tự do phục vụ sinh viên và khán giả."
     },
     {
       "embedding_row": 107,
-      "event_id": "sample_150",
-      "event_title": "INSIDE THE IQC - INTERNATIONAL QUANT CHAMPIONSHIP 2026",
+      "event_id": "db_108",
+      "event_title": "Không gian trưng bày, giới thiệu và trải nghiệm trang phục dân tộc và trang phục truyền thống",
       "topic": [
-        "Workshop"
+        "văn hóa",
+        "hội nhập",
+        "cộng đồng"
+      ],
+      "format": [
+        "ngày hội",
+        "triển lãm"
+      ],
+      "embedding_text": "passage: Không gian trưng bày, giới thiệu và trải nghiệm trang phục dân tộc và trang phục truyền thống. Chủ đề: văn hóa, hội nhập, cộng đồng. Hình thức: ngày hội, triển lãm. Không gian trưng bày và trải nghiệm trang phục dân tộc mang đến cơ hội chiêm ngưỡng và tìm hiểu nét đẹp văn hóa của 54 dân tộc Việt Nam. Sinh viên tham gia sẽ được trực tiếp mặc thử trang phục truyền thống, chụp ảnh lưu niệm và tìm hiểu sâu hơn về văn hóa các vùng miền. Đặc biệt, 100 bạn sinh viên check-in đầu tiên sẽ nhận ngay 01 vé xem phim hấp dẫn."
+    },
+    {
+      "embedding_row": 108,
+      "event_id": "db_109",
+      "event_title": "Không gian VR Art “Di sản số” và Workshop “Từ di sản truyền thống đến nghệ thuật số”",
+      "topic": [
+        "khoa học",
+        "lập trình",
+        "AI",
+        "văn hóa",
+        "cộng đồng"
+      ],
+      "format": [
+        "workshop",
+        "tọa đàm",
+        "ngày hội"
+      ],
+      "embedding_text": "passage: Không gian VR Art “Di sản số” và Workshop “Từ di sản truyền thống đến nghệ thuật số”. Chủ đề: khoa học, lập trình, AI, văn hóa, cộng đồng. Hình thức: workshop, tọa đàm, ngày hội. Không gian trải nghiệm VR Art kết hợp công nghệ thực tế ảo mang đến góc nhìn mới mẻ về việc số hóa các di sản truyền thống dưới sự hướng dẫn của Nghệ sĩ VR Minh Hằng. Tại workshop, người tham gia sẽ học tư duy thẩm mỹ và trực tiếp biến các giá trị văn hóa thành tác phẩm nghệ thuật số qua công nghệ VR. Đây là cơ hội vừa học tập tư duy sáng tạo vừa lưu giữ trải nghiệm độc đáo."
+    },
+    {
+      "embedding_row": 109,
+      "event_id": "db_110",
+      "event_title": "SERIES “BẢN ĐỒ VĂN HÓA” - SỐ [12]: CÀ MAU",
+      "topic": [
+        "văn hóa",
+        "cộng đồng"
+      ],
+      "format": [
+        "tọa đàm",
+        "ngày hội",
+        "tham quan"
+      ],
+      "embedding_text": "passage: SERIES “BẢN ĐỒ VĂN HÓA” - SỐ [12]: CÀ MAU. Chủ đề: văn hóa, cộng đồng. Hình thức: tọa đàm, ngày hội, tham quan. Thử thách trực tuyến 'Bản đồ Văn hóa' số 12 đưa người tham gia khám phá những nét đẹp lịch sử, văn hóa, ẩm thực và danh thắng của tỉnh Cà Mau. Sinh viên tương tác bằng cách chia sẻ hiểu biết, thả cảm xúc và bình luận kèm tag bạn bè dưới bài viết, sau đó điền thông tin vào biểu mẫu để ghi nhận minh chứng. Người tham gia hoàn thành đủ số lượng bài viết theo quy định sẽ nhận được Giấy chứng nhận từ Nhà Văn hóa Sinh viên TP. Hồ Chí Minh."
+    },
+    {
+      "embedding_row": 110,
+      "event_id": "db_111",
+      "event_title": "Workshop “Kinh tế tuần hoàn – Khi rác thải trở thành tài nguyên”",
+      "topic": [
+        "hướng nghiệp",
+        "kỹ năng",
+        "cộng đồng"
+      ],
+      "format": [
+        "workshop",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: Workshop “Kinh tế tuần hoàn – Khi rác thải trở thành tài nguyên”. Chủ đề: hướng nghiệp, kỹ năng, cộng đồng. Hình thức: workshop, tọa đàm. Tham gia workshop để cập nhật kiến thức thực tiễn về kinh tế tuần hoàn và biến rác thải thành tài nguyên. Người tham gia có cơ hội nhận vé xem phim, túi tote giới hạn và giấy chứng nhận."
+    },
+    {
+      "embedding_row": 111,
+      "event_id": "db_112",
+      "event_title": "Series “Bản đồ Văn hóa” - Số [10]: Quảng Ninh",
+      "topic": [
+        "cộng đồng",
+        "hội nhập"
+      ],
+      "format": [
+        "tọa đàm",
+        "ngày hội"
+      ],
+      "embedding_text": "passage: Series “Bản đồ Văn hóa” - Số [10]: Quảng Ninh. Chủ đề: cộng đồng, hội nhập. Hình thức: tọa đàm, ngày hội. Tham gia thử thách tìm hiểu và chia sẻ kiến thức về văn hóa, địa danh và ẩm thực của tỉnh Quảng Ninh để tích lũy điểm rèn luyện. Hoàn thành số lượng bài viết quy định sẽ nhận được Giấy chứng nhận."
+    },
+    {
+      "embedding_row": 112,
+      "event_id": "db_113",
+      "event_title": "LET IT SHINE 2026 - Đêm Chung kết",
+      "topic": [
+        "văn nghệ",
+        "khoa học",
+        "cộng đồng"
+      ],
+      "format": [
+        "cuộc thi",
+        "đồng đội"
+      ],
+      "embedding_text": "passage: LET IT SHINE 2026 - Đêm Chung kết. Chủ đề: văn nghệ, khoa học, cộng đồng. Hình thức: cuộc thi, đồng đội. Đêm chung kết cuộc thi âm nhạc Let IT Shine 2026 là nơi tranh tài của các thí sinh xuất sắc dưới sự đồng hành của các mentor. Khán giả và sinh viên tham gia sẽ được thưởng thức những màn trình diễn âm nhạc đặc sắc và tranh giải thưởng hấp dẫn."
+    },
+    {
+      "embedding_row": 113,
+      "event_id": "db_114",
+      "event_title": "MINIGAME 20/11 | GIỮ MÙA PHẤN - GÓI TRỌN YÊU THƯƠNG, GỬI NGÀN TRI ÂN",
+      "topic": [
+        "cộng đồng"
       ],
       "format": [],
-      "embedding_text": "passage: INSIDE THE IQC - INTERNATIONAL QUANT CHAMPIONSHIP 2026. Chủ đề: Workshop. An orientation webinar jointly organized by Cake and WorldQuant to guide students through the registration and preparation phases of the International Quant Championship (IQC) 2026. Participants will learn about quantitative finance, platform usage, and receive activity point certification."
+      "embedding_text": "passage: MINIGAME 20/11 | GIỮ MÙA PHẤN - GÓI TRỌN YÊU THƯƠNG, GỬI NGÀN TRI ÂN. Chủ đề: cộng đồng. Tham gia minigame trả lời câu hỏi để ôn lại kỷ niệm học trò và bày tỏ lòng tri ân nhân ngày Nhà giáo Việt Nam 20/11. Người chơi hoàn thành đầy đủ thể lệ sẽ được cấp Giấy chứng nhận dùng cho việc xét điểm rèn luyện."
+    },
+    {
+      "embedding_row": 114,
+      "event_id": "db_115",
+      "event_title": "TALKSHOW “TỪ BẢN LÀNG ĐẾN GIẢNG ĐƯỜNG”",
+      "topic": [
+        "hội nhập",
+        "cộng đồng",
+        "kỹ năng"
+      ],
+      "format": [
+        "talkshow",
+        "tọa đàm",
+        "cá nhân"
+      ],
+      "embedding_text": "passage: TALKSHOW “TỪ BẢN LÀNG ĐẾN GIẢNG ĐƯỜNG”. Chủ đề: hội nhập, cộng đồng, kỹ năng. Hình thức: talkshow, tọa đàm, cá nhân. Chương trình talkshow mang đến không gian trao đổi về hành trình gắn bó với giáo dục, văn hóa và cộng đồng, giúp sinh viên nhận thức rõ hơn về sức mạnh tri thức và giá trị cội nguồn. Tham gia sự kiện, người tham dự sẽ được lắng nghe những góc nhìn đa chiều về việc giữ gìn bản sắc trong thời kỳ hội nhập và phát triển xã hội. Người tham gia hoàn thành chương trình sẽ nhận được giấy chứng nhận và cơ hội nhận quà từ ban tổ chức."
+    },
+    {
+      "embedding_row": 115,
+      "event_id": "db_116",
+      "event_title": "WORKSHOP “VĂN HÓA CỦA NGƯỜI TRẺ TRONG BỐI CẢNH SỐ – TỪ CÁCH NGHĨ ĐẾN CÁCH SỐNG”",
+      "topic": [
+        "kỹ năng",
+        "cộng đồng",
+        "hội nhập"
+      ],
+      "format": [
+        "workshop",
+        "tọa đàm"
+      ],
+      "embedding_text": "passage: WORKSHOP “VĂN HÓA CỦA NGƯỜI TRẺ TRONG BỐI CẢNH SỐ – TỪ CÁCH NGHĨ ĐẾN CÁCH SỐNG”. Chủ đề: kỹ năng, cộng đồng, hội nhập. Hình thức: workshop, tọa đàm. Buổi workshop tạo cơ hội cho các bạn sinh viên thảo luận về mối liên hệ giữa văn hóa, nhân cách và giá trị sống trong thời đại số. Chương trình giúp nâng cao nhận thức về văn hóa ứng xử văn minh trên không gian mạng và trong đời sống thực tế, đồng thời định hình trách nhiệm của người trẻ. Người tham gia sẽ được cấp giấy chứng nhận và có cơ hội nhận những phần quà hấp dẫn."
     }
   ]
 }
