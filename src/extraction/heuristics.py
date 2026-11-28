@@ -1,4 +1,4 @@
-"""Deterministic field sanitizer & offline heuristic extractor (`src/utility/extraction/heuristics.py`).
+"""Deterministic field sanitizer & offline heuristic extractor (`src/extraction/heuristics.py`).
 
 Serves two roles:
 1. Post-LLM Sanitizer (`sanitize_and_enrich_draft`): enforces `+07:00` ISO-8601 timestamps,

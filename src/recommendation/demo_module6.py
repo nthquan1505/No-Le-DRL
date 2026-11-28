@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from module6 import (
+from src.credit_calculation import (
     AttributeExtractor,
     CreditCalculatorProtocol,
     LedgerEntry,

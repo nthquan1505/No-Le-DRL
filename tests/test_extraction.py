@@ -1,4 +1,4 @@
-"""Unit and SQLite integration tests for `[EXT]` (`src/utility/extraction`)."""
+"""Unit and SQLite integration tests for `[EXT]` (`src/extraction`)."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Tuple
 import unittest
 
 from database import DRLDatabaseManager
-from src.utility.credit_calculator import update_missing_min_credits
-from src.utility.extraction import (
+from src.credit_calculation.credit_calculator import update_missing_min_credits
+from src.extraction import (
     DESCRIPTION_SUMMARIZATION_GUIDELINES,
     SYSTEM_INSTRUCTION,
     DirectLLMExtractor,
@@ -26,7 +26,7 @@ from src.utility.extraction import (
     reason_about_post,
     resolve_registration_url_from_posters,
 )
-from src.utility.extraction.contracts import UTC7
+from src.extraction.contracts import UTC7
 
 
 class TestPreFilter(unittest.TestCase):
@@ -271,7 +271,7 @@ class TestDirectLLMAndHeuristics(unittest.TestCase):
             groq_api_key="gsk_test",
             http_post=fake_groq_only_http,
         )
-        with self.assertLogs("src.utility.extraction.llm_client", level="WARNING"):
+        with self.assertLogs("src.extraction.llm_client", level="WARNING"):
             d_groq = groq_extractor.extract_batch([item])[0]
         self.assertEqual(d_groq.extraction_method, "groq")
         self.assertEqual(d_groq.event_start_datetime, "2026-12-12T08:00:00+07:00")

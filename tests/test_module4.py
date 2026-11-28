@@ -5,9 +5,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from module4 import BusyInterval, FitCache, FitEvaluator, ScheduleContext, ScheduleEngine, WeeklyBusySlot
-from module4.calendar import add_calendar_events
-from module4.routing import CarRouting, RouteEstimate
+from src.schedule import BusyInterval, FitCache, FitEvaluator, ScheduleContext, ScheduleEngine, WeeklyBusySlot
+from src.schedule.calendar import add_calendar_events
+from src.schedule.routing import CarRouting, RouteEstimate
 
 
 @dataclass
@@ -268,6 +268,32 @@ class EvaluationTests(unittest.TestCase):
             )["event-1"]
             self.assertEqual(result.estimated_travel_min, 25)
             self.assertEqual(cache.delete_user("u"), 0)
+
+    def test_db_campus_variants_and_coordinates_integration(self):
+        engine = ScheduleEngine()
+        # Real HCMUS campus variants from drl_database.db
+        cs1_ev = Event(location="Cơ sở phường Chợ Quán, Trường Đại học Khoa học tự nhiên, ĐHQG-HCM")
+        cs2_ev = Event(location="Trường Đại học Khoa học Tự nhiên, ĐHQG - HCM cơ sở Đông Hòa")
+        self.assertEqual(engine.compute_fit(cs1_ev, home_campus="cs1_nvc").estimated_travel_min, 10)
+        self.assertEqual(engine.compute_fit(cs2_ev, home_campus="cs1_nvc").estimated_travel_min, 45)
+        # User default_coordinate near CS1 + external event with pre-geocoded coordinate
+        from src.schemas import EventNormalized
+
+        ext_ev = EventNormalized(
+            event_id="db_12",
+            title="Hội thảo liên trường",
+            start_datetime="2026-11-14T14:00:00+07:00",
+            end_datetime="2026-11-14T16:00:00+07:00",
+            online_mode="offline",
+            is_online=False,
+            location="Hội trường A, Trường Đại học Kinh tế - Luật, ĐHQG - HCM",
+            metadata={"coordinate": "10.871343,106.778523"},
+        )
+        fit_from_cs2_coord = engine.compute_fit(ext_ev, home_campus="10.875809,106.799178")
+        fit_from_cs1_coord = engine.compute_fit(ext_ev, home_campus="10.762622,106.682172")
+        self.assertLess(fit_from_cs2_coord.estimated_travel_min, fit_from_cs1_coord.estimated_travel_min)
+        self.assertGreater(fit_from_cs2_coord.fit_score, fit_from_cs1_coord.fit_score)
+        self.assertFalse(fit_from_cs2_coord.provisional)
 
 
 if __name__ == "__main__":

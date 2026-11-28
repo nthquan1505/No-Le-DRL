@@ -17,13 +17,15 @@ class FitEvaluator:
         self.routing_version = routing_version
 
     def evaluate(
-        self, user_id, events, context, *, calendar_service=None, calendar_token=None, calendar_id="primary",
-        exam_event_ids=(), exclude_event_ids=(), home_address=None, home_campus=None,
+        self, user_id, events, context, *, weekly_slots=(), calendar_service=None, calendar_token=None,
+        calendar_id="primary", exam_event_ids=(), exclude_event_ids=(), home_address=None, home_campus=None,
         max_travel_min=None, pref_hours=None, now=None,
     ):
         """Return event ID → FitAssessment for the supplied recommendation candidates."""
-        schedule = ScheduleEngine(context, config=self.config)
-        now = (schedule._parse(now.isoformat()) if now else datetime.now(schedule._tz))
+        slots = tuple(weekly_slots) or tuple(getattr(context, "weekly_slots", ()))
+        schedule = ScheduleEngine(context, weekly_slots=slots, config=self.config)
+        now_raw = now.isoformat() if hasattr(now, "isoformat") else str(now) if now else None
+        now = (schedule._parse(now_raw) if now_raw else None) or datetime.now(schedule._tz)
         windows = [(event, schedule._window(event)) for event in events]
         windows = [(event, window) for event, window in windows if window is None or window[1] > now]
         if not windows:
@@ -63,7 +65,7 @@ class FitEvaluator:
                 routes[key] = resolve(origin, destination)
             return routes[key]
 
-        engine = ScheduleEngine(context, config=self.config, home_address=home_address,
+        engine = ScheduleEngine(context, weekly_slots=slots, config=self.config, home_address=home_address,
                                 route_minutes=route if self.routing is not None else None)
         if self.cache:
             self.cache.clean()

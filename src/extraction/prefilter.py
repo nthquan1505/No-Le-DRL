@@ -1,4 +1,4 @@
-"""Stage-1 deterministic Vietnamese/English pre-filter (`src/utility/extraction/prefilter.py`).
+"""Stage-1 deterministic Vietnamese/English pre-filter (`src/extraction/prefilter.py`).
 
 Saves LLM API quota by rejecting unambiguous non-events (recaps, congratulations,
 exam timetables, room maintenance, pure corporate job ads) while guaranteeing high

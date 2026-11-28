@@ -1,4 +1,4 @@
-"""Option B Direct REST LLM Client (`src/utility/extraction/llm_client.py`).
+"""Option B Direct REST LLM Client (`src/extraction/llm_client.py`).
 
 Uses Python's standard `urllib.request` with Gemini's server-side `responseSchema`
 (`responseMimeType: "application/json"`) so zero external SDKs are required.

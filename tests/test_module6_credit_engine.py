@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from module6 import (
+from src.credit_calculation import (
     AttributeExtractor,
     CreditCalculatorProtocol,
     LedgerEntry,

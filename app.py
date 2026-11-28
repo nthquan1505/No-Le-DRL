@@ -5,7 +5,7 @@ Exposes strictly the real, implemented backend modules backed by `drl_database.d
 - Classification: Dual-Branch Hierarchical 2-Stage kNN + Stage-wise Fusion (`src.classification`),
   computing 3 query vectors (`title`, `title_description`, `title_description_format`) from `drl_database.db`.
 - Credit Estimation: Isolated deterministic Demo Module 6 (`DemoCreditProvider` wrapping
-  `module6.RubricCreditEngine` driven by `data/raw/rubric.yaml`; does NOT use `credit_calculator.py`).
+  `src.credit_calculation.RubricCreditEngine` driven by `data/raw/rubric.yaml`; does NOT use `credit_calculator.py`).
 - Recommendation: 4-field `passage:` event embeddings (`title + description + topic + format`)
   from `drl_database.db`, P5 Hard Filter, P6 Multi-Criteria Scoring, and separate P7 MMR Selector.
 
@@ -29,7 +29,7 @@ from urllib.parse import urlparse
 import numpy as np
 
 from configs.model_config import MODEL_DEVICE, MODEL_ID, PROJECT_ROOT
-from module6 import AttributeExtractor, RubricCreditEngine
+from src.credit_calculation import AttributeExtractor, RubricCreditEngine
 from src.classification.algorithms.algorithm_registry import build_default_registry
 from src.classification.data.loaders import load_all_assets
 from src.classification.data.validators import validate_loaded_assets
@@ -111,7 +111,7 @@ class PrototypeService:
             for spec in self.credit_engine.rubric["items"].values()
         }
 
-        # 4. Recommendation Subsystem (P4 Demo + Demo M4/M6 + P5 + P6 Scoring + P7 MMR)
+        # 4. Recommendation Subsystem (P4 Demo + Module 4 ScheduleEngine + Demo M6 + P5 + P6 Scoring + P7 MMR)
         self.rec_config = load_recommendation_config()
         pen_cfg = (self.rec_config.get("scoring") or {}).get("penalty_mandatory") or {}
         self.demo_credit_provider = DemoCreditProvider(
@@ -624,7 +624,7 @@ class PrototypeService:
         }
 
     def run_recommendation(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute Recommendation pipeline strictly on `drl_database.db` (Demo M4/M6 + P5 + P6 [+ optional P7])."""
+        """Execute Recommendation pipeline strictly on `drl_database.db` (Module 4 + Demo M6 + P5 + P6 [+ optional P7])."""
         req = dict(payload or {})
         if bool(req.get("refresh_db", False)):
             self._load_dual_branch_batch_from_db(write_back_db=True, write_output_files=True)

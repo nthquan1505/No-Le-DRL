@@ -1,4 +1,4 @@
-"""System instructions and server-side JSON Schema for `[EXT]` (`src/utility/extraction/prompts.py`)."""
+"""System instructions and server-side JSON Schema for `[EXT]` (`src/extraction/prompts.py`)."""
 
 from __future__ import annotations
 

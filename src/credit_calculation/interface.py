@@ -1,6 +1,6 @@
-"""Stable boundary interface between Module 3 and Module 6 (Credit Calc & Evaluation).
+"""Stable boundary interface between Module 3 and Credit Calculation (`src/credit_calculation`).
 
-Replace the implementation in `module6/credit_engine.py` with any object satisfying
+Replace the implementation in `src/credit_calculation/credit_engine.py` with any object satisfying
 `CreditCalculatorProtocol` without changing Module 3 code.
 """
 

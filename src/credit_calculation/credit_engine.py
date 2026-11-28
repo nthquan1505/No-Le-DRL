@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from configs.model_config import RUBRIC_YAML_PATH
-from module6.attribute_extractor import AttributeExtractor, load_yaml_safe
-from module6.interface import (
+from src.credit_calculation.attribute_extractor import AttributeExtractor, load_yaml_safe
+from src.credit_calculation.interface import (
     CreditCalculatorProtocol,
     LedgerEntry,
     LedgerEvaluation,

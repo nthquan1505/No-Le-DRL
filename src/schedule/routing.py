@@ -31,6 +31,21 @@ def _key(value):
     return " ".join(value.casefold().split())
 
 
+def _parse_lat_lng(value: Optional[str]) -> Optional[tuple[float, float]]:
+    if not value or not isinstance(value, str) or "," not in value:
+        return None
+    parts = value.split(",")
+    if len(parts) != 2:
+        return None
+    try:
+        lat, lng = float(parts[0].strip()), float(parts[1].strip())
+    except ValueError:
+        return None
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0):
+        return None
+    return lat, lng
+
+
 class CarRouting:
     def __init__(
         self, *, google_key: Optional[str] = None,
@@ -118,7 +133,18 @@ class CarRouting:
     def _coordinates(self, location):
         if location in self._places:
             return self._places[location][1]
+        parsed = _parse_lat_lng(location)
+        if parsed is not None:
+            return parsed[1], parsed[0]
         return self.geocode(location) if self.geocode else None
+
+    def _google_waypoint(self, location: str) -> dict:
+        if location in self._places:
+            return {"address": self._places[location][0]}
+        parsed = _parse_lat_lng(location)
+        if parsed is not None:
+            return {"location": {"latLng": {"latitude": parsed[0], "longitude": parsed[1]}}}
+        return {"address": location}
 
     def __call__(self, origin: str, destination: str) -> Optional[int]:
         result = self.estimate(origin, destination)
@@ -143,8 +169,8 @@ class CarRouting:
         if self.google_key and self._admit_google():
             try:
                 body = {
-                    "origin": {"address": self._places[origin][0] if origin in self._places else origin},
-                    "destination": {"address": self._places[destination][0] if destination in self._places else destination},
+                    "origin": self._google_waypoint(origin),
+                    "destination": self._google_waypoint(destination),
                     "travelMode": "DRIVE",
                     "routingPreference": "TRAFFIC_UNAWARE",
                 }

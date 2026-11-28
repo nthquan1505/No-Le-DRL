@@ -1,4 +1,4 @@
-"""`[EXT]` Event Extraction Module (`src/utility/extraction`).
+"""`[EXT]` Event Extraction Module (`src/extraction`).
 
 Clean-slate modular implementation aligned with `SYSTEM_ARCHITECTURE.md` and `drl_database.db`:
 - Stage 1: Deterministic noise/lifecycle pre-filter (`prefilter.py`)

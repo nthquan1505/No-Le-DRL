@@ -1,4 +1,4 @@
-"""End-to-end `[EXT]` Extraction Pipeline (`src/utility/extraction/pipeline.py`).
+"""End-to-end `[EXT]` Extraction Pipeline (`src/extraction/pipeline.py`).
 
 Orchestrates the 4-stage extraction workflow defined in `SYSTEM_ARCHITECTURE.md`:
   Stage 0: Content-hash idempotency guard (skips unchanged seen items)

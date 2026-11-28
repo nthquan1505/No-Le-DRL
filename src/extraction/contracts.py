@@ -1,4 +1,4 @@
-"""Data contracts and controlled vocabularies for `[EXT]` (`src/utility/extraction`)."""
+"""Data contracts and controlled vocabularies for `[EXT]` (`src/extraction`)."""
 
 from __future__ import annotations
 

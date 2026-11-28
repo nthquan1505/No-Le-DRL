@@ -96,6 +96,9 @@ schedule:
   default_travel_buffer_min: 30
   default_event_duration_min: 120
   default_timezone_offset_hours: 7
+  default_max_travel_min: 45
+  comfort_slack_min: 30
+  default_pref_hours: [8.0, 21.0]
   online_conflicts_with_regular_classes: false
   campus_travel_minutes:
     online: 0
@@ -104,6 +107,20 @@ schedule:
     unknown: 30
   fit_scoring:
     conflict_score: 0.0
+    weights:
+      travel: 0.45
+      slack: 0.25
+      pref_hours: 0.30
+    pref_hours_scores:
+      inside: 1.0
+      near_1h: 0.7
+      outside: 0.3
+      missing_time: 0.5
+    exam_week_multipliers:
+      online: 0.90
+      hybrid: 0.70
+      offline: 0.45
+    # Legacy LocalScheduleAdapter fallback parameters
     base_offline: 0.70
     online_bonus: 0.25
     hybrid_bonus: 0.15

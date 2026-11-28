@@ -10,10 +10,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from src.classification.pipeline.classification_pipeline import ClassificationPipeline
+def run_classification_cli(argv: list[str] | None = None) -> int:
+    from src.classification.pipeline.classification_pipeline import ClassificationPipeline
 
-
-def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run the modular HCMUS DRL event classification pipeline."
     )
@@ -29,7 +28,7 @@ def main() -> int:
         default=Path(__file__).resolve().parent,
         help="Repository root directory for resolving relative config paths.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     pipeline = ClassificationPipeline(
         config_path=args.config,
@@ -55,8 +54,6 @@ def main() -> int:
     return 0 if all_ok else 2
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
 import asyncio
 import sys
 from typing import List, Optional
@@ -436,5 +433,26 @@ def cmd_serve(
     uvicorn.run(server.app, host=host, port=port, log_level="info")
 
 
+@app.command("classify")
+def cmd_classify(
+    config_path: Path = typer.Option(
+        Path("configs/classification_config.yaml"),
+        "--config",
+        help="Path to classification_config.yaml",
+    ),
+    project_root: Path = typer.Option(
+        Path(__file__).resolve().parent,
+        "--project-root",
+        help="Repository root directory for resolving relative config paths.",
+    ),
+) -> None:
+    """Run the Dual-Branch Hierarchical 2-Stage kNN Event Classification pipeline."""
+    code = run_classification_cli(["--config", str(config_path), "--project-root", str(project_root)])
+    if code != 0:
+        raise typer.Exit(code=code)
+
+
 if __name__ == "__main__":
+    if len(sys.argv) == 1 or sys.argv[1] in ("--config", "--project-root"):
+        raise SystemExit(run_classification_cli())
     app()

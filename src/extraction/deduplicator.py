@@ -1,4 +1,4 @@
-"""Stage-4 `drl_database.db` deduplication, updates & soft-cancellation (`src/utility/extraction/deduplicator.py`).
+"""Stage-4 `drl_database.db` deduplication, updates & soft-cancellation (`src/extraction/deduplicator.py`).
 
 Implements the exact `EXT` database contract from `SYSTEM_ARCHITECTURE.md`:
 - `created`: Inserts into `events` with `category = NULL` and `min_credit = NULL`; updates `fanpages.number_of_events`.

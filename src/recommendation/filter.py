@@ -16,7 +16,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Sequence
 
-from module6.interface import UserLedger
+from src.credit_calculation.interface import UserLedger
+from src.schedule import FitAssessment as Module4FitAssessment, ScheduleEngine
 from src.contract_validator import parse_iso_datetime
 from src.recommendation.config import load_recommendation_config
 from src.recommendation.demo_module4 import DemoScheduleProvider
@@ -51,6 +52,7 @@ class EligibleCandidate:
     conflict_result: ConflictCheckResult
     estimated_travel_min: int
     effective_deadline: Optional[datetime]
+    fit_assessment: Optional[Module4FitAssessment] = None
 
 
 @dataclass
@@ -258,9 +260,19 @@ class HardConstraintFilter:
 
             # Evaluate M4 conflict & travel
             conflict = schedule_provider.check_conflict(ev)
-            travel_min = int(
-                schedule_provider.estimate_travel_minutes(ev, home_campus=profile.home_campus)
-            )
+            assessment: Optional[Module4FitAssessment] = None
+            if isinstance(schedule_provider, ScheduleEngine):
+                assessment = schedule_provider.compute_fit(
+                    ev,
+                    home_campus=profile.home_campus,
+                    max_travel_min=profile.max_travel_min,
+                    pref_hours=profile.pref_hours,
+                )
+                travel_min = int(assessment.estimated_travel_min)
+            else:
+                travel_min = int(
+                    schedule_provider.estimate_travel_minutes(ev, home_campus=profile.home_campus)
+                )
             eff_deadline = resolve_effective_deadline(ev, self._default_tz)
 
             reasons: List[DropReason] = []
@@ -463,6 +475,7 @@ class HardConstraintFilter:
                         conflict_result=conflict,
                         estimated_travel_min=travel_min,
                         effective_deadline=eff_deadline,
+                        fit_assessment=assessment,
                     )
                 )
 

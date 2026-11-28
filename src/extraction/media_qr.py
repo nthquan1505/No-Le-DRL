@@ -1,4 +1,4 @@
-"""Stage-3 local QR-only poster link decoder (`src/utility/extraction/media_qr.py`).
+"""Stage-3 local QR-only poster link decoder (`src/extraction/media_qr.py`).
 
 Triggered ONLY when `registration_url` is `None` and `images_url` is non-empty.
 Uses local OpenCV (`cv2.QRCodeDetector`) with zero LLM vision calls.

@@ -16,13 +16,14 @@ Component definitions:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
 from src.recommendation.config import load_recommendation_config
+from src.schedule import FitAssessment as Module4FitAssessment, ScheduleEngine
 from src.recommendation.demo_module4 import DemoFitAssessment, DemoScheduleProvider
 from src.recommendation.demo_module6 import DemoCreditProvider, MandatoryPenaltyInfo
 from src.recommendation.demo_profile import DemoUserProfile
@@ -57,7 +58,7 @@ class ScoredCandidate:
 
     scored_event: ScoredEvent
     candidate: EligibleCandidate
-    fit_assessment: FitAssessment
+    fit_assessment: Union[FitAssessment, Module4FitAssessment]
     interest_cos_raw: Optional[float]
     days_to_deadline: Optional[float]
     gain_details: Dict[str, Any] = field(default_factory=dict)
@@ -69,20 +70,22 @@ class ScoredCandidate:
         se = self.scored_event
         ce = self.candidate.credit_estimate
         mi = self.candidate.mandatory_info
-        fit_dict = (
-            self.fit_assessment.to_dict()
-            if isinstance(self.fit_assessment, DemoFitAssessment)
-            else {
+        if isinstance(self.fit_assessment, Module4FitAssessment):
+            fit_dict = asdict(self.fit_assessment)
+            fit_dict["flexible_overlaps"] = list(fit_dict.get("flexible_overlaps") or [])
+        elif isinstance(self.fit_assessment, DemoFitAssessment):
+            fit_dict = self.fit_assessment.to_dict()
+        else:
+            fit_dict = {
                 "fit_score": self.fit_assessment.fit_score,
                 "has_conflict": self.fit_assessment.has_conflict,
                 "in_exam_week": self.fit_assessment.in_exam_week,
                 "estimated_travel_min": self.fit_assessment.estimated_travel_min,
-                "nearest_slack_min": None,
+                "nearest_slack_min": getattr(self.fit_assessment, "nearest_slack_min", None),
                 "conflict_detail": self.fit_assessment.conflict_detail,
-                "sub_scores": {},
+                "sub_scores": dict(getattr(self.fit_assessment, "sub_scores", None) or {}),
                 "reasons": list(self.fit_assessment.reasons),
             }
-        )
         return {
             "event_id": ev.event_id,
             "title": ev.title,
@@ -424,8 +427,11 @@ class MultiCriteriaScorer:
             )
 
         # 3. Fit reasoning (grounded in Module 4 FitAssessment & sub_scores)
-        sub = fit_res.sub_scores if isinstance(fit_res, DemoFitAssessment) else {}
-        slack_min = fit_res.nearest_slack_min if isinstance(fit_res, DemoFitAssessment) else None
+        sub = dict(getattr(fit_res, "sub_scores", None) or {})
+        slack_min = getattr(fit_res, "nearest_slack_min", None)
+        inbound = getattr(fit_res, "inbound", None)
+        outbound = getattr(fit_res, "outbound", None)
+        flex_overlaps = tuple(getattr(fit_res, "flexible_overlaps", ()) or ())
         fit_parts: List[str] = []
         if cand.event.online_mode == "online" or cand.event.is_online is True:
             fit_parts.append("trực tuyến (0 phút di chuyển)")
@@ -437,6 +443,10 @@ class MultiCriteriaScorer:
                 fit_parts.append("không có tiết kề cận trong ngày")
             else:
                 fit_parts.append(f"cách tiết gần nhất {slack_min}p")
+            if inbound is not None and getattr(inbound, "shortage_min", None):
+                fit_parts.append(f"thiếu ~{inbound.shortage_min}p di chuyển đến")
+            if outbound is not None and getattr(outbound, "shortage_min", None):
+                fit_parts.append(f"thiếu ~{outbound.shortage_min}p tới lịch kế tiếp")
         f_pref_val = sub.get("f_pref")
         if f_pref_val is not None:
             if f_pref_val >= 0.99:
@@ -452,6 +462,8 @@ class MultiCriteriaScorer:
             fit_parts.append(f"diễn ra trong tuần thi (×{f_exam_val:.2f})")
         else:
             fit_parts.append("ngoài tuần thi")
+        if flex_overlaps:
+            fit_parts.append(f"trùng lịch linh hoạt ({', '.join(flex_overlaps)})")
         fit_reason = "Không trùng lịch; " + "; ".join(fit_parts) + "."
         fit_verdict = self._level_tag(scored_event.fit)
 
@@ -619,8 +631,10 @@ class MultiCriteriaScorer:
             gain, gain_details = self.compute_gain(cand.credit_estimate, shortfall, group_caps)
             interest, cos_raw = self.compute_interest(profile.user_vec, cand.event_vec, cal_range)
 
-            if isinstance(schedule_provider, DemoScheduleProvider):
-                fit_res: FitAssessment = schedule_provider.compute_fit(
+            if cand.fit_assessment is not None:
+                fit_res: Union[FitAssessment, Module4FitAssessment] = cand.fit_assessment
+            elif isinstance(schedule_provider, (DemoScheduleProvider, ScheduleEngine)):
+                fit_res = schedule_provider.compute_fit(
                     cand.event,
                     home_campus=profile.home_campus,
                     max_travel_min=profile.max_travel_min,

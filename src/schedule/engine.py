@@ -2,10 +2,15 @@
 
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
-from math import isfinite
+from math import asin, cos, isfinite, radians, sin, sqrt
 from typing import Callable, Optional, Protocol
 import re
 import unicodedata
+
+CAMPUS_COORDS: dict[str, tuple[float, float]] = {
+    "cs1_nvc": (10.762622, 106.682172),
+    "cs2_lt": (10.875809, 106.799178),
+}
 
 
 class Event(Protocol):
@@ -92,16 +97,66 @@ class _Busy:
     kind: str
 
 
+def _parse_lat_lng(raw: Optional[str]) -> Optional[tuple[float, float]]:
+    if not raw or not isinstance(raw, str) or "," not in raw:
+        return None
+    parts = raw.split(",")
+    if len(parts) != 2:
+        return None
+    try:
+        lat, lng = float(parts[0].strip()), float(parts[1].strip())
+    except ValueError:
+        return None
+    if not (isfinite(lat) and isfinite(lng) and -90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0):
+        return None
+    return lat, lng
+
+
+def _haversine_km(c1: tuple[float, float], c2: tuple[float, float]) -> float:
+    lat1, lon1 = radians(c1[0]), radians(c1[1])
+    lat2, lon2 = radians(c2[0]), radians(c2[1])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    return 6371.0088 * 2 * asin(min(1.0, sqrt(a)))
+
+
 def _campus(location: Optional[str]) -> Optional[str]:
-    text = unicodedata.normalize("NFKD", (location or "").casefold())
+    if not location:
+        return None
+    coord = _parse_lat_lng(location)
+    if coord is not None:
+        for cid, cpos in CAMPUS_COORDS.items():
+            if _haversine_km(coord, cpos) <= 0.45:
+                return cid
+        return None
+    folded = (location or "").casefold().translate(str.maketrans({"đ": "d"}))
+    text = unicodedata.normalize("NFKD", folded)
     text = "".join(char for char in text if not unicodedata.combining(char))
-    if re.search(r"\b(?:cs1_nvc|(?:cs|co so)\s*1|227\s+nguyen van cu)\b", text):
+    if re.search(r"\b(?:cs1_nvc|(?:cs|co so)\s*0?1|227\s+nguyen van cu|nguyen van cu|cho quan)\b", text):
         return "cs1_nvc"
-    if re.search(r"\b(?:cs2_lt|(?:cs|co so)\s*2)\b", text):
+    if re.search(r"\b(?:cs2_lt|(?:cs|co so)\s*0?2|linh trung|dong hoa)\b", text):
         return "cs2_lt"
-    if text.strip() in {"nguyen van cu", "linh trung"}:
-        return {"nguyen van cu": "cs1_nvc", "linh trung": "cs2_lt"}[text.strip()]
     return None
+
+
+def _extract_slot_coord(slot) -> Optional[tuple[float, float]]:
+    if slot is None:
+        return None
+    raw_coord = getattr(slot, "coordinate", None)
+    if not raw_coord:
+        meta = getattr(slot, "metadata", None)
+        if isinstance(meta, dict):
+            raw_coord = meta.get("coordinate")
+    parsed = _parse_lat_lng(raw_coord)
+    if parsed is not None:
+        return parsed
+    loc = getattr(slot, "location", None)
+    parsed_loc = _parse_lat_lng(loc)
+    if parsed_loc is not None:
+        return parsed_loc
+    camp = _campus(loc)
+    return CAMPUS_COORDS.get(camp) if camp else None
 
 
 class ScheduleEngine:
@@ -221,8 +276,18 @@ class ScheduleEngine:
 
     def is_in_exam_week(self, dt: datetime) -> bool:
         day = (dt.astimezone(self._tz) if dt.tzinfo else dt).date()
-        return any(date.fromisoformat(start[:10]) <= day <= date.fromisoformat(end[:10])
-                   for start, end in self._context.exam_weeks)
+        for pair in self._context.exam_weeks:
+            if not pair or len(pair) != 2:
+                continue
+            start, end = str(pair[0] or "").strip(), str(pair[1] or "").strip()
+            if len(start) < 10 or len(end) < 10:
+                continue
+            try:
+                if date.fromisoformat(start[:10]) <= day <= date.fromisoformat(end[:10]):
+                    return True
+            except ValueError:
+                continue
+        return False
 
     @staticmethod
     def _neighbors(window, intervals):
@@ -245,7 +310,7 @@ class ScheduleEngine:
             gaps.append(start - before.end)
         if after:
             gaps.append(after.start - end)
-        return int(min(gaps).total_seconds() // 60) if gaps else None
+        return max(0, int(round(min(gaps).total_seconds() / 60))) if gaps else None
 
     def nearest_slack_minutes(self, event: Event) -> Optional[int]:
         window, mode, buffer, intervals = self._event_schedule(event)
@@ -283,26 +348,51 @@ class ScheduleEngine:
         location, _ = self._location(earlier, (), home)
         return location, True
 
-    def _travel(self, origin, target, mode):
+    def _coord_for_endpoint(self, label: Optional[str], slot=None) -> Optional[tuple[float, float]]:
+        if slot is not None:
+            sc = _extract_slot_coord(slot)
+            if sc is not None:
+                return sc
+        parsed = _parse_lat_lng(label)
+        if parsed is not None:
+            return parsed
+        camp = _campus(label)
+        return CAMPUS_COORDS.get(camp) if camp else None
+
+    def _travel(self, origin, target, mode, *, origin_coord=None, target_coord=None):
         if mode == "online":
             return 0, "online"
         first, second = _campus(origin), _campus(target)
         if first and second:
             key = "same_campus" if first == second else "cross_campus"
             return max(0, int(self._campus_minutes[key])), "campus"
-        if self._route and origin and target:
-            estimate = self._route(first or origin, second or target)
+        route_origin = first or (f"{origin_coord[0]:.6f},{origin_coord[1]:.6f}" if not origin and origin_coord else origin)
+        route_target = second or (f"{target_coord[0]:.6f},{target_coord[1]:.6f}" if not target and target_coord else target)
+        if self._route and route_origin and route_target:
+            estimate = self._route(route_origin, route_target)
             if estimate is not None:
                 return max(0, int(getattr(estimate, "minutes", estimate))), getattr(estimate, "source", "route")
+            if origin_coord is not None and target_coord is not None:
+                km = _haversine_km(origin_coord, target_coord)
+                est_min = 0 if km < 0.15 else max(5, int(round(km * 1.25 / 30.0 * 60.0)))
+                return est_min, "coordinate"
             return max(0, int(self._campus_minutes["unknown"])), "fallback"
+        if origin_coord is not None and target_coord is not None:
+            km = _haversine_km(origin_coord, target_coord)
+            est_min = 0 if km < 0.15 else max(5, int(round(km * 1.25 / 30.0 * 60.0)))
+            return est_min, "coordinate"
         return max(0, int(self._campus_minutes["unknown"])), "unverified"
 
     def _inbound(self, event, mode, before, intervals, home_campus, window):
-        origin, inferred = self._location(before, intervals, self._home_address or home_campus)
+        home_ref = self._home_address or home_campus
+        origin, inferred = self._location(before, intervals, home_ref)
         target, _ = self._location(event, (), None, inherit=False)
+        origin_coord = self._coord_for_endpoint(origin, before if not inferred else None)
+        target_coord = self._coord_for_endpoint(target, event)
         if mode != "online" and event.online_mode is None and event.is_online is None:
             origin, target = None, None
-        travel = self._travel(origin, target, mode)
+            origin_coord, target_coord = None, None
+        travel = self._travel(origin, target, mode, origin_coord=origin_coord, target_coord=target_coord)
         return self._leg(travel, window[0] - before.end if before else None, inferred)
 
     @staticmethod
@@ -345,7 +435,16 @@ class ScheduleEngine:
         if mode != "online" and after:
             first, _ = self._location(event, (), None, inherit=False)
             last, _ = self._location(after, (), None, inherit=False)
-            outbound = self._leg(self._travel(first, last, mode), after.start - window[1])
+            outbound = self._leg(
+                self._travel(
+                    first,
+                    last,
+                    mode,
+                    origin_coord=self._coord_for_endpoint(first, event),
+                    target_coord=self._coord_for_endpoint(last, after),
+                ),
+                after.start - window[1],
+            )
         provisional = any(leg and leg.source == "fallback" for leg in (inbound, outbound))
         if conflict.has_conflict:
             return FitAssessment(0.0, True, in_exam, travel, 0, conflict.overlap_detail,

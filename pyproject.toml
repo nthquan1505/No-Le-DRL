@@ -36,7 +36,7 @@ all = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "configs*", "scripts*", "module6*"]
+include = ["src*", "configs*", "scripts*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

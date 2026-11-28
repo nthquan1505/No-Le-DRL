@@ -1,4 +1,4 @@
-"""Stage-3 HCMC & VNU-HCM coordinate resolver (`src/utility/extraction/geocoder.py`).
+"""Stage-3 HCMC & VNU-HCM coordinate resolver (`src/extraction/geocoder.py`).
 
 Resolves `events.coordinate` (`"lat,lng"` or `None`) for `SCH`:
 1. Online-only / placeholder venues -> `None`
@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Tuple
 import urllib.parse
 import urllib.request
 
-DEFAULT_CACHE_PATH = Path(__file__).resolve().parent.parent.parent.parent / "data" / "geocode_cache.json"
+DEFAULT_CACHE_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "geocode_cache.json"
 
 BBOX_LAT = (10.35, 11.20)
 BBOX_LNG = (106.30, 107.10)

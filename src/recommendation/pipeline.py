@@ -44,11 +44,21 @@ from src.recommendation.filter import (
 from src.recommendation.rec_embedder import (
     DEFAULT_REC_PASSAGE_PREFIX,
     REC_EMBEDDING_FIELDS,
+    _can_reuse_rec_cache,
     build_recommendation_event_text,
     generate_or_load_recommendation_embeddings,
 )
+from src.recommendation.schedule_adapter import parse_ics_schedule
 from src.recommendation.scoring import MultiCriteriaScorer
 from src.recommendation.selector import MMRSelector
+from src.schedule import (
+    BusyInterval as Module4BusyInterval,
+    ScheduleContext as Module4ScheduleContext,
+    ScheduleEngine,
+    WeeklyBusySlot as Module4WeeklyBusySlot,
+)
+from src.schedule.calendar import add_calendar_events
+from src.schedule.routing import CarRouting
 from src.schemas import EventNormalized
 from src.vector_ops import l2_normalize
 
@@ -91,20 +101,38 @@ def load_recommendation_candidate_pool_from_db(
 
     normalized_events: List[EventNormalized] = [db_row_to_event_normalized(r) for r in rows]
     rec_vecs_by_id: Dict[str, List[float]] = {}
+    eff_emb_path = rec_embeddings_path or DEFAULT_REC_EMB_PATH
+    eff_meta_path = rec_metadata_path or DEFAULT_REC_META_PATH
+    fp = compute_events_fingerprint(rows)
     if embedder is not None:
-        fp = compute_events_fingerprint(rows)
         rec_emb_set = generate_or_load_recommendation_embeddings(
             normalized_events,
             embedder=embedder,
             source_fingerprint=fp,
-            embeddings_path=rec_embeddings_path,
-            metadata_path=rec_metadata_path,
+            embeddings_path=eff_emb_path,
+            metadata_path=eff_meta_path,
             reuse_existing=reuse_existing_embeddings,
         )
         for ev in normalized_events:
             vec = rec_emb_set.get_vector(ev.event_id)
             if vec is not None:
                 rec_vecs_by_id[ev.event_id] = vec
+    elif reuse_existing_embeddings:
+        reused = _can_reuse_rec_cache(
+            eff_emb_path,
+            eff_meta_path,
+            fp,
+            len(normalized_events),
+            384,
+            DEFAULT_REC_PASSAGE_PREFIX,
+        )
+        if reused is not None:
+            arr, meta = reused
+            for row_m in meta.get("records") or []:
+                eid_str = str(row_m.get("event_id") or "")
+                idx = int(row_m["embedding_row"])
+                if eid_str and 0 <= idx < arr.shape[0]:
+                    rec_vecs_by_id[eid_str] = [float(v) for v in arr[idx].tolist()]
 
     cls_lookup = classification_by_event_id or {}
     pool: List[RecommendationCandidateInput] = []
@@ -202,6 +230,7 @@ def build_demo_profile_from_db_user(
 
     start_year = user_row.get("start_year")
     cohort = f"K{str(start_year)[-2:]}" if start_year else None
+    default_coord = str(user_row.get("default_coordinate") or "").strip() or None
 
     return DemoUserProfile(
         user_id=str(user_row["user_id"]),
@@ -209,6 +238,7 @@ def build_demo_profile_from_db_user(
         interest_chips=[],
         free_text=free_text,
         user_vec=user_vec,
+        home_campus=default_coord or "cs1_nvc",
         participated_event_ids=participated,
         current_by_group=current_by_group,
         target_by_group=target_by_group,
@@ -228,7 +258,31 @@ def load_recommendation_candidate_pool(
     rec_embeddings_path: Path = DEFAULT_REC_EMB_PATH,
     rec_metadata_path: Path = DEFAULT_REC_META_PATH,
 ) -> List[RecommendationCandidateInput]:
-    """Load batch events from legacy JSON fixtures (optionally computing 4-field Rec embeddings)."""
+    """Load batch events from legacy JSON fixtures (or DB classification fallback when absent)."""
+    if not classification_path.is_file() and DEFAULT_DB_PATH.is_file():
+        cls_cfg_path = PROJECT_ROOT / "configs" / "classification_config.yaml"
+        cls_by_eid: Dict[int, Dict[str, Any]] = {}
+        if cls_cfg_path.is_file():
+            from src.classification.pipeline.classification_pipeline import ClassificationPipeline
+
+            db_res = ClassificationPipeline(cls_cfg_path, project_root=PROJECT_ROOT).run_from_database(
+                db_path=DEFAULT_DB_PATH,
+                write_back_db=False,
+                write_output_files=False,
+                embedder=embedder,
+            )
+            for rec in db_res.get("events") or []:
+                if rec.get("event_id") is not None and isinstance(rec.get("classification"), dict):
+                    cls_by_eid[int(rec["event_id"])] = dict(rec["classification"])
+        return load_recommendation_candidate_pool_from_db(
+            db_path=DEFAULT_DB_PATH,
+            embedder=embedder if use_rec_4field_embeddings else None,
+            classification_by_event_id=cls_by_eid or None,
+            rec_embeddings_path=rec_embeddings_path,
+            rec_metadata_path=rec_metadata_path,
+            reuse_existing_embeddings=True,
+        )
+
     fix_raw = json.loads(fixtures_path.read_text(encoding="utf-8"))
     fix_map: Dict[str, EventNormalized] = {
         str(rec["event_id"]): EventNormalized.from_dict(rec)
@@ -400,12 +454,123 @@ def run_recommendation_demo(
         reference_now=ref_now_dt.isoformat(),
     )
 
-    # 2. Build Demo Module 4 provider
+    # 2. Build Module 4 ScheduleEngine (supporting presets, custom slots, .ics, Google Calendar, & routing)
     sched_payload = payload.get("schedule")
     if isinstance(sched_payload, dict) and sched_payload:
         sched_provider = DemoScheduleProvider.from_demo_payload(sched_payload, config=cfg)
     else:
         sched_provider = DemoScheduleProvider.from_preset(profile.schedule_preset, config=cfg)
+
+    base_ctx = sched_provider.get_schedule_context()
+    m4_busy = [
+        Module4BusyInterval(
+            start_datetime=b.start_datetime,
+            end_datetime=b.end_datetime,
+            label=b.label,
+            location=b.location,
+            is_exam=b.is_exam,
+        )
+        for b in base_ctx.busy_intervals
+    ]
+    m4_weekly = [
+        Module4WeeklyBusySlot(
+            day_of_week=s.day_of_week,
+            start_hour=s.start_hour,
+            end_hour=s.end_hour,
+            label=s.label,
+            location=s.location,
+            is_exam=s.is_exam,
+            valid_from=s.valid_from,
+            valid_until=s.valid_until,
+        )
+        for s in sched_provider.weekly_slots
+    ]
+    m4_flexible: List[Module4BusyInterval] = []
+    if isinstance(sched_payload, dict):
+        for raw_flex in sched_payload.get("flexible_intervals") or []:
+            if raw_flex.get("start_datetime") and raw_flex.get("end_datetime"):
+                m4_flexible.append(
+                    Module4BusyInterval(
+                        start_datetime=str(raw_flex["start_datetime"]),
+                        end_datetime=str(raw_flex["end_datetime"]),
+                        label=str(raw_flex.get("label") or ""),
+                        location=raw_flex.get("location"),
+                        is_exam=False,
+                    )
+                )
+        ics_raw = sched_payload.get("ics_text")
+        if isinstance(ics_raw, str) and ics_raw.strip():
+            ics_ctx, ics_slots = parse_ics_schedule(ics_raw)
+            for b in ics_ctx.busy_intervals:
+                m4_busy.append(
+                    Module4BusyInterval(
+                        start_datetime=b.start_datetime,
+                        end_datetime=b.end_datetime,
+                        label=b.label,
+                        location=b.location,
+                        is_exam=b.is_exam,
+                    )
+                )
+            for s in ics_slots:
+                m4_weekly.append(
+                    Module4WeeklyBusySlot(
+                        day_of_week=s.day_of_week,
+                        start_hour=s.start_hour,
+                        end_hour=s.end_hour,
+                        label=s.label,
+                        location=s.location,
+                        is_exam=s.is_exam,
+                        valid_from=s.valid_from,
+                        valid_until=s.valid_until,
+                    )
+                )
+
+    schedule_context = Module4ScheduleContext(
+        busy_intervals=m4_busy,
+        exam_weeks=list(base_ctx.exam_weeks),
+        default_travel_buffer_min=base_ctx.default_travel_buffer_min,
+        weekly_slots=m4_weekly,
+        flexible_intervals=m4_flexible,
+    )
+    if isinstance(sched_payload, dict) and sched_payload.get("calendar_items"):
+        schedule_context = add_calendar_events(
+            schedule_context,
+            sched_payload["calendar_items"],
+            exam_event_ids=sched_payload.get("calendar_exam_event_ids", ()),
+            exclude_event_ids=sched_payload.get("calendar_excluded_event_ids", ()),
+        )
+
+    engine_cfg = dict(cfg)
+    if isinstance(sched_payload, dict) and isinstance(sched_payload.get("travel_overrides"), dict):
+        sched_sec = dict(engine_cfg.get("schedule") or {})
+        campus_mins = dict(sched_sec.get("campus_travel_minutes") or {})
+        for tk, tv in sched_payload["travel_overrides"].items():
+            if tv is not None:
+                campus_mins[str(tk)] = max(0, int(tv))
+        sched_sec["campus_travel_minutes"] = campus_mins
+        engine_cfg["schedule"] = sched_sec
+
+    raw_router = CarRouting.from_environment()
+    route_memo: Dict[Any, Any] = {}
+
+    def _memoized_route(origin: str, destination: str) -> Any:
+        key = (origin, destination)
+        if key not in route_memo:
+            resolve = getattr(raw_router, "estimate", raw_router)
+            route_memo[key] = resolve(origin, destination)
+        return route_memo[key]
+
+    home_address = (
+        str(payload.get("home_address") or (sched_payload.get("home_address") if isinstance(sched_payload, dict) else "") or "").strip()
+        or None
+    )
+    schedule_engine = ScheduleEngine(
+        schedule_context,
+        weekly_slots=tuple(m4_weekly),
+        config=engine_cfg,
+        route_minutes=_memoized_route,
+        home_address=home_address,
+    )
 
     # 3. Build Demo Module 6 ledger & shortfall
     ledger = credit_provider.build_ledger_from_group_totals(
@@ -439,7 +604,7 @@ def run_recommendation_demo(
     filter_report = hard_filter.filter_candidates(
         active_candidates,
         profile=profile,
-        schedule_provider=sched_provider,
+        schedule_provider=schedule_engine,
         credit_provider=credit_provider,
         ledger=ledger,
         reference_now=ref_now_dt,
@@ -451,7 +616,7 @@ def run_recommendation_demo(
     scored_candidates, cal_range = scorer.score_candidates(
         filter_report.eligible,
         profile=profile,
-        schedule_provider=sched_provider,
+        schedule_provider=schedule_engine,
         credit_provider=credit_provider,
         shortfall=shortfall,
         sample_embeddings=sample_embeddings,
@@ -514,11 +679,13 @@ def run_recommendation_demo(
             "target_total": shortfall.target_total,
         },
         "demo_module4_state": {
+            "engine": "src.schedule.ScheduleEngine",
             "preset_id": sched_provider.preset_id,
-            "weekly_slots_count": len(sched_provider.weekly_slots),
-            "busy_intervals_count": len(sched_provider.get_schedule_context().busy_intervals),
-            "exam_weeks": [list(p) for p in sched_provider.get_schedule_context().exam_weeks],
-            "default_travel_buffer_min": sched_provider.get_schedule_context().default_travel_buffer_min,
+            "weekly_slots_count": len(m4_weekly),
+            "busy_intervals_count": len(schedule_context.busy_intervals),
+            "flexible_intervals_count": len(schedule_context.flexible_intervals),
+            "exam_weeks": [list(p) for p in schedule_context.exam_weeks],
+            "default_travel_buffer_min": schedule_context.default_travel_buffer_min,
         },
         "interest_calibration": {
             **cal_range.to_dict(),

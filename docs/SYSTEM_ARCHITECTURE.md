@@ -116,53 +116,215 @@
 
 ```text
 No-Le-DRL/
-├── config.py                        # Environment config, paths (DRL_DB_PATH), timezone (UTC+7), constants
-├── main.py                          # Application entrypoint (starts FastAPI server & background scheduler)
-├── drl_database.db                  # Central SQLite database (6 tables)
-├── requirements.txt                 # Python dependencies
-├── .env                             # Secrets & API keys (LLM keys, session secret, proxy URL)
-├── SYSTEM_ARCHITECTURE.md           # System architecture, DB schema, workflow & directory guide
+├── app.py                                   # [DSH/CLF/SCH/CRD/RCM] Interactive 4-tab DRL Recommendation & Classification web app (:8765)
+├── main.py                                  # Unified CLI entrypoint (`serve`, `fetch`, `extract`, `extract-post`, `classify`, ...)
+├── server.py                                # FastAPI + WebSocket MVC server setup & lifespan (:8000)
+├── scheduler.py                             # Cron/interval background scheduler (08:00, 14:00, 20:00 UTC+7) for [ING]
+├── config.py                                # Environment loader, DB paths (`DRL_DB_PATH`), UTC+7 timezone & constants
+├── drl_database.db                          # Central SQLite database (6 tables: events, users, event_subscription, fanpages, notifications, rubric)
+├── pyproject.toml                           # Python package metadata & optional extras (`[ml]`, `[opt]`, `[api]`, `[dev]`)
+├── requirements.txt                         # Core backend, DB, extraction, scraper & FastAPI dependencies
+├── requirements-calendar.txt                # Optional Google Calendar OAuth dependencies for `src/schedule`
+├── .env.example                             # Template for `.env` secrets & runtime configuration
 │
-├── frontend/                        # Frontend UI/UX (DSH module & client-side interactions)
-│   ├── login.html                   # Login & account registration page
-│   ├── dashboard.html               # Main student dashboard (feed, rubric progress, weight sliders, notifications)
-│   ├── admin.html                   # Admin panel (manage tracked fanpages, school rubrics, manual inbox)
-│   ├── css/
-│   │   └── styles.css               # Shared layout, feed cards, charts & modal styling
-│   └── js/
-│       ├── api_client.js            # HTTP/WebSocket wrapper for communicating with backend APIs
-│       ├── dashboard_ui.js          # Feed rendering, weight adjustment, rubric progress charts (DSH)
-│       ├── calendar_sync.js         # Reads local .ics / Google Calendar & coordinates on client PC
-│       └── progress_prompts.js      # Registration/completion verification popups & notification badges
+├── configs/                                 # YAML & model configurations
+│   ├── model_config.py                      # E5 embedding constants (`intfloat/multilingual-e5-small`, 384d) & repo paths
+│   ├── classification_config.yaml           # [CLF] Dual-branch 2-stage kNN parameters, fusion weights & decision guards
+│   ├── recommendation_config.yaml           # [RCM] Interest chips, weight presets, P5 filter, P6 scoring & P7 MMR settings
+│   └── schedule.yaml                        # [SCH] Travel buffers, campus travel matrix & 5-step `compute_fit` weights
 │
-├── backend/                         # Server, session management & client request handlers
-│   ├── __init__.py
-│   ├── server.py                    # FastAPI app setup, CORS, static file mounting & route registration
-│   ├── scheduler.py                 # Cron scheduler (08:00, 14:00, 20:00 UTC+7) running ING -> EXT -> CLF -> CRD
-│   ├── session_manager.py           # Password hashing, session tokens/cookies & auth middleware
-│   ├── schemas.py                   # Pydantic request/response validation models
-│   └── routes/
-│       ├── __init__.py
-│       ├── auth_routes.py           # Login, logout, register & user profile/preferences/weights endpoints
-│       ├── event_routes.py          # Feed retrieval, client-scored ranking & inbox email submission endpoints
-│       ├── subscription_routes.py   # Subscribe ("Interested"), status/role updates & credit finalization
-│       ├── notification_routes.py   # Fetch user notifications & mark-as-read endpoints
-│       └── admin_routes.py          # Fanpage CRUD & school rubric management endpoints
+├── database/                                # Database persistence & migration layer
+│   ├── __init__.py                          # Exports `DRLDatabaseManager`, `get_drl_db` & session helpers
+│   ├── drl_db_manager.py                    # Thread-safe Singleton SQLite / PostgreSQL manager (WAL, FKs, retries, CRUD)
+│   ├── migrate_sqlite_to_postgres.py        # Idempotent 6-table SQLite -> PostgreSQL migration utility
+│   ├── db.py                                # SQLAlchemy engine/session helpers for scraper & portal tables
+│   └── models.py                            # ORM models for scraped posts, fanpages & inbox records
 │
-├── database/                        # Singleton DB connection, query execution & error fallbacks
-│   ├── __init__.py                  # Exports DRLDatabaseManager, get_drl_db & helper functions
-│   └── drl_db_manager.py            # Thread-safe Singleton SQLite manager (WAL, FKs, retries, CRUD, fallbacks)
+├── scraper/                                 # [ING] Facebook fanpage crawler
+│   └── fb_scraper.py                        # Playwright headless Chromium fanpage post & media scraper (with proxy support)
+├── events/                                  # [ING/EXT] Scraper-to-extractor & email inbox orchestration bridges
+│   ├── extractor.py                         # Fanpage post batch analyzer, single-URL extractor & email inbox handler
+│   └── classifier.py                        # Lightweight tag classifier for portal feed folders
+├── rss/                                     # [ING] RSS XML feed generator (`feeds/`)
+│   └── generator.py
 │
-└── src/utility/                     # Core domain module implementations & shared helper functions
-    ├── __init__.py
-    ├── ingestion.py                 # [ING] Facebook fanpage crawler & client email inbox collector
-    ├── extraction.py                # [EXT] LLM post/media extractor, keyword fallback & deduplication/updates
-    ├── classification.py            # [CLF] Rubric category (1..5) classifier from title/keywords/topic/format
-    ├── schedule_detector.py         # [SCH] Calendar conflict detection, coordinate distance & `fit` [0..1]
-    ├── credit_calculator.py         # [CRD] `credit_calc(event_id, role)` & `gain_calc(...)` -> `gain` [0..1]
-    ├── recommender.py               # [RCM] `interested`, `urgency`, weighted priority score & MMR re-ranking
-    ├── progress_tracker.py          # [PRG] Deadline checks & status transitions (interested -> registered -> in_progress -> done)
-    ├── notifier.py                  # [NTF] Notification builder & dispatcher for reminders/updates/cancellations
-    └── geo_time_helpers.py          # Shared UTC+7 ISO datetime parsing & "lat,lng" Haversine distance helpers
+├── prototype/                               # [DSH] Frontend UI served by `app.py` (:8765)
+│   ├── index.html                           # 4-tab workspace (Live Classifier, DB Browser, P5-P6 Scoring, P7 MMR Selector)
+│   ├── app.js                               # Frontend state, API client, reasoning breakdown & schedule preset controls
+│   └── styles.css                           # Responsive UI styling
+│
+├── src/                                     # Core modular domain & web packages
+│   ├── schemas.py                           # Canonical data contracts (`EventNormalized`, `CreditEstimate`, `ScoredEvent`, ...)
+│   ├── contract_validator.py                # Schema, rubric taxonomy (`<major>.<minor>`) & ISO-8601 validators
+│   ├── db_event_adapter.py                  # Adapter bridging `drl_database.db` rows <-> `EventNormalized` & classification inputs
+│   ├── embedder.py                          # Unified `intfloat/multilingual-e5-small` (`query:` / `passage:`, 384d L2) embedder
+│   ├── event_cache.py                       # `.npy` + `.json` event vector & metadata cache
+│   ├── vector_ops.py                        # L2 normalization & cosine similarity operations
+│   │
+│   ├── extraction/                          # [EXT] 4-stage event extraction & deduplication pipeline (`drl_database.db`)
+│   │   ├── contracts.py                     # `RawIngestionItem`, `ExtractedEventDraft` & controlled vocabularies
+│   │   ├── prefilter.py                     # Stage 1: Deterministic non-event / recap / noise pre-filter
+│   │   ├── prompts.py                       # Stage 2: System prompt & strict JSON schema for LLM extraction
+│   │   ├── llm_client.py                    # Stage 2: Direct REST Gemini key-pool + Groq / custom LLM failover client
+│   │   ├── heuristics.py                    # Stage 2: Deterministic field sanitizer & offline heuristic fallback
+│   │   ├── media_qr.py                      # Stage 3: Local OpenCV QR-code poster registration link decoder
+│   │   ├── geocoder.py                      # Stage 3: Campus-first & HCMC/VNU-HCM `"lat,lng"` coordinate resolver
+│   │   ├── deduplicator.py                  # Stage 4: Anchor deduplication, updates, soft-cancel (`is_cancelled=1`) & notifications
+│   │   └── pipeline.py                      # End-to-end `ExtractionPipeline` orchestrator
+│   │
+│   ├── classification/                      # [CLF] Dual-Branch Hierarchical 2-Stage kNN classification system
+│   │   ├── data/                            # Asset loaders & integrity validators (`loaders.py`, `validators.py`)
+│   │   ├── embeddings/                      # Multi-profile query text builder & cached embedder
+│   │   ├── retrieval/                       # Sample branch (`sample_retriever.py`) & Rubric branch (`rubric_retriever.py`)
+│   │   ├── fusion/                          # Stage 1 (group) & Stage 2 (criterion) score normalization & fusion
+│   │   ├── algorithms/                      # `HierarchicalTwoStageKNN` & extensible `AlgorithmRegistry`
+│   │   ├── decision/                        # Confidence thresholds & rubric boundary guards (`PREDICTED` / `NEEDS_REVIEW`)
+│   │   ├── output/                          # JSON & Markdown run report writers
+│   │   └── pipeline/                        # `ClassificationPipeline` (DB & JSON modes, writes `events.category`)
+│   │
+│   ├── schedule/                            # [SCH] Personal schedule conflict detection, routing & `Fit` calculation
+│   │   ├── engine.py                        # `ScheduleEngine`: UTC+7 normalization, buffer conflict check & 5-step `compute_fit`
+│   │   ├── evaluation.py                    # `FitEvaluator`: batch candidate evaluator with per-run route deduplication
+│   │   ├── fit_cache.py                     # `FitCache`: privacy-preserving SQLite cache with daily TTL cleanup
+│   │   ├── calendar.py                      # Google Calendar `Events.list` reader & busy/flexible interval merger
+│   │   ├── oauth.py                         # Desktop OAuth2 setup & token refresh CLI (`python -m src.schedule.oauth`)
+│   │   └── routing.py                       # `CarRouting`: campus catalog -> `"lat,lng"` / OSRM -> Google Routes (quota-capped)
+│   │
+│   ├── credit_calculation/                  # [CRD] DRL credit estimation, finalization & `Gain` calculation
+│   │   ├── credit_calculator.py             # `credit_calc(event, role)`, `gain_calc(...)` & DB batch/subscription finalizers
+│   │   ├── credit_engine.py                 # `RubricCreditEngine`: deterministic rubric evaluator (`data/raw/rubric.yaml`)
+│   │   ├── attribute_extractor.py           # Level, role, duration bucket & explicit-point text extractors
+│   │   └── interface.py                     # `CreditCalculatorProtocol`, `UserLedger` & `LedgerEvaluation` contracts
+│   │
+│   ├── recommendation/                      # [RCM] Multi-criteria personalized recommendation & MMR pipeline
+│   │   ├── config.py                        # Merged loader for `recommendation_config.yaml` + `schedule.yaml`
+│   │   ├── user_profile.py                  # P4 cold-start & behavioral user profile vector/weight adaptation
+│   │   ├── rec_embedder.py                  # 4-field (`title + description + topic + format`) `passage:` event embedder
+│   │   ├── schedule_adapter.py              # `ScheduleProvider` protocol & RFC 5545 `.ics` timetable parser
+│   │   ├── filter.py                        # P5 `HardConstraintFilter` (`PREDICTED` gate + 8 non-short-circuiting rules)
+│   │   ├── scoring.py                       # P6 `MultiCriteriaScorer` (`w1*Gain + w2*Interest + w3*Fit + w4*Urgency + Penalty`) & P8 explanations
+│   │   ├── selector.py                      # P7 `MMRSelector` (hybrid semantic+rubric diversity + exploration slot)
+│   │   ├── demo_profile.py                  # Demo student personas & mandatory `6.4` SHCD fixture
+│   │   ├── demo_module4.py                  # Timetable preset templates (`light_schedule`, `busy_weekend`, `exam_week_heavy`)
+│   │   ├── demo_module6.py                  # `DemoCreditProvider` adapter wrapping `RubricCreditEngine`
+│   │   └── pipeline.py                      # End-to-end DB & demo recommendation orchestrator
+│   │
+│   ├── backend/                             # FastAPI MVC controllers & WebSocket runtime (`server.py` :8000)
+│   │   ├── auth_controller.py               # User/admin login, registration & session endpoints
+│   │   ├── admin_controller.py              # Fanpage management, crawl import & admin operations
+│   │   ├── event_controller.py              # Email inbox ingestion, post extraction, feeds & WebSocket channels
+│   │   ├── page_controller.py               # HTML route handlers (`/`, `/login`, `/client`, `/admin`)
+│   │   └── runtime.py                       # Connection manager, background scrape lock & scheduler sync
+│   ├── frontend/                            # HTML views for the FastAPI portal (`login.html`, `client.html`, `admin.html`)
+│   └── model/                               # Portal repositories, Pydantic request/response schemas & session tokens
+│
+├── data/                                    # Rubric, reference indices & cached embeddings
+│   ├── raw/rubric.yaml                      # Machine-readable HCMUS DRL rubric (51 criteria, QĐ 1028/QĐ-KHTN-CTSV)
+│   ├── processed/cls_index/                 # Precomputed Sample & Rubric reference embeddings (`.npy` + `.parquet`)
+│   └── generated/                           # Cached DB multivector classification (`.npz`) & 4-field rec embeddings (`.npy`)
+├── res/                                     # Official HCMUS DRL regulations (`drl2025.pdf`, `drl2025.md`) & keyword rules
+├── scripts/                                 # Offline dataset builders & reference embedding generators
+├── docs/                                    # Architecture & module specifications (`SYSTEM_ARCHITECTURE.md`, ...)
+├── integration/                             # Cross-module smoke test (`smoke_module3.py`) & historical handoff patch
+└── tests/                                   # Unit & integration test suites (`pytest` / `unittest`)
+```
+
+---
+
+# Localhost Deployment Guide
+
+## 1. Prerequisites
+- **Python**: `3.10+` (`3.11`–`3.13` recommended on Windows, macOS, or Linux).
+- **Database**: `drl_database.db` (SQLite with WAL mode) is bundled in the repository root and works out of the box with zero external database setup. PostgreSQL is optionally supported via `DRL_DATABASE_URL`.
+
+## 2. Environment & Dependency Setup
+
+From the repository root (`No-Le-DRL/`):
+
+```powershell
+# 1. Create and activate a virtual environment (Windows PowerShell; Python 3.11-3.13 recommended)
+py -3.13 -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+
+# (On macOS / Linux: python3 -m venv .venv && source .venv/bin/activate)
+
+# 2. Install core backend, database, extraction, and FastAPI dependencies
+pip install -r requirements.txt
+
+# 3. Install the E5 embedding ML stack (required by app.py for live query/profile encoding)
+pip install -e ".[ml,dev]"
+```
+
+**Optional integrations** (only install if needed):
+- **Facebook Scraper Browser (`ING`)**: `playwright install chromium`
+- **Google Calendar Live Sync (`SCH` / `src.schedule`)**:
+  ```powershell
+  pip install -r requirements-calendar.txt
+  python -m src.schedule.oauth --client-secrets "C:/path/to/client_secret.json"
+  ```
+
+## 3. Environment Variables (`.env`)
+
+Copy `.env.example` to `.env` in the project root:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Key settings (all external API keys are optional for local demo/offline operation):
+- `DRL_DATABASE_URL`: Leave empty to use local SQLite (`drl_database.db`), or set `postgresql://user:pass@127.0.0.1:5432/nole_drl`.
+- `ADMIN_TOKEN`: Token/password for signing into the `/admin` console.
+- `GEMINI_API_KEY` / `CUSTOM_LLM_URL`: Used by `EXT` when extracting new raw posts/emails (falls back to deterministic heuristics offline).
+- `FB_PROXY_URL`: Optional proxy URL for Playwright fanpage scraping.
+- **Schedule (`SCH` / `src/schedule`) optional routing & calendar variables** (runs offline by default using campus travel matrix + coordinate distance + `configs/schedule.yaml`):
+  - `MODULE4_OSRM_URL` / `MODULE4_NOMINATIM_URL`: Private OSRM / Nominatim endpoints for road routing.
+  - `MODULE4_GOOGLE_ROUTES_KEY`: Google Compute Routes API key (capped at 250 calls/UTC day via `MODULE4_QUOTA_DB`).
+  - `MODULE4_CALENDAR_TOKEN`: Custom path to the OAuth token file (default: `~/.no-le-drl/calendar-token.json`).
+
+## 4. Running the Web Applications on Localhost
+
+The repository provides two localhost web entrypoints depending on which workflow you want to run:
+
+### A. Classification, Schedule (`src.schedule`), Credit (`src.credit_calculation`), Scoring & MMR Web App (`app.py`)
+Runs the interactive 4-tab DRL Recommendation & Classification UI (`prototype/`) directly on `drl_database.db` using `intfloat/multilingual-e5-small` (`384d` L2), `src/classification/`, `src/schedule/` (`ScheduleEngine`), `src/credit_calculation/` (`RubricCreditEngine`), and `src/recommendation/` (`P5` Filter → `P6` Scoring → `P7` MMR):
+
+```powershell
+python app.py --host 127.0.0.1 --port 8765
+```
+
+- **Web UI**: `http://127.0.0.1:8765`
+  - **Tab 1**: Live Dual-Branch 2-Stage kNN Classifier & `[CRD]` credit estimator
+  - **Tab 2**: `drl_database.db` batch event browser & re-classification trigger
+  - **Tab 3**: Personalized Recommendation (`P5` hard filter diagnostics + `P6` multi-criteria scoring with `[SCH]` `Fit` breakdown)
+  - **Tab 4**: `P7` MMR diversity & exploration selector
+
+### B. Ingestion, Extraction, RSS & Admin/Client MVC Server (`main.py serve` / `server.py`)
+Runs the FastAPI + WebSocket server (`src/backend/`, `src/frontend/`) for user/admin authentication, email inbox ingestion, single-post URL extraction, fanpage management, and scheduled scraping:
+
+```powershell
+# Recommended for local testing (disables automatic background Facebook scraping):
+python main.py serve --host 127.0.0.1 --port 8000 --no-scrape
+
+# Or with scheduled scraping enabled (08:00, 14:00, 20:00 UTC+7):
+python main.py serve --host 127.0.0.1 --port 8000
+```
+
+*(You can also launch FastAPI directly with `uvicorn server:app --host 127.0.0.1 --port 8000 --reload`.)*
+
+- **Login Page**: `http://127.0.0.1:8000/` (`/login`)
+- **Client Workspace**: `http://127.0.0.1:8000/client`
+- **Admin Console**: `http://127.0.0.1:8000/admin`
+- **Interactive API Docs (Swagger UI)**: `http://127.0.0.1:8000/docs`
+
+## 5. Local Verification & Health Checks
+
+```powershell
+# Verify Schedule (src.schedule) <-> Recommendation (P5/P6 Fit & routing) end-to-end smoke test
+python integration/smoke_module3.py
+
+# Run the unit & integration test suite
+pytest -q
 ```
 
