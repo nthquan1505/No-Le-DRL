@@ -99,3 +99,10 @@ env/
 /feeds
 /events/tuning_data/
 /testing_data/
+__pycache__/
+.venv/
+.env
+.module4-route-quota.db*
+runtime/module4/
+calendar-token.json
+client_secret*.json
