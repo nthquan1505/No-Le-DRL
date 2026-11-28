@@ -293,8 +293,10 @@ def persist_extracted_draft(
     if is_primary_launch_upgrade:
         if draft.title and draft.title != existing.get("title"):
             updates["title"] = draft.title
+            updates["category"] = None
         if draft.description and draft.description != existing.get("description"):
             updates["description"] = draft.description
+            updates["category"] = None
 
     for col, new_val in scalar_candidates:
         if new_val in (None, ""):

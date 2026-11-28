@@ -58,6 +58,7 @@ from src.recommendation import (
 )
 from src.recommendation.pipeline import DEFAULT_REC_EMB_PATH, DEFAULT_REC_META_PATH
 from src.schemas import EventNormalized
+from src.signals import ExtractionCompletedSignal, SIGNAL_EXTRACTION_COMPLETED, signal_bus
 from src.vector_ops import l2_norm, l2_normalize
 
 PROTOTYPE_DIR = PROJECT_ROOT / "prototype"
@@ -131,6 +132,19 @@ class PrototypeService:
         self.rec_candidates: List[Any] = []
 
         self._load_dual_branch_batch_from_db()
+        # Subscribe live web service to extraction completion signals (in-process)
+        self._unsubscribe_extraction_signal = signal_bus.subscribe(
+            SIGNAL_EXTRACTION_COMPLETED,
+            self._handle_extraction_signal,
+        )
+
+    def _handle_extraction_signal(self, sig: Optional[ExtractionCompletedSignal] = None) -> Dict[str, Any]:
+        """Re-query `drl_database.db`, classify unclassified/active events, and refresh Rec pool."""
+        return self._load_dual_branch_batch_from_db(
+            only_unclassified=False,
+            write_back_db=True,
+            write_output_files=True,
+        )
 
     def _reload_recommendation_pool_from_db(self) -> None:
         """Build Recommendation candidate pool strictly from `drl_database.db` using 4-field passage embeddings."""
@@ -710,6 +724,9 @@ def make_handler(service: PrototypeService):
                     self._send_json(service.run_dual_branch_pipeline(body))
                 elif path == "/api/dual-branch/run-db":
                     self._send_json(service.run_dual_branch_pipeline_from_db(body))
+                elif path == "/api/signals/extraction-completed":
+                    res = service.run_dual_branch_pipeline_from_db({"write_back_db": True, "write_output_files": True})
+                    self._send_json({"status": "ok", "signal_received": SIGNAL_EXTRACTION_COMPLETED, "result": res})
                 elif path == "/api/recommendation/run":
                     self._send_json(service.run_recommendation(body))
                 elif path == "/api/recommendation/mmr":

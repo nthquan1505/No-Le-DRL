@@ -508,6 +508,92 @@ class TestEndToEndDatabaseLifecycle(unittest.TestCase):
         )
         self.assertEqual([n["type"] for n in notifs], ["update", "cancellation"])
 
+    def test_extractor_signals_classifier_to_query_db_on_completion(self) -> None:
+        from src.classification.pipeline import connect_extractor_to_classifier
+        from src.embedder import BaseEmbedder
+        from src.signals import SIGNAL_CLASSIFICATION_COMPLETED, SIGNAL_EXTRACTION_COMPLETED, SignalBus
+        from src.vector_ops import l2_normalize
+        import numpy as np
+
+        # Use a known PREDICTED query vector from precomputed multivector embeddings
+        npz_path = Path(__file__).resolve().parent.parent / "data" / "generated" / "events_cls_multivector_embeddings.npz"
+        with np.load(npz_path) as npz:
+            anchor_vec = l2_normalize(npz["title_description"][0].tolist())
+
+        class _SignalTestEmbedder(BaseEmbedder):
+            def encode_queries(self, texts):
+                return [list(anchor_vec) for _ in texts]
+
+            def encode_passages(self, texts):
+                return [list(anchor_vec) for _ in texts]
+
+        bus = SignalBus()
+        ext_signals = []
+        cls_signals = []
+        bus.subscribe(SIGNAL_EXTRACTION_COMPLETED, lambda s: ext_signals.append(s))
+
+        # Subscribe Classifier to the signal bus (it will query self.db by itself when signaled)
+        unsub_cls = connect_extractor_to_classifier(
+            db=self.db,
+            only_unclassified=True,
+            embedder=_SignalTestEmbedder(),
+            bus=bus,
+        )
+        from src.signals import signal_bus as global_bus
+
+        unsub_cls_done = global_bus.subscribe(SIGNAL_CLASSIFICATION_COMPLETED, lambda s: cls_signals.append(s))
+        try:
+            llm = DirectLLMExtractor(key_pool=GeminiKeyPool(keys=[]), groq_api_key="")
+            geocoder = EventGeocoder(cache_path=None, enable_network_geocoding=False)
+            pipeline = ExtractionPipeline(
+                db=self.db,
+                llm_extractor=llm,
+                geocoder=geocoder,
+                enable_qr_scan=False,
+                signal_bus=bus,
+            )
+
+            res = pipeline.extract_email(
+                subject="Cuộc thi Học thuật An toàn Thông tin HCMUS CTF 2026",
+                sender="cntt@hcmus.edu.vn",
+                content=(
+                    "Khoa Công nghệ Thông tin tổ chức Cuộc thi Học thuật An toàn Thông tin HCMUS CTF 2026.\n"
+                    "Thời gian: 08h00 - 16h00 ngày 12/12/2026 tại Hội trường I, 227 Nguyễn Văn Cừ.\n"
+                    "Link đăng ký: https://forms.gle/ctf2026"
+                ),
+                received_at="2026-11-28T10:00:00+07:00",
+            )
+            self.assertEqual(res.action, "created")
+            self.assertIsNotNone(res.event_id)
+
+            # 1. Extractor emitted exactly 1 signal with the created event_id (and 0 JSON event bodies)
+            self.assertEqual(len(ext_signals), 1)
+            self.assertEqual(ext_signals[0].created_event_ids, (res.event_id,))
+
+            # 2. Classifier received the signal, queried `self.db` itself, and populated `events.category`
+            self.assertEqual(len(cls_signals), 1)
+            self.assertEqual(cls_signals[0].total_queried_events, 1)
+            row = self.db.fetch_one("SELECT * FROM events WHERE event_id = ?;", (res.event_id,), table="events")
+            assert row is not None
+            self.assertIn(row["category"], (1, 2, 3, 4, 5))
+
+            # 3. Duplicate email causes 0 DB mutations -> no redundant signal emitted
+            dup = pipeline.extract_email(
+                subject="Cuộc thi Học thuật An toàn Thông tin HCMUS CTF 2026",
+                sender="cntt@hcmus.edu.vn",
+                content=(
+                    "Khoa Công nghệ Thông tin tổ chức Cuộc thi Học thuật An toàn Thông tin HCMUS CTF 2026.\n"
+                    "Thời gian: 08h00 - 16h00 ngày 12/12/2026 tại Hội trường I, 227 Nguyễn Văn Cừ.\n"
+                    "Link đăng ký: https://forms.gle/ctf2026"
+                ),
+                received_at="2026-11-28T10:00:00+07:00",
+            )
+            self.assertEqual(dup.action, "skipped_seen")
+            self.assertEqual(len(ext_signals), 1)
+        finally:
+            unsub_cls()
+            unsub_cls_done()
+
 
 if __name__ == "__main__":
     unittest.main()

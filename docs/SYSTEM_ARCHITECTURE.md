@@ -159,6 +159,7 @@ No-Le-DRL/
 │   ├── db_event_adapter.py                  # Adapter bridging `drl_database.db` rows <-> `EventNormalized` & classification inputs
 │   ├── embedder.py                          # Unified `intfloat/multilingual-e5-small` (`query:` / `passage:`, 384d L2) embedder
 │   ├── event_cache.py                       # `.npy` + `.json` event vector & metadata cache
+│   ├── signals.py                           # Thread-safe pub/sub signal bus & webhook notifier (`[EXT]` -> `[CLF]`)
 │   ├── vector_ops.py                        # L2 normalization & cosine similarity operations
 │   │
 │   ├── extraction/                          # [EXT] 4-stage event extraction & deduplication pipeline (`drl_database.db`)

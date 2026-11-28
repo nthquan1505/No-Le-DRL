@@ -17,6 +17,14 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set
 
 from database import DRLDatabaseManager, get_drl_db
+from src.signals import (
+    ExtractionCompletedSignal,
+    SIGNAL_EXTRACTION_COMPLETED,
+    SignalBus,
+    get_configured_classifier_webhook_url,
+    post_signal_webhook,
+    signal_bus as default_signal_bus,
+)
 
 from .contracts import (
     BatchExtractionSummary,
@@ -46,6 +54,9 @@ class ExtractionPipeline:
         qr_resolver: Optional[QrResolverCallable] = None,
         enable_qr_scan: bool = True,
         seen_hashes_path: Optional[Path] = None,
+        on_extraction_complete: Optional[Callable[[ExtractionCompletedSignal], Any]] = None,
+        signal_bus: Optional[SignalBus] = None,
+        classifier_webhook_url: Optional[str] = None,
     ) -> None:
         self.db = db if db is not None else get_drl_db()
         self.llm_extractor = llm_extractor if llm_extractor is not None else DirectLLMExtractor()
@@ -53,6 +64,9 @@ class ExtractionPipeline:
         self.qr_resolver: QrResolverCallable = qr_resolver or resolve_registration_url_from_posters
         self.enable_qr_scan = enable_qr_scan
         self.seen_hashes_path = seen_hashes_path
+        self.on_extraction_complete = on_extraction_complete
+        self.signal_bus: SignalBus = signal_bus if signal_bus is not None else default_signal_bus
+        self.classifier_webhook_url = classifier_webhook_url
         self._seen_hashes: Set[str] = self._load_seen_hashes()
 
     def _load_seen_hashes(self) -> Set[str]:
@@ -210,7 +224,43 @@ class ExtractionPipeline:
 
         self._save_seen_hashes()
         summary.results = [results_by_index[i] for i in range(len(items))]
+        self._emit_completion_signal(summary)
         return summary
+
+    def _emit_completion_signal(self, summary: BatchExtractionSummary) -> None:
+        """Emit `SIGNAL_EXTRACTION_COMPLETED` whenever `[EXT]` mutates `events` in `drl_database.db`."""
+        created_ids = tuple(
+            int(r.event_id) for r in summary.results if r.action == "created" and r.event_id is not None
+        )
+        updated_ids = tuple(
+            int(r.event_id) for r in summary.results if r.action == "updated" and r.event_id is not None
+        )
+        cancelled_ids = tuple(
+            int(r.event_id) for r in summary.results if r.action == "cancelled" and r.event_id is not None
+        )
+        if not (created_ids or updated_ids or cancelled_ids):
+            return
+
+        sig = ExtractionCompletedSignal(
+            db=self.db,
+            created_count=summary.created,
+            updated_count=summary.updated,
+            cancelled_count=summary.cancelled,
+            created_event_ids=created_ids,
+            updated_event_ids=updated_ids,
+            cancelled_event_ids=cancelled_ids,
+        )
+        if self.on_extraction_complete is not None:
+            try:
+                self.on_extraction_complete(sig)
+            except Exception as exc:
+                logger.warning("on_extraction_complete callback failed: %s", exc)
+
+        self.signal_bus.emit(SIGNAL_EXTRACTION_COMPLETED, sig)
+
+        webhook_url = self.classifier_webhook_url or get_configured_classifier_webhook_url()
+        if webhook_url:
+            post_signal_webhook(webhook_url, sig.to_webhook_dict())
 
     def extract_scraped_posts(
         self,
@@ -327,10 +377,14 @@ class ExtractionPipeline:
 _default_pipeline: Optional[ExtractionPipeline] = None
 
 
-def get_extraction_pipeline() -> ExtractionPipeline:
+def get_extraction_pipeline(auto_connect_classifier: bool = True) -> ExtractionPipeline:
     global _default_pipeline
     if _default_pipeline is None:
         _default_pipeline = ExtractionPipeline()
+        if auto_connect_classifier:
+            from src.classification.pipeline.classification_pipeline import connect_extractor_to_classifier
+
+            connect_extractor_to_classifier(db=_default_pipeline.db, bus=_default_pipeline.signal_bus)
     return _default_pipeline
 
 

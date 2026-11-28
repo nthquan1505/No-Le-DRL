@@ -16,8 +16,9 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
+import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from src.classification.algorithms.algorithm_registry import (
     AlgorithmRegistry,
@@ -45,6 +46,17 @@ from src.classification.output.result_writer import (
 from src.classification.retrieval.rubric_retriever import RubricRetriever
 from src.classification.retrieval.sample_retriever import SampleRetriever
 from src.db_event_adapter import write_classification_category_to_db
+from src.embedder import is_e5_runtime_available
+from src.signals import (
+    ClassificationCompletedSignal,
+    ExtractionCompletedSignal,
+    SIGNAL_CLASSIFICATION_COMPLETED,
+    SIGNAL_EXTRACTION_COMPLETED,
+    SignalBus,
+    signal_bus as default_signal_bus,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -270,6 +282,16 @@ class ClassificationPipeline:
         if write_output_files:
             output_json_path = self._resolve_path(paths_cfg["output_classification_json"])
             write_classification_events(output_events, output_json_path)
+
+        default_signal_bus.emit(
+            SIGNAL_CLASSIFICATION_COMPLETED,
+            ClassificationCompletedSignal(
+                db=db,
+                total_queried_events=len(assets.events),
+                db_categories_updated=db_categories_updated,
+                status_counts=dict(status_counts),
+            ),
+        )
 
         return {
             "source_mode": "database",
@@ -500,3 +522,45 @@ class ClassificationPipeline:
             rubric_stage1_calls=rubric_retriever.stage1_query_calls,
             rubric_stage2_calls=rubric_retriever.stage2_query_calls,
         )
+
+
+def connect_extractor_to_classifier(
+    *,
+    config_path: Optional[Path] = None,
+    project_root: Optional[Path] = None,
+    db: Any = None,
+    only_unclassified: bool = True,
+    embedder: Any = None,
+    bus: Optional[SignalBus] = None,
+) -> Callable[[], None]:
+    """Subscribe `[CLF]` to `SIGNAL_EXTRACTION_COMPLETED` so Classifier queries `drl_database.db` automatically.
+
+    When `[EXT]` finishes writing new or semantically updated records (`category IS NULL`)
+    to `drl_database.db`, this listener queries unclassified active records from the database,
+    runs 2-stage kNN classification, and writes `events.category` (`1..5`) back.
+    """
+    root = project_root or Path(__file__).resolve().parent.parent.parent.parent
+    cfg = config_path or (root / "configs" / "classification_config.yaml")
+    active_bus = bus if bus is not None else default_signal_bus
+
+    def _on_extraction_completed(sig: ExtractionCompletedSignal) -> Optional[Dict[str, Any]]:
+        if not sig.has_unclassified_changes:
+            return None
+        if db is not None and sig.db is not None and sig.db is not db:
+            return None
+        if embedder is None and not is_e5_runtime_available():
+            logger.info(
+                "Skipping automatic classification on extraction signal (E5 runtime not installed in current env)."
+            )
+            return None
+        pipeline = ClassificationPipeline(cfg, project_root=root)
+        return pipeline.run_from_database(
+            db=sig.db or db,
+            only_unclassified=only_unclassified,
+            exclude_cancelled=True,
+            write_back_db=True,
+            write_output_files=False,
+            embedder=embedder,
+        )
+
+    return active_bus.subscribe(SIGNAL_EXTRACTION_COMPLETED, _on_extraction_completed)
